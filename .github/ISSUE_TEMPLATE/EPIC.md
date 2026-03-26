@@ -1,9 +1,6 @@
 ---
 name: Epic
 about: a big piece of new functionality
-title: ''
-labels: ''
-assignees: ''
 
 ---
 
