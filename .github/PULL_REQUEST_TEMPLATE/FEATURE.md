@@ -1,4 +1,5 @@
 <!-- Remove sections from this template that are not used -->
+
 ## Related issue(s) and PR(s)
 
 This PR closes [issue number] and relates to [issue or PR number].
@@ -47,7 +48,6 @@ This PR closes [issue number] and relates to [issue or PR number].
 - [ ] **Documentation Updated (if applicable):**
   - Relevant documentation is current.
   - Considerations: in-code comments, generated documentation, README files, Swagger docs, Postman collections, Confluence pages, etc.
-  
 - [ ] **Follow-up Backlog Items Created (if applicable):**
   - Necessary follow-up tasks have been identified and added to the backlog.
   - Considerations: next iteration tasks, performance enhancements, visual improvements, refactoring needs, addressing technical debt.
