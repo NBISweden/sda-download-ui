@@ -43,6 +43,7 @@ visa:
   enabled: true
   source: "userinfo"
   userinfo-url: "http://mockauth:8000/userinfo"
+  # userinfo-url: "http://localhost:8800/oidc/userinfo"
   trusted-issuers-path: "/shared/trusted-issuers.json"
   dataset-id-mode: "raw"
   identity:

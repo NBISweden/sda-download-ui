@@ -21,7 +21,7 @@ docker compose -f sda-dev-stack.yml up -d
 
 ```bash
 # Get a token
-TOKEN=$(curl -s http://localhost:8000/tokens | jq -r '.[0]')
+TOKEN=$(curl -s http://localhost:8001/tokens | jq -r '.[0]')
 
 # List datasets
 curl -H "Authorization: Bearer $TOKEN" http://localhost:8085/datasets
@@ -41,7 +41,19 @@ jwt:
   allow-all-data: false
 ```
 
-and then run:
+and then change
+
+```yaml
+userinfo-url: "http://mockauth:8000/userinfo"
+```
+
+to
+
+```yaml
+userinfo-url: "http://localhost:8800/oidc/userinfo"
+```
+
+Finally run:
 
 ```bash
 docker compose -f sda-dev-stack.yml --profile sda-auth up -d
@@ -52,7 +64,7 @@ docker compose -f sda-dev-stack.yml --profile sda-auth up -d
 | Service  | Port  | Description                                         |
 |----------|-------|-----------------------------------------------------|
 | download | 8085  | Download API v2                                     |
-| mockauth | 8000  | Mock OIDC (JWKS, userinfo, /tokens)                 |
+| mockauth | 8001  | Mock OIDC (JWKS, userinfo, /tokens)                 |
 | postgres | 15432 | PostgreSQL with SDA schema                          |
 | minio    | 19000 | S3 storage (console at 19001)                       |
 | reencrypt| 50051 | gRPC re-encryption for file downloads               |
@@ -65,7 +77,7 @@ docker compose -f sda-dev-stack.yml --profile sda-auth up -d
 
 ```bash
 # Token for integration_test@example.org (has access to all test datasets)
-TOKEN=$(curl -s http://localhost:8000/tokens | jq -r '.[0]')
+TOKEN=$(curl -s http://localhost:8001/tokens | jq -r '.[0]')
 ```
 
 ### With sda-auth
@@ -140,7 +152,7 @@ docker compose -f sda-dev-stack.yml --profile sda-auth down
 
 ## Versioning
 
-By default the latest stable version which is will be deployed. It is possible to change the stack version by setting the image `TAG` variable as follows:
+By default the deployed sda stack version is set to the latest stable at the time of writing. It is possible to change the stack version by setting the image `TAG` variable as follows:
 
 ```bash
 TAG=PR2026-03-30 docker compose -f sda-dev-stack.yml up

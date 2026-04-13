@@ -6,7 +6,7 @@
 #
 # Usage:
 #   docker compose up -d
-#   TOKEN=$(curl -s http://localhost:8000/tokens | jq -r '.[0]')
+#   TOKEN=$(curl -s http://localhost:8001/tokens | jq -r '.[0]')
 #   curl -H "Authorization: Bearer $TOKEN" http://localhost:8085/datasets
 # NOte: v3.1.55 is the current stable release of the sda stack.
 
@@ -185,7 +185,7 @@ services:
     volumes:
       - ./mockoidc.py:/mockoidc.py
     ports:
-      - "8000:8000"
+      - "8001:8000"
     restart: always
 
   # gRPC re-encryption service (needed for file downloads)
@@ -248,7 +248,7 @@ services:
       - DB_USER=postgres
     extra_hosts:
       - "localhost:host-gateway"
-    image: ghcr.io/neicnordic/sensitive-data-archive:PR2026-03-30
+    image: ghcr.io/neicnordic/sensitive-data-archive:${TAG:-v3.1.55}
     ports:
       - "8801:8080"
     restart: always
