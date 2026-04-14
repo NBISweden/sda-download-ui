@@ -12,6 +12,12 @@ Both mock oidc services above will serve tokens that work with `sda-download-v2`
 
 ## Quick Start
 
+Create a fresh `config.yaml` instance:
+
+```bash
+cp config.yaml.example config.yaml
+```
+
 ### With `mockauth` only
 
 ```bash
