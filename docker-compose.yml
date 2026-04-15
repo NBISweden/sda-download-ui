@@ -1,0 +1,48 @@
+name: sda-download-ui
+
+services:
+
+  frontend:
+    profiles: ["prod"]
+    image: ghcr.io/nbisweden/sda-download-ui:${TAG:-latest}
+    build:
+      context: ./frontend
+      dockerfile: ../Dockerfile
+      target: prod
+      args:
+        BUILD_ID: "${BUILD_ID:-6000:6000}"
+        RUNTIME_ID: "${RUNTIME_ID:-6001:6001}"
+        BUILD_GIT_COMMIT: "${BUILD_GIT_COMMIT:-}"
+        BUILD_GIT_BRANCH: "${BUILD_GIT_BRANCH:-}"
+    healthcheck:
+      test: ["CMD", "wget", "--spider", "-q", "http://frontend:3000"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 10s
+    ports:
+      - "3002:3000"
+
+
+  frontend-dev:
+    profiles: ["dev"]
+    image: ghcr.io/nbisweden/sda-download-ui:dev
+    build:
+      context: ./frontend
+      dockerfile: ../Dockerfile
+      target: dev
+      args:
+        BUILD_ID: "${BUILD_ID:-6000:6000}"
+        RUNTIME_ID: "${RUNTIME_ID:-6001:6001}"
+        BUILD_GIT_COMMIT: "${BUILD_GIT_COMMIT:-}"
+        BUILD_GIT_BRANCH: "${BUILD_GIT_BRANCH:-}"
+    healthcheck:
+      test: ["CMD", "wget", "--spider", "-q", "http://frontend:3000"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 10s
+    ports:
+      - "3002:3000"
+    volumes:
+      - ./frontend:/app
