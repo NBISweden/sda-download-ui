@@ -5,6 +5,7 @@ services:
   frontend:
     profiles: ["prod"]
     image: ghcr.io/nbisweden/sda-download-ui:${TAG:-latest}
+    container_name: sda-download-UI
     build:
       context: ./frontend
       dockerfile: ../Dockerfile
@@ -22,6 +23,8 @@ services:
       start_period: 10s
     ports:
       - "3002:3000"
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
     # approximate PSA restricted runtime constraints
     user: "6001:6001"           # match your RUNTIME_ID (or whatever you use)
     read_only: true             # similar to readOnlyRootFilesystem
@@ -36,6 +39,7 @@ services:
   frontend-dev:
     profiles: ["dev"]
     image: ghcr.io/nbisweden/sda-download-ui:dev
+    container_name: sda-download-UI-dev
     build:
       context: ./frontend
       dockerfile: ../Dockerfile
@@ -53,5 +57,7 @@ services:
       start_period: 10s
     ports:
       - "3002:3000"
+    extra_hosts:
+      - "host.docker.internal:host-gateway" # allow access to host services like mockauth and sda-auth
     volumes:
       - ./frontend:/app

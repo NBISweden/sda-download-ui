@@ -67,8 +67,12 @@ Stop and remove containers:
 ./compose-prod.sh down
 ```
 
-## Build only (no run)
+To build only (no run):
 
 ```sh
 ./compose-prod.sh build
 ```
+
+### Connectivity to the sda dev stack
+
+The `sda-download-UI` containers can access services of the sda-stack throught calls to localhost, e.g. fetching a token array from `http://localhost:8001/tokens` should work.
