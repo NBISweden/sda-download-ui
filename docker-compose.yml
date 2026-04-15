@@ -22,6 +22,15 @@ services:
       start_period: 10s
     ports:
       - "3002:3000"
+    # approximate PSA restricted runtime constraints
+    user: "6001:6001"           # match your RUNTIME_ID (or whatever you use)
+    read_only: true             # similar to readOnlyRootFilesystem
+    security_opt:
+      - no-new-privileges:true  # like allowPrivilegeEscalation: false
+    cap_drop:
+      - ALL                     # like capabilities.drop: ["ALL"]
+    tmpfs:
+      - /tmp                    # provide a writable tmpfs for runtime needs
 
 
   frontend-dev:
