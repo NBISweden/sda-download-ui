@@ -1,0 +1,11 @@
+services:
+  sdad-frontend:
+    build:
+      dockerfile: ../Dockerfile
+      context: ./frontend
+    ports:
+      - 127.0.0.1:4711:4711
+    volumes:
+      - ./frontend:/home/node
+    environment:
+      - PORT=4711

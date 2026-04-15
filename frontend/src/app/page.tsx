@@ -7,6 +7,7 @@ export default function Home() {
           <p>The CLI you know, with a UI you’ll love.</p>
           <p>Making great tools more approachable.</p>
           <p className="fst-italic">From commands to clicks.</p>
+          <p>Built with ♡ by Meerkats.</p>
           <a
             href="https://github.com/NBISweden/sda-download-ui"
             className="btn btn-primary btn-lg"
