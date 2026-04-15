@@ -15,7 +15,7 @@ services:
         BUILD_GIT_COMMIT: "${BUILD_GIT_COMMIT:-}"
         BUILD_GIT_BRANCH: "${BUILD_GIT_BRANCH:-}"
     healthcheck:
-      test: ["CMD", "wget", "--spider", "-q", "http://frontend:3000"]
+      test: ["CMD", "node", "-e", "fetch('http://127.0.0.1:3000').then(()=>process.exit(0)).catch(()=>process.exit(1))"]
       interval: 10s
       timeout: 5s
       retries: 5
@@ -46,7 +46,7 @@ services:
         BUILD_GIT_COMMIT: "${BUILD_GIT_COMMIT:-}"
         BUILD_GIT_BRANCH: "${BUILD_GIT_BRANCH:-}"
     healthcheck:
-      test: ["CMD", "wget", "--spider", "-q", "http://frontend:3000"]
+      test: ["CMD", "node", "-e", "fetch('http://127.0.0.1:3000').then(()=>process.exit(0)).catch(()=>process.exit(1))"]
       interval: 10s
       timeout: 5s
       retries: 5
