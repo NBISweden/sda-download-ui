@@ -1,0 +1,98 @@
+# Download service v2 - local development configuration
+
+log:
+  format: "json"
+  level: "info"
+
+api:
+  host: "0.0.0.0"
+  port: 8080
+
+service:
+  id: "neicnordic.sda.download"
+  org-name: "NBIS"
+  org-url: "https://nbis.se"
+
+db:
+  host: "postgres"
+  port: 5432
+  user: "postgres"
+  password: "rootpasswd"
+  database: "sda"
+  sslmode: "disable"
+
+grpc:
+  host: "reencrypt"
+  port: 50051
+  timeout: 30
+
+jwt:
+  pubkey-path: "/shared/keys/pub/"
+  # pubkey-url: "http://localhost:8800/oidc/jwk"
+  allow-all-data: true
+
+permission:
+  model: "combined"
+
+auth:
+  allow-opaque: false
+  publicFile: "/shared/c4gh.pub.pem"
+  s3Inbox: "http://inbox:8000"
+
+visa:
+  enabled: true
+  source: "userinfo"
+  userinfo-url: "http://mockauth:8000/userinfo"
+  # userinfo-url: "http://localhost:8800/oidc/userinfo"
+  trusted-issuers-path: "/shared/trusted-issuers.json"
+  dataset-id-mode: "raw"
+  identity:
+    mode: "broker-bound"
+  validate-asserted: true
+  allow-insecure-jku: true
+  limits:
+    max-visas: 200
+    max-jwks-per-request: 10
+    max-visa-size: 16384
+  cache:
+    token-ttl: 3600
+    jwk-ttl: 300
+    validation-ttl: 120
+    userinfo-ttl: 60
+
+session:
+  expiration: 3600
+  secure: false
+  http-only: true
+  name: "sda_session"
+
+cache:
+  enabled: true
+  file-ttl: 300
+  permission-ttl: 120
+  dataset-ttl: 300
+
+storage:
+  backend: "archive"
+  archive:
+    s3:
+      - endpoint: "http://s3:9000"
+        access_key: "access"
+        secret_key: "secretKey"
+        region: "us-east-1"
+        bucket_prefix: "archive"
+        disable_https: true
+
+c4gh:
+  filePath: /shared/c4gh.sec.pem
+  passphrase: "c4ghpass"
+  privateKeys:
+  - filePath: /shared/c4gh.sec.pem
+    passphrase: "c4ghpass"
+
+oidc:
+  id: XC56EL11xx
+  jwkPath: jwk
+  provider: http://localhost:8800/oidc/
+  redirectUrl: http://localhost:8801/oidc/login
+  secret: wHPVQaYXmdDHg
