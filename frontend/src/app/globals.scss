@@ -1,0 +1,40 @@
+// ===============================
+// SDAD - Bootstrap Theme
+// ===============================
+
+// Theme color definitions
+$night: rgb(22 0 124);
+$grape: rgb(123 28 88);
+$violet: rgb(204 205 229);
+$apricot: rgb(244 196 127);
+$tomato: rgb(206 44 3);
+$tea: rgb(205 223 160);
+$stone: rgb(27 29 27);
+$light: rgb(248 249 250);
+
+// Botstrap color overrides
+$primary: $night;
+$secondary: $violet;
+$success: $tea;
+$warning: $apricot;
+$info: $grape;
+$danger: $tomato;
+$light: $light;
+$dark: $stone;
+
+$theme-colors: (
+  "primary": $primary,
+  "secondary": $secondary,
+  "success": $success,
+  "info": $info,
+  "warning": $warning,
+  "danger": $danger,
+  "light": $light,
+  "dark": $dark,
+);
+
+@import "bootstrap/scss/bootstrap";
+
+body {
+  color: $stone;
+}
