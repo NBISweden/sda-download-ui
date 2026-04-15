@@ -12,4 +12,63 @@ The necessary configuration and compose files for starting the development stack
 
 ### Download UI development stack
 
-TBD
+The `./docker-compose.yml` provides two Docker Compose profiles:
+
+- `dev`: run the Next.js app in development mode with local files mounted for live editing.
+- `prod`: build and run a production-grade image (Next.js standalone output)
+
+These can be used via the scripts `compose-dev.sh` and `compose-prod.sh`.
+
+Build and run the development image using the `dev` profile:
+
+```sh
+./compose-dev.sh up --build
+```
+
+This mounts `./frontend` into the container, installs dependencies (if needed), and runs `next dev`.
+
+Open the UI at:
+
+- http://localhost:3002
+
+Notes:
+
+- On first run the container will run `npm ci` and create `frontend/node_modules/` on your host (Linux recommended).
+
+Stop and remove containers:
+
+```sh
+./compose-dev.sh down
+```
+
+### Download UI production-like build and local run
+
+Build and run the production image using the `prod` profile:
+
+```sh
+./compose-prod.sh up --build
+```
+
+Open the UI at:
+
+- http://localhost:3002
+
+This mode is intended to be close to Kubernetes “PSA (Pod Security Admission) restricted” operation:
+
+- runs as a non-root UID/GID (`6001:6001`)
+- no-new-privileges
+- drops all Linux capabilities
+- read-only root filesystem
+- writable `/tmp` via tmpfs
+
+Stop and remove containers:
+
+```sh
+./compose-prod.sh down
+```
+
+## Build only (no run)
+
+```sh
+./compose-prod.sh build
+```
