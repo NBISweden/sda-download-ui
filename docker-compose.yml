@@ -3,9 +3,7 @@ name: sda-download-ui
 services:
 
   frontend:
-    profiles: ["prod"]
     image: ghcr.io/nbisweden/sda-download-ui:${TAG:-latest}
-    container_name: sda-download-UI
     build:
       context: ./frontend
       dockerfile: ../Dockerfile
@@ -22,11 +20,10 @@ services:
       retries: 5
       start_period: 10s
     ports:
-      - "3002:3000"
+      - 127.0.0.1:3002:3000
     extra_hosts:
       - "host.docker.internal:host-gateway"
-    # approximate PSA restricted runtime constraints
-    user: "6001:6001"           # match your RUNTIME_ID (or whatever you use)
+
     read_only: true             # similar to readOnlyRootFilesystem
     security_opt:
       - no-new-privileges:true  # like allowPrivilegeEscalation: false
@@ -34,30 +31,3 @@ services:
       - ALL                     # like capabilities.drop: ["ALL"]
     tmpfs:
       - /tmp                    # provide a writable tmpfs for runtime needs
-
-
-  frontend-dev:
-    profiles: ["dev"]
-    image: ghcr.io/nbisweden/sda-download-ui:dev
-    container_name: sda-download-UI-dev
-    build:
-      context: ./frontend
-      dockerfile: ../Dockerfile
-      target: dev
-      args:
-        BUILD_ID: "${BUILD_ID:-6000:6000}"
-        RUNTIME_ID: "${RUNTIME_ID:-6001:6001}"
-        BUILD_GIT_COMMIT: "${BUILD_GIT_COMMIT:-}"
-        BUILD_GIT_BRANCH: "${BUILD_GIT_BRANCH:-}"
-    healthcheck:
-      test: ["CMD", "node", "-e", "fetch('http://127.0.0.1:3000').then(()=>process.exit(0)).catch(()=>process.exit(1))"]
-      interval: 10s
-      timeout: 5s
-      retries: 5
-      start_period: 10s
-    ports:
-      - "3002:3000"
-    extra_hosts:
-      - "host.docker.internal:host-gateway" # allow access to host services like mockauth and sda-auth
-    volumes:
-      - ./frontend:/app
