@@ -66,4 +66,4 @@ To build only (no run):
 
 ### Connectivity to the sda dev stack
 
-The `sda-download-UI` containers can access services of the sda-stack throught calls to localhost, e.g. fetching a token array from `http://localhost:8001/tokens` should work.
+The `sda-download-UI` containers can access services of the sda-stack through calls to the host gateway, e.g. fetching a token array from `http://host.docker.internal:8001/tokens` should work.

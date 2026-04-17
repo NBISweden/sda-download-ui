@@ -19,7 +19,7 @@ if [ ! -d node_modules ] || [ ! -f node_modules.md5 ] ||
 then
 	echo 'Yes, running "npm ci"...' >&2
 	npm ci &&
-	run_md5sum >node_modules.md5
+	run_md5sum >node_modules.md5 || exit
 else
 	echo 'No, skipping "npm ci".' >&2
 fi
