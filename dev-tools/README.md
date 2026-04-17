@@ -23,7 +23,7 @@ There are two mock services included for issuing tokens:
 
 Both mock oidc services above will serve tokens that work with
 `sda-download-v2` but at the moment only the `mockauth` token contains
-visas that grand access to the test dataset.
+visas that grant access to the test dataset.
 
 ## Quick Start
 
