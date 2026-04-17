@@ -12,15 +12,6 @@ The necessary configuration and compose files for starting the development stack
 
 ### Download UI development stack
 
-The `./docker-compose.yml` provides two Docker Compose profiles:
-
-- `dev`: run the Next.js app in development mode with local files mounted for live editing.
-- `prod`: build and run a production-grade image (Next.js standalone output)
-
-These can be used via the scripts `compose-dev.sh` and `compose-prod.sh`.
-
-Build and run the development image using the `dev` profile:
-
 ```sh
 ./compose-dev.sh up --build
 ```
@@ -43,7 +34,7 @@ Stop and remove containers:
 
 ### Download UI production-like build and local run
 
-Build and run the production image using the `prod` profile:
+Build and run the production image using the `compose-prod.sh` :
 
 ```sh
 ./compose-prod.sh up --build
