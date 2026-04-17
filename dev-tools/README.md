@@ -84,23 +84,15 @@ docker compose -f sda-dev-stack.yml --profile sda-auth up -d
 
 ## Services
 
-  -------------------------------------------------------------------------
-  Service     Port    Description
-  ----------- ------- -----------------------------------------------------
-  download    8085    Download API v2
-
-  mockauth    8001    Mock OIDC (JWKS, userinfo, /tokens)
-
-  postgres    15432   PostgreSQL with SDA schema
-
-  minio       19000   S3 storage (console at 19001)
-
-  reencrypt   50051   gRPC re-encryption for file downloads
-
-  auth-aai    8801    OpenIDConnect client for fetching tokens
-
-  mock-aai    8800    Mock LS-AAI OIDC server for issuing tokens and visas
-  -------------------------------------------------------------------------
+| Service   | Port  | Description                                          |
+|-----------|-------|------------------------------------------------------|
+| download  | 8085  | Download API v2                                      |
+| mockauth  | 8001  | Mock OIDC (JWKS, userinfo, /tokens)                  |
+| postgres  | 15432 | PostgreSQL with SDA schema                           |
+| minio     | 19000 | S3 storage (console at 19001)                        |
+| reencrypt | 50051 | gRPC re-encryption for file downloads                |
+| auth-aai  | 8801  | OpenIDConnect client for fetching tokens             |
+| mock-aai  | 8800  | Mock LS-AAI OIDC server for issuing tokens and visas |
 
 ## Getting Tokens
 
@@ -172,7 +164,7 @@ curl -H "Authorization: Bearer $TOKEN" \
 
 The stack is pre-seeded with:
 
-- **Dataset**: `EGAD00000000001` ("Test Dataset")
+- **Dataset**: `EGAD00000000001` (“Test Dataset”)
 - **File**: `EGAF00000000001` (`test-file.c4gh`, 1000 bytes archived,
   500 bytes decrypted)
 - **User**: `integration_test@example.org` (file owner)
