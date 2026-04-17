@@ -14,7 +14,7 @@ ENV XDG_CACHE_HOME="$HOME/.cache"
 
 RUN install -d -o "$UID" -g "$GID" "$HOME"
 
-USER "$UID:$GID"
+USER "$BUILD_ID"
 
 WORKDIR "$HOME"
 
@@ -23,7 +23,6 @@ ENV npm_config_cache="$XDG_CACHE_HOME/npm" \
 ENV NEXT_TELEMETRY_DISABLED=1
 
 ENTRYPOINT ["/usr/bin/dumb-init", "--"]
-
 CMD ["./docker-entrypoint.sh"]
 
 # ----
@@ -69,18 +68,18 @@ ENV HOME=/app
 
 RUN install -d -o "$UID" -g "$GID" "$HOME"
 
-USER "$UID:$GID"
+USER "$BUILD_ID"
 
-ENV NODE_ENV=production
 ENV NEXT_TELEMETRY_DISABLED=1
+ENV NODE_ENV=production
 ENV SERVICE_MODE=production
 
 WORKDIR "$HOME"
 
 # Copy standalone server output
-COPY --from=prod-build --chown="$UID:$GID" "$HOME/.next/standalone" ./
-COPY --from=prod-build --chown="$UID:$GID" "$HOME/.next/static" ./.next/static
-COPY --chown="$UID:$GID" docker-entrypoint.sh .
+COPY --from=prod-build --chown="$BUILD_ID" "$HOME/.next/standalone" ./
+COPY --from=prod-build --chown="$BUILD_ID" "$HOME/.next/static" ./.next/static
+COPY --chown="$BUILD_ID" --chmod=755 docker-entrypoint.sh .
 
 USER "$RUNTIME_ID"
 
@@ -100,8 +99,8 @@ ENV NEXT_PUBLIC_BUILD_DATE="$BUILD_DATE" \
     NEXT_PUBLIC_BUILD_GIT_COMMIT="$BUILD_GIT_COMMIT" \
     NEXT_PUBLIC_BUILD_GIT_BRANCH="$BUILD_GIT_BRANCH"
 
-ENV SERVICE_MODE=development
-
+ENV NEXT_TELEMETRY_DISABLED=1
 ENV NODE_ENV=development
+ENV SERVICE_MODE=development
 
 USER "$RUNTIME_ID"
