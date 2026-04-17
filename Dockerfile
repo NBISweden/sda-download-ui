@@ -1,4 +1,4 @@
-FROM node:24-alpine AS base
+FROM node:lts-alpine AS base
 
 ARG BUILD_ID=1000:1000
 ARG RUNTIME_ID=1000:1000
@@ -55,7 +55,7 @@ RUN --mount=type=cache,id=npm-cache,uid="$UID",target="$npm_config_cache" \
 # ----
 
 ## Production stage
-FROM node:24-alpine AS prod
+FROM node:lts-alpine AS prod
 
 ARG BUILD_ID=1000:1000
 ARG RUNTIME_ID=1000:1000
@@ -105,4 +105,3 @@ ENV SERVICE_MODE=development
 ENV NODE_ENV=development
 
 USER "$RUNTIME_ID"
-
