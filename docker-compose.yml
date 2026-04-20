@@ -19,6 +19,8 @@ services:
       timeout: 5s
       retries: 5
       start_period: 10s
+    environment:
+      - SESSION_TOKEN_SECRET_PATH=/run/secrets/frontend-token-secret
     ports:
       - 127.0.0.1:3002:3000
     extra_hosts:
@@ -31,3 +33,9 @@ services:
       - ALL                     # like capabilities.drop: ["ALL"]
     tmpfs:
       - /tmp                    # provide a writable tmpfs for runtime needs
+    secrets:
+      - frontend-token-secret
+
+secrets:
+  frontend-token-secret:
+    file: ./secrets/frontend-token-secret.txt

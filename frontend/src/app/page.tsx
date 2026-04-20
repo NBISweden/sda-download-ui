@@ -1,4 +1,11 @@
-export default function Home() {
+import mockAuth from "./actions/auth";
+import { getSession, getClaims } from "./lib/session";
+
+export default async function Home() {
+  const sessionData = await getSession();
+  const tokenInfo = sessionData?.token
+    ? await getClaims(sessionData.token)
+    : undefined;
   return (
     <div>
       <main>
@@ -14,6 +21,25 @@ export default function Home() {
           >
             <i className="bi bi-github"></i> Go to repository
           </a>
+          <hr />
+
+          <form action={mockAuth}>
+            <button className="btn btn-primary" type="submit">
+              Sign in
+            </button>
+          </form>
+          <hr />
+          {tokenInfo ? (
+            <ul>
+              {Object.keys(tokenInfo).map((key) => (
+                <li key={key}>
+                  <em>{key}:</em> {String(tokenInfo[key])}
+                </li>
+              ))}
+            </ul>
+          ) : (
+            <></>
+          )}
         </div>
         <div className="d-flex justify-content-between p-5">
           <button className="btn btn-primary">Primary</button>
