@@ -61,11 +61,17 @@ class SessionManager<ST extends Record<string, unknown>> {
     if (!session) {
       return null;
     }
-    const { payload } = await jose.jwtDecrypt(session, this._secret, {
-      issuer: this._issuer,
-      audience: this._audience,
-    });
-    return this._parsePayload(payload);
+    try {
+      const { payload } = await jose.jwtDecrypt(session, this._secret, {
+        issuer: this._issuer,
+        audience: this._audience,
+      });
+
+      return this._parsePayload(payload);
+    } catch {
+      // Ignore improperly formed cookie data
+      return null;
+    }
   }
 }
 
