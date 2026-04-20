@@ -1,0 +1,8 @@
+services:
+
+  frontend:
+    build:
+      target: dev
+    read_only: false
+    volumes:
+      - ./frontend:/app
