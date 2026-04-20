@@ -17,7 +17,8 @@ export default async function mockAuth(data: FormData) {
 }
 
 export async function fetchMockToken() {
-  const tokenUrl = process.env.MOCK_TOKEN_URL || "http://mockauth:8000/tokens";
+  const tokenUrl =
+    process.env.MOCK_TOKEN_URL || "http://host.docker.internal:8001/tokens";
   const data: string[] = await (await fetch(tokenUrl)).json();
   const token = data[0];
   return token;
