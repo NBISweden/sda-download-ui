@@ -1,5 +1,6 @@
 import { fetchDatasets, fetchDatasetMetadata, type DatasetMetadata } from "../../actions/datasets";
 import { getSession } from "@/app/lib/session";
+import DatasetsList from "../../components/DatasetsList";
 
 export default async function DataSetsViewPage() {
   const sessionData = await getSession();
@@ -30,7 +31,7 @@ export default async function DataSetsViewPage() {
   return (
       <main>
         <div className="container">
-          <h2>Datasets</h2>
+          <h2 className="my-3">Datasets</h2>
           <div className="row">
             {errorMessage ? (
                 <div className="alert alert-warning" role="alert"><i
@@ -41,211 +42,10 @@ export default async function DataSetsViewPage() {
                     className="bi bi-info-circle-fill fs-4 pe-1"></i>
                   No datasets were found.</div>
             ) : (
-                <ul>
-                  {datasetMetadataList.map((dataset) => (
-                      <li key={dataset.datasetId}>
-                        <pre>{JSON.stringify(dataset, null, 2)}</pre>
-                      </li>
-                  ))}
-                </ul>
+               <DatasetsList datasets={datasetMetadataList} itemsPerPage={20}/>
             )}
           </div>
         </div>
       </main>
   );
 }
-{/*<h2>Datasets</h2>
-      <div className="row">
-        <div className="col-4 p-2">
-          <div className="card">
-            <h5 className="card-header">
-              67c98a64-72ea-54fd-91c7-24c80ff6d7f6
-            </h5>
-            <ul className="list-group list-group-flush">
-              <li className="list-group-item">
-                <em>2024-10-21</em>
-              </li>
-              <li className="list-group-item">
-                {" "}
-                60 <em>files</em>
-              </li>
-              <li className="list-group-item">
-                <em>Dataset size:</em> 582639
-              </li>
-            </ul>
-            <div className="card-body">
-              <a
-                className="btn btn-primary text-break"
-                href="/ui-examples/sdad/datasets/entry/?entryId=67c98a64-72ea-54fd-91c7-24c80ff6d7f6"
-              >
-                View dataset 67c98a64-72ea-54fd-91c7-24c80ff6d7f6
-              </a>
-            </div>
-          </div>
-        </div>
-        <div className="col-4 p-2">
-          <div className="card">
-            <h5 className="card-header">
-              67c98a64-72ea-54fd-91c7-24c80ff6d7f6
-            </h5>
-            <ul className="list-group list-group-flush">
-              <li className="list-group-item">
-                <em>2024-10-21</em>
-              </li>
-              <li className="list-group-item">
-                {" "}
-                60 <em>files</em>
-              </li>
-              <li className="list-group-item">
-                <em>Dataset size:</em> 582639
-              </li>
-            </ul>
-            <div className="card-body">
-              <a
-                className="btn btn-primary text-break"
-                href="/ui-examples/sdad/datasets/entry/?entryId=67c98a64-72ea-54fd-91c7-24c80ff6d7f6"
-              >
-                View dataset 67c98a64-72ea-54fd-91c7-24c80ff6d7f6
-              </a>
-            </div>
-          </div>
-        </div>
-        <div className="col-4 p-2">
-          <div className="card">
-            <h5 className="card-header">
-              67c98a64-72ea-54fd-91c7-24c80ff6d7f6
-            </h5>
-            <ul className="list-group list-group-flush">
-              <li className="list-group-item">
-                <em>2024-10-21</em>
-              </li>
-              <li className="list-group-item">
-                {" "}
-                60 <em>files</em>
-              </li>
-              <li className="list-group-item">
-                <em>Dataset size:</em> 582639
-              </li>
-            </ul>
-            <div className="card-body">
-              <a
-                className="btn btn-primary text-break"
-                href="/ui-examples/sdad/datasets/entry/?entryId=67c98a64-72ea-54fd-91c7-24c80ff6d7f6"
-              >
-                View dataset 67c98a64-72ea-54fd-91c7-24c80ff6d7f6
-              </a>
-            </div>
-          </div>
-        </div>
-        <div className="col-4 p-2">
-          <div className="card">
-            <h5 className="card-header">
-              67c98a64-72ea-54fd-91c7-24c80ff6d7f6
-            </h5>
-            <ul className="list-group list-group-flush">
-              <li className="list-group-item">
-                <em>2024-10-21</em>
-              </li>
-              <li className="list-group-item">
-                {" "}
-                60 <em>files</em>
-              </li>
-              <li className="list-group-item">
-                <em>Dataset size:</em> 582639
-              </li>
-            </ul>
-            <div className="card-body">
-              <a
-                className="btn btn-primary text-break"
-                href="/ui-examples/sdad/datasets/entry/?entryId=67c98a64-72ea-54fd-91c7-24c80ff6d7f6"
-              >
-                View dataset 67c98a64-72ea-54fd-91c7-24c80ff6d7f6
-              </a>
-            </div>
-          </div>
-        </div>
-        <div className="col-4 p-2">
-          <div className="card">
-            <h5 className="card-header">
-              67c98a64-72ea-54fd-91c7-24c80ff6d7f6
-            </h5>
-            <ul className="list-group list-group-flush">
-              <li className="list-group-item">
-                <em>2024-10-21</em>
-              </li>
-              <li className="list-group-item">
-                {" "}
-                60 <em>files</em>
-              </li>
-              <li className="list-group-item">
-                <em>Dataset size:</em> 582639
-              </li>
-            </ul>
-            <div className="card-body">
-              <a
-                className="btn btn-primary text-break"
-                href="/ui-examples/sdad/datasets/entry/?entryId=67c98a64-72ea-54fd-91c7-24c80ff6d7f6"
-              >
-                View dataset 67c98a64-72ea-54fd-91c7-24c80ff6d7f6
-              </a>
-            </div>
-          </div>
-        </div>
-        <div className="col-4 p-2">
-          <div className="card">
-            <h5 className="card-header">
-              67c98a64-72ea-54fd-91c7-24c80ff6d7f6
-            </h5>
-            <ul className="list-group list-group-flush">
-              <li className="list-group-item">
-                <em>2024-10-21</em>
-              </li>
-              <li className="list-group-item">
-                {" "}
-                60 <em>files</em>
-              </li>
-              <li className="list-group-item">
-                <em>Dataset size:</em> 582639
-              </li>
-            </ul>
-            <div className="card-body">
-              <a
-                className="btn btn-primary text-break"
-                href="/ui-examples/sdad/datasets/entry/?entryId=67c98a64-72ea-54fd-91c7-24c80ff6d7f6"
-              >
-                View dataset 67c98a64-72ea-54fd-91c7-24c80ff6d7f6
-              </a>
-            </div>
-          </div>
-        </div>
-        <div className="col-4 p-2">
-          <div className="card">
-            <h5 className="card-header">
-              67c98a64-72ea-54fd-91c7-24c80ff6d7f6
-            </h5>
-            <ul className="list-group list-group-flush">
-              <li className="list-group-item">
-                <em>2024-10-21</em>
-              </li>
-              <li className="list-group-item">
-                {" "}
-                60 <em>files</em>
-              </li>
-              <li className="list-group-item">
-                <em>Dataset size:</em> 582639
-              </li>
-            </ul>
-            <div className="card-body">
-              <a
-                className="btn btn-primary text-break"
-                href="/ui-examples/sdad/datasets/entry/?entryId=67c98a64-72ea-54fd-91c7-24c80ff6d7f6"
-              >
-                View dataset 67c98a64-72ea-54fd-91c7-24c80ff6d7f6
-              </a>
-            </div>
-          </div>
-        </div>
-      </div>
-    </div>
-  );
-}*/}
