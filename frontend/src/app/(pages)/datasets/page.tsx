@@ -1,4 +1,4 @@
-import { fetchDatasets, fetchDatasetMetadata } from "../../actions/auth";
+import { fetchDatasets, fetchDatasetMetadata, type DatasetMetadata } from "../../actions/datasets";
 import { getSession } from "@/app/lib/session";
 
 export default async function DataSetsViewPage() {
@@ -6,7 +6,7 @@ export default async function DataSetsViewPage() {
   const token = sessionData?.token;
 
   let errorMessage: string | null = null;
-  let datasetMetadataList: [];
+  let datasetMetadataList: DatasetMetadata[] = [];
 
   if (!token) {
     return <p>No token found in session.</p>;
