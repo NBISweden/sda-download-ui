@@ -164,10 +164,13 @@ curl -H "Authorization: Bearer $TOKEN" \
 
 The stack is pre-seeded with:
 
-- **Dataset**: `EGAD00000000001` (“Test Dataset”)
-- **File**: `EGAF00000000001` (`test-file.c4gh`, 1000 bytes archived,
-  500 bytes decrypted)
-- **User**: `integration_test@example.org` (file owner)
+- **Datasets**: `EGAD00000000001` through `EGAD00000000120`
+- **Files**:
+  - `EGAF00000000001` (`test-file.c4gh`, 1000 bytes archived, 500 bytes decrypted)
+  - Additional generated files distributed across the seeded datasets
+- **User**: `integration_test@example.org` (submission user / file owner)
+
+The mock OIDC token for `integration_test@example.org` includes visas for datasets `EGAD00000000001` through `EGAD00000000110`.
 
 ## Cleanup
 
