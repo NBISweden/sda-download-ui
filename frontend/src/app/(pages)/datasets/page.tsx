@@ -48,7 +48,7 @@ export default async function DataSetsViewPage() {
               No datasets were found.
             </div>
           ) : (
-            <DatasetsList datasets={datasetMetadataList} itemsPerPage={20} />
+            <DatasetsList datasets={datasetMetadataList} itemsPerPage={21} />
           )}
         </div>
       </div>

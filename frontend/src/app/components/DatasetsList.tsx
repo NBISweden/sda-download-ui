@@ -34,7 +34,7 @@ export default function DatasetsList({
         onPageChange={setCurrentPage}
       />
       <div className="col-12 mb-3">
-        <div className="d-flex justify-content-between align-items-center px-3 py-2 border rounded bg-body-tertiary">
+        <div className="d-flex justify-content-between align-items-center px-3 py-2 border border-info-subtle bg-info-subtle rounded ">
           <span className="text-body-secondary">
             Viewing{" "}
             <strong>
@@ -42,8 +42,8 @@ export default function DatasetsList({
             </strong>{" "}
             of <strong>{datasets.length}</strong>
           </span>
-          <span className="badge text-bg-light">
-            {datasets.length} datasets
+          <span className="text-muted fw-light">
+            Total of {datasets.length} datasets
           </span>
         </div>
       </div>
@@ -51,24 +51,32 @@ export default function DatasetsList({
       {currentDatasets.map((dataset) => (
         <div className="col col-lg-4 p-2" key={dataset.datasetId}>
           <div className="card">
-            <h5 className="card-header">{dataset.datasetId}</h5>
-
-            <ul className="list-group list-group-flush">
-              <li className="list-group-item">
-                {new Date(dataset.date).toLocaleDateString("sv-SE")}
-              </li>
-              <li className="list-group-item">
-                {dataset.files} <em>files</em>
-              </li>
-              <li className="list-group-item">
-                <em>Dataset size is</em> {dataset.size}
-              </li>
-            </ul>
-
-            <div className="card-body">
-              <a className="btn bg-primary-subtle text-break" href="">
-                View dataset {dataset.datasetId}
-              </a>
+            <div className="card-body d-flex flex-column">
+              <div className="d-flex justify-content-between">
+                <h3 className="card-title h5">{dataset.datasetId} </h3>
+                <span
+                  className="d-inline-flex mb-3 px-2 py-1 text-secondary-emphasis
+                bg-secondary-subtle border border-secondary-subtle rounded-1"
+                >
+                  <i className="bi bi-files fs-6 pe-1"></i>
+                  {dataset.files} {dataset.files == "1" ? "file" : "files"}
+                </span>
+              </div>
+              <div className="d-flex flex-wrap justify-content-between mb-3 text-muted">
+                <span>
+                  <i className="bi bi-calendar-fill pe-1"></i>Created{" "}
+                  {new Date(dataset.date).toLocaleDateString("sv-SE")}
+                </span>
+                <span>
+                  <i className="bi bi-aspect-ratio-fill pe-1"></i>
+                  {dataset.size} bytes
+                </span>
+              </div>
+              <div className="text-left">
+                <a className="btn dataset-button" href="">
+                  View dataset
+                </a>
+              </div>
             </div>
           </div>
         </div>
