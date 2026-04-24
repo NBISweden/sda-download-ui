@@ -101,10 +101,10 @@ VISAS = {}
 
 
 def get_visas_for_user(sub: str) -> list:
-    """Get visas for a user, generating them if needed."""
     if sub not in VISAS:
         VISAS[sub] = [
-            generate_visa("EGAD00000000001", sub),
+            generate_visa(f"EGAD{i:011d}", sub)
+            for i in range(1, 111)
         ]
     return VISAS[sub]
 
