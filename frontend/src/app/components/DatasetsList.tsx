@@ -11,7 +11,7 @@ type DatasetsListProps = {
 
 export default function DatasetsList({
   datasets,
-  itemsPerPage = 6,
+  itemsPerPage = 10,
 }: DatasetsListProps) {
   const [currentPage, setCurrentPage] = useState(1);
   const [searchTerm, setSearchTerm] = useState("");
@@ -76,20 +76,23 @@ export default function DatasetsList({
           onChange={handleSearchChange}
         />
       </div>
-      <div className="col-12 mb-3">
-        <div className="d-flex justify-content-between align-items-center px-3 py-2 border border-info-subtle bg-info-subtle rounded ">
-          <span className="text-body-secondary">
-            Viewing{" "}
-            <strong>
-              {startItem}-{endItem}
-            </strong>{" "}
-            of <strong>{filteredDatasets.length}</strong>
-          </span>
-          <span className="text-muted fw-light">
-            Total of {datasets.length} datasets
-          </span>
+      {filteredDatasets.length > 0 && (
+        <div className="col-12 mb-3">
+          <div className="d-flex justify-content-between align-items-center px-3 py-2 border border-info-subtle bg-info-subtle rounded ">
+            <span className="text-body-secondary">
+              Viewing{" "}
+              <strong>
+                {startItem}-{endItem}
+              </strong>{" "}
+              of <strong>{filteredDatasets.length}</strong>
+            </span>
+            <span className="text-muted fw-light">
+              Total of {datasets.length} datasets
+            </span>
+          </div>
         </div>
-      </div>
+      )}
+
       {totalPages > 1 && (
         <Pagination
           currentPage={currentPage}
@@ -108,7 +111,7 @@ export default function DatasetsList({
       ) : (
         currentDatasets.map((dataset) => (
           <div className="col col-lg-4 p-2" key={dataset.datasetId}>
-            <div className="card">
+            <div className="card shadow-sm">
               <div className="card-body d-flex flex-column">
                 <div className="d-flex justify-content-between">
                   <h3 className="card-title h5">{dataset.datasetId} </h3>
@@ -125,10 +128,7 @@ export default function DatasetsList({
                     <i className="bi bi-calendar pe-1"></i>Created{" "}
                     {new Date(dataset.date).toLocaleDateString("sv-SE")}
                   </span>
-                  <span>
-                    <i className="bi bi-aspect-ratio pe-1"></i>
-                    {dataset.size} bytes
-                  </span>
+                  <span>{dataset.size} bytes</span>
                 </div>
                 <div className="text-left">
                   <a className="btn btn-secondary" href="">
