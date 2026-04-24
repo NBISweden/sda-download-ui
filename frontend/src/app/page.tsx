@@ -22,6 +22,9 @@ export default async function Home() {
             <i className="bi bi-github"></i> Go to repository
           </a>
           <hr />
+          <a className="btn btn-success m-1" href="/datasets">
+            My Datasets
+          </a>
 
           <form action={mockAuth}>
             <button className="btn btn-primary" type="submit">
