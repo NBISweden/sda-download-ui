@@ -3,6 +3,7 @@ import {
   type DatasetMetadata,
 } from "../../../actions/datasets";
 import { getSession } from "@/app/lib/session";
+import DatasetDetails from "../../../components/DatasetDetails";
 
 interface DatasetDetailsViewProps {
   params: Promise<{
@@ -20,14 +21,14 @@ export default async function DatasetDetailsView({
   const token = sessionData?.token;
 
   let errorMessage: string | null = null;
-  let metadata: DatasetMetadata | null = null;
+  let dataset: DatasetMetadata | null = null;
 
   if (!token) {
     return <p>No token found in session.</p>;
   } else {
     try {
-      metadata = await fetchDatasetMetadata(token, datasetId);
-      console.log("metadata", metadata);
+      dataset = await fetchDatasetMetadata(token, datasetId);
+      console.log("metadata", dataset);
     } catch (error) {
       const message =
         error instanceof Error ? error.message : "Unknown error occurred";
@@ -40,20 +41,22 @@ export default async function DatasetDetailsView({
   return (
     <main>
       <div className="container">
-        <h2 className="my-3">Dataset details</h2>
+        <h2 className="my-3">
+          Dataset {dataset?.datasetId ? dataset?.datasetId : "details"}
+        </h2>
         <div className="row">
           {errorMessage ? (
             <div className="alert alert-warning" role="alert">
               <i className="bi bi-exclamation-triangle-fill fs-4 pe-1"></i>
               {errorMessage}
             </div>
-          ) : !metadata ? (
+          ) : !dataset ? (
             <div className="alert alert-info" role="alert">
               <i className="bi bi-info-circle-fill fs-4 pe-1"></i>
               Information on the dataset couln't be loaded.
             </div>
           ) : (
-            <p>{metadata.datasetId}</p>
+            <DatasetDetails dataset={dataset} />
           )}
         </div>
       </div>
