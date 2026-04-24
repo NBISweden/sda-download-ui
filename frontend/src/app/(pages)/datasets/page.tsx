@@ -38,14 +38,18 @@ export default async function DataSetsViewPage() {
         <h2 className="my-3">Datasets</h2>
         <div className="row">
           {errorMessage ? (
-            <div className="alert alert-warning" role="alert">
-              <i className="bi bi-exclamation-triangle-fill fs-4 pe-1"></i>
-              {errorMessage}
+            <div className="col-12 col-lg-6">
+              <div className="alert alert-warning" role="alert">
+                <i className="bi bi-exclamation-triangle-fill fs-4 pe-1"></i>
+                {errorMessage}
+              </div>
             </div>
           ) : datasetMetadataList.length === 0 ? (
-            <div className="alert alert-info" role="alert">
-              <i className="bi bi-info-circle-fill fs-4 pe-1"></i>
-              No datasets were found.
+            <div className="col-12 col-lg-6">
+              <div className="alert alert-info" role="alert">
+                <i className="bi bi-info-circle-fill fs-4 pe-1"></i>
+                No datasets were found.
+              </div>
             </div>
           ) : (
             <DatasetsList datasets={datasetMetadataList} itemsPerPage={21} />

@@ -64,16 +64,16 @@ export default function DatasetsList({
               </div>
               <div className="d-flex flex-wrap justify-content-between mb-3 text-muted">
                 <span>
-                  <i className="bi bi-calendar-fill pe-1"></i>Created{" "}
+                  <i className="bi bi-calendar pe-1"></i>Created{" "}
                   {new Date(dataset.date).toLocaleDateString("sv-SE")}
                 </span>
                 <span>
-                  <i className="bi bi-aspect-ratio-fill pe-1"></i>
+                  <i className="bi bi-aspect-ratio pe-1"></i>
                   {dataset.size} bytes
                 </span>
               </div>
               <div className="text-left">
-                <a className="btn dataset-button" href="">
+                <a className="btn btn-secondary" href="">
                   View dataset
                 </a>
               </div>
