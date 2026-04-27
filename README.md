@@ -88,6 +88,12 @@ To build only (no run):
 ./compose-prod.sh build
 ```
 
+### Tests
+
+The testing library used is Vitest and the tests can run with the commands in the package.json.
+Run the tests from the container with:
+`docker compose exec frontend npm run test`
+
 ### Connectivity to the sda dev stack
 
 The `sda-download-UI` containers can access services of the sda-stack
