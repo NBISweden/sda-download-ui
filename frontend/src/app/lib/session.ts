@@ -1,5 +1,5 @@
 import "server-only";
-
+import { connection } from "next/server";
 import * as jose from "jose";
 import { getSessionManager, SessionData } from "./SessionManager";
 
@@ -16,6 +16,7 @@ function _getOrDefault<T>(value: T | undefined, defaultValue: T): T {
 }
 
 export async function getSession(): Promise<SessionData | null> {
+  await connection();
   const sessionManager = await getSessionManager();
   return await sessionManager.getSession();
 }
