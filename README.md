@@ -22,10 +22,14 @@ file](dev-tools/README.md) of that folder.
 ### Download UI development stack
 
 #### Initial configuration
-In order to start the dev stack you will need to configure the 
-`frontend-token-secret` by creating the file 
-`secrets/frontend-token-secret.txt`. This can be done by using the following
-command:
+In order to start the dev stack you will need to create a configuration
+file. As a starting point for your config file you can copy
+`sdad-config.json.example` to `sdad-config.json`.
+
+The example config includes `sessionSecretPath` which points to the
+path where `frontend-token-secret` is located. Configuring the secret
+involves creating the file `secrets/frontend-token-secret.txt`.
+This can be done by using the following command:
 
 ```sh
 openssl rand -base64 32 > secrets/frontend-token-secret.txt
