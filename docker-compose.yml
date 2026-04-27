@@ -19,8 +19,6 @@ services:
       timeout: 5s
       retries: 5
       start_period: 10s
-    environment:
-      - SESSION_TOKEN_SECRET_PATH=/run/secrets/frontend-token-secret
     ports:
       - 127.0.0.1:3002:3000
     extra_hosts:
@@ -33,6 +31,8 @@ services:
       - ALL                     # like capabilities.drop: ["ALL"]
     tmpfs:
       - /tmp                    # provide a writable tmpfs for runtime needs
+    volumes:
+      - ./sdad-config.json:/app/sdad-config.json
     secrets:
       - frontend-token-secret
 

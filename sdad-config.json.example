@@ -1,0 +1,4 @@
+{
+    "sdaBaseUrl": "http://host.docker.internal:8085",
+    "sessionSecretPath": "/run/secrets/frontend-token-secret"
+}

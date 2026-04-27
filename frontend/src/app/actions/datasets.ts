@@ -1,5 +1,7 @@
 "use server";
 
+import { getConfig } from "../lib/config";
+
 export type DatasetListResponse = {
   datasets: string[];
   nextPageToken: string | null;
@@ -12,13 +14,11 @@ export type DatasetMetadata = {
   size: number;
 };
 
-const baseUrl =
-  process.env.DATASETS_API_BASE_URL || "http://host.docker.internal:8085";
-
 export async function fetchDatasets(
   token: string,
 ): Promise<DatasetListResponse> {
-  const response = await fetch(`${baseUrl}/datasets`, {
+  const { sdaBaseUrl } = await getConfig();
+  const response = await fetch(`${sdaBaseUrl}/datasets`, {
     headers: {
       Authorization: `Bearer ${token}`,
     },
@@ -36,7 +36,8 @@ export async function fetchDatasetMetadata(
   token: string,
   datasetId: string,
 ): Promise<DatasetMetadata> {
-  const response = await fetch(`${baseUrl}/datasets/${datasetId}`, {
+  const { sdaBaseUrl } = await getConfig();
+  const response = await fetch(`${sdaBaseUrl}/datasets/${datasetId}`, {
     headers: {
       Authorization: `Bearer ${token}`,
     },

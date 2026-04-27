@@ -3,6 +3,8 @@ import "server-only";
 import { cookies } from "next/headers";
 import * as jose from "jose";
 import fs from "fs";
+import { getConfig } from "./config";
+import { connection } from "next/server";
 
 export type SessionData = {
   token: string;
@@ -75,22 +77,24 @@ class SessionManager<ST extends Record<string, unknown>> {
   }
 }
 
-export const getSessionManager: () => SessionManager<SessionData> = (() => {
-  let sessionManager: SessionManager<SessionData> | undefined = undefined;
+export const getSessionManager: () => Promise<SessionManager<SessionData>> =
+  (() => {
+    let sessionManager: SessionManager<SessionData> | undefined = undefined;
 
-  const _getSessionManager = () => {
-    if (!sessionManager) {
-      const secretPath = process.env.SESSION_TOKEN_SECRET_PATH;
-      if (!secretPath) {
-        throw new Error("No session token secret path defined.");
+    const _getSessionManager = async () => {
+      await connection();
+      if (!sessionManager) {
+        const { sessionSecretPath } = await getConfig();
+        if (!sessionSecretPath) {
+          throw new Error("No session token secret path defined.");
+        }
+        const secret = fs.readFileSync(sessionSecretPath, "utf-8");
+        sessionManager = createSDADSessionManager(secret);
       }
-      const secret = fs.readFileSync(secretPath, "utf-8");
-      sessionManager = createSDADSessionManager(secret);
-    }
-    return sessionManager;
-  };
-  return _getSessionManager;
-})();
+      return sessionManager;
+    };
+    return _getSessionManager;
+  })();
 
 export function createSDADSessionManager(secret: string) {
   const secretBytes = jose.base64url.decode(secret);
