@@ -120,7 +120,7 @@ export default function DatasetsList({
                 bg-secondary-subtle border border-secondary-subtle rounded-1"
                   >
                     <i className="bi bi-files fs-6 pe-1"></i>
-                    {dataset.files} {dataset.files == "1" ? "file" : "files"}
+                    {dataset.files} {dataset.files === 1 ? "file" : "files"}
                   </span>
                 </div>
                 <div className="d-flex flex-wrap justify-content-between mb-3 text-muted">

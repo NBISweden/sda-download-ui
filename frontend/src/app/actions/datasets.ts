@@ -36,7 +36,7 @@ export async function fetchDatasetMetadata(
   token: string,
   datasetId: string,
 ): Promise<DatasetMetadata> {
-  const response = await fetch(`\`${baseUrl}/datasets\`/${datasetId}`, {
+  const response = await fetch(`${baseUrl}/datasets/${datasetId}`, {
     headers: {
       Authorization: `Bearer ${token}`,
     },
