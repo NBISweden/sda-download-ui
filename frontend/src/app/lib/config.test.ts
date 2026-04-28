@@ -1,5 +1,5 @@
 import { describe, expect, test, vi, beforeEach, afterEach } from "vitest";
-import { parseConfig, getConfig } from "./config";
+import { parseConfig } from "./config";
 
 vi.mock(import("next/server"), () => {
   return {
