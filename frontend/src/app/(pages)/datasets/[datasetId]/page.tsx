@@ -1,9 +1,12 @@
 import {
   fetchDatasetMetadata,
   type DatasetMetadata,
+  type DatasetFile,
+  fetchDatasetFiles,
 } from "../../../actions/datasets";
 import { getSession } from "@/app/lib/session";
 import DatasetDetails from "../../../components/DatasetDetails";
+import DatasetFiles from "@/app/components/DatasetFiles";
 
 interface DatasetDetailsViewProps {
   params: Promise<{
@@ -22,22 +25,36 @@ export default async function DatasetDetailsView({
 
   let errorMessage: string | null = null;
   let dataset: DatasetMetadata | null = null;
+  let files: DatasetFile[] = [];
 
   if (!token) {
     return <p>No token found in session.</p>;
-  } else {
-    try {
-      dataset = await fetchDatasetMetadata(token, datasetId);
-      console.log("metadata", dataset);
-    } catch (error) {
-      const message =
-        error instanceof Error ? error.message : "Unknown error occurred";
-
-      errorMessage = message.includes("fetch failed")
-        ? "Could not connect to backend. Is it running?"
-        : `Could not load datasets: ${message}`;
-    }
   }
+
+  try {
+    dataset = await fetchDatasetMetadata(token, datasetId);
+    console.log("metadata", dataset);
+  } catch (error) {
+    const message =
+      error instanceof Error ? error.message : "Unknown error occurred";
+
+    errorMessage = message.includes("fetch failed")
+      ? "Could not connect to backend. Is it running?"
+      : `Could not load dataset metadata: ${message}`;
+  }
+
+  try {
+    const response = await fetchDatasetFiles(token, datasetId);
+    files = response.files;
+  } catch (error) {
+    const message =
+      error instanceof Error ? error.message : "unknown error occured";
+
+    errorMessage = message.includes("fetch failed")
+      ? "Could not connect to backend. Is it running?"
+      : `Cound not load dataset files: ${message}`;
+  }
+
   return (
     <main>
       <div className="container">
@@ -59,6 +76,10 @@ export default async function DatasetDetailsView({
             <DatasetDetails dataset={dataset} />
           )}
         </div>
+      </div>
+      <div className="container">
+        <h3>Files</h3>
+        <DatasetFiles files={files} />
       </div>
     </main>
   );

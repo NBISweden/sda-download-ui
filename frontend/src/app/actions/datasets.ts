@@ -14,6 +14,28 @@ export type DatasetMetadata = {
   size: number;
 };
 
+export type Checksum = {
+  type: string;
+  checksum: string;
+};
+
+export type DatasetFile = {
+  fileId: string;
+  filePath: string;
+  size: number;
+  decryptedSize: number;
+  checksums: Checksum[];
+  downloadUrl: string;
+};
+
+export type DatasetFilesResponse = {
+  files: DatasetFile[];
+  nextPageToken: string | null;
+};
+
+const baseUrl =
+  process.env.DATASETS_API_BASE_URL || "http://host.docker.internal:8085";
+
 export async function fetchDatasets(
   token: string,
 ): Promise<DatasetListResponse> {
@@ -46,6 +68,26 @@ export async function fetchDatasetMetadata(
 
   if (!response.ok) {
     throw new Error(`Failed to fetch dataset metadata: ${response.status}`);
+  }
+
+  return response.json();
+}
+
+export async function fetchDatasetFiles(
+  token: string,
+  datasetId: string,
+): Promise<DatasetFilesResponse> {
+  console.log("fetching files for dataset", datasetId);
+  const response = await fetch(`${baseUrl}/datasets/${datasetId}/files`, {
+    headers: {
+      Authorization: `Bearer ${token}`,
+    },
+    cache: "no-store",
+  });
+  console.log("response status", response.status);
+
+  if (!response.ok) {
+    throw new Error(`Failed to fetch dataset files: ${response.status}`);
   }
 
   return response.json();
