@@ -22,6 +22,16 @@ function jsonResponse(data: unknown, status = 200) {
   });
 }
 
+vi.mock(import("next/server"), () => {
+  return {
+    connection: async () => {},
+  };
+});
+
+vi.mock(import("server-only"), () => {
+  return {};
+});
+
 describe("datasets API functions", () => {
   beforeEach(() => {
     vi.restoreAllMocks();
