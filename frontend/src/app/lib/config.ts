@@ -10,7 +10,7 @@ const Config = z.strictObject({
 
 export type Config = z.infer<typeof Config>;
 
-function parseConfig(data: string): Config {
+export function parseConfig(data: string): Config {
   const obj = JSON.parse(data);
   return Config.parse(obj);
 }
