@@ -1,0 +1,31 @@
+name: SDAD tests
+
+on:
+  pull_request:
+    branches: [main, develop]
+
+jobs:
+  test:
+    name: Testing SDAD frontend
+    runs-on: ubuntu-latest
+
+    defaults:
+      run:
+        working-directory: frontend
+
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v6
+
+      - name: Install node
+        uses: actions/setup-node@v6
+        with:
+          node-version: "20.x"
+
+      - name: Install dependencies
+        working-directory: frontend
+        run: npm ci
+
+      - name: Run unit tests
+        working-directory: frontend
+        run: npm run test
