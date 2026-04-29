@@ -32,7 +32,7 @@ services:
     tmpfs:
       - /tmp                    # provide a writable tmpfs for runtime needs
     volumes:
-      - ./sdad-config.json:/app/sdad-config.json
+      - ./sdad-config.json:/app/sdad-config.json:ro
     secrets:
       - frontend-token-secret
 
