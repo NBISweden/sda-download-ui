@@ -91,6 +91,8 @@ export default function DatasetFiles({
         />
       </div>
       <Pagination
+        itemsPerPage={itemsPerPage}
+        totalItems={filteredFiles.length}
         currentPage={currentPage}
         totalPages={totalPages}
         onPageChange={setCurrentPage}
@@ -108,6 +110,8 @@ export default function DatasetFiles({
         />
       )}
       <Pagination
+        itemsPerPage={itemsPerPage}
+        totalItems={filteredFiles.length}
         currentPage={currentPage}
         totalPages={totalPages}
         onPageChange={setCurrentPage}
