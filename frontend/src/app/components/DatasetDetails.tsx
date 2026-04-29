@@ -9,7 +9,7 @@ export default function DatasetDetails({
 }: DatasetDetailsProps) {
   return (
     <>
-      <div className="card px-0 mt-5 col-12 col-lg-6">
+      <div className="card px-0 col-12 col-lg-6">
         <div className="card-header">
           <h3 className="card-title m-3">Dataset {dataset.datasetId}</h3>
         </div>
@@ -17,7 +17,6 @@ export default function DatasetDetails({
           <div className="d-flex">
             <div className="d-flex flex-column flex-grow-1 align-items-start mb-4 mb-sm-0">
               <div className="d-flex fs-1">
-                {/* <i className="bi bi-files me-2" /> */}
                 <p className="mb-1">
                   {dataset.files} {dataset.files === 1 ? "file" : "files"}
                 </p>

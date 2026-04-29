@@ -58,7 +58,7 @@ export default async function DatasetDetailsView({
   return (
     <main>
       <div className="container">
-        <div className="row">
+        <div className="row mt-5">
           {errorMessage ? (
             <div className="alert alert-warning" role="alert">
               <i className="bi bi-exclamation-triangle-fill fs-4 pe-1"></i>
@@ -70,13 +70,15 @@ export default async function DatasetDetailsView({
               Information on the dataset couln't be loaded.
             </div>
           ) : (
-            <DatasetDetails dataset={dataset} />
+            <>
+              <DatasetDetails dataset={dataset} />
+              <div className="container mt-5 px-0">
+                <h3>Files</h3>
+                <DatasetFiles files={files} />
+              </div>
+            </>
           )}
         </div>
-      </div>
-      <div className="container mt-5 px-0">
-        <h3>Files</h3>
-        <DatasetFiles files={files} />
       </div>
     </main>
   );

@@ -73,7 +73,7 @@ export default function DatasetFiles({
 
   return (
     <>
-      <div className="input-group col-12 mb-3">
+      <div className="input-group col-12 my-3">
         <label
           htmlFor="file-filter"
           className="input-group-text text-success-emphasis
