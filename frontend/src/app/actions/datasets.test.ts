@@ -22,6 +22,27 @@ function jsonResponse(data: unknown, status = 200) {
   });
 }
 
+const sdaBaseUrl = "http://host.docker.internal:8085";
+
+vi.mock(import("next/server"), () => {
+  return {
+    connection: async () => {},
+  };
+});
+
+vi.mock(import("server-only"), () => {
+  return {};
+});
+
+vi.mock(import("../lib/config"), () => {
+  return {
+    getConfig: async () => ({
+      sdaBaseUrl: sdaBaseUrl,
+      sessionSecretPath: "",
+    }),
+  };
+});
+
 describe("datasets API functions", () => {
   beforeEach(() => {
     vi.restoreAllMocks();
@@ -36,7 +57,7 @@ describe("datasets API functions", () => {
       name: "fetchDatasets returns parsed JSON on success",
       call: () => fetchDatasets("my-token"),
       mockData: { datasets: ["ds1", "ds2"] },
-      expectedUrl: "http://host.docker.internal:8085/datasets",
+      expectedUrl: `${sdaBaseUrl}/datasets`,
     },
     {
       name: "fetchDatasetMetadata returns parsed JSON on success",
@@ -46,7 +67,7 @@ describe("datasets API functions", () => {
         date: "2026-04-23",
         files: 10,
       },
-      expectedUrl: "http://host.docker.internal:8085/datasets/ds1",
+      expectedUrl: `${sdaBaseUrl}/datasets/ds1`,
     },
   ])("$name", async ({ call, mockData, expectedUrl }) => {
     vi.spyOn(globalThis, "fetch").mockResolvedValue(jsonResponse(mockData));
