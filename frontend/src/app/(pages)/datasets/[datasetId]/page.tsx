@@ -18,7 +18,6 @@ export default async function DatasetDetailsView({
   params,
 }: DatasetDetailsViewProps) {
   const { datasetId } = await params;
-  console.log(datasetId);
 
   const sessionData = await getSession();
   const token = sessionData?.token;
@@ -33,7 +32,6 @@ export default async function DatasetDetailsView({
 
   try {
     dataset = await fetchDatasetMetadata(token, datasetId);
-    console.log("metadata", dataset);
   } catch (error) {
     const message =
       error instanceof Error ? error.message : "Unknown error occurred";

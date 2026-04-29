@@ -33,9 +33,6 @@ export type DatasetFilesResponse = {
   nextPageToken: string | null;
 };
 
-const baseUrl =
-  process.env.DATASETS_API_BASE_URL || "http://host.docker.internal:8085";
-
 export async function fetchDatasets(
   token: string,
 ): Promise<DatasetListResponse> {
@@ -77,14 +74,13 @@ export async function fetchDatasetFiles(
   token: string,
   datasetId: string,
 ): Promise<DatasetFilesResponse> {
-  console.log("fetching files for dataset", datasetId);
-  const response = await fetch(`${baseUrl}/datasets/${datasetId}/files`, {
+  const { sdaBaseUrl } = await getConfig();
+  const response = await fetch(`${sdaBaseUrl}/datasets/${datasetId}/files`, {
     headers: {
       Authorization: `Bearer ${token}`,
     },
     cache: "no-store",
   });
-  console.log("response status", response.status);
 
   if (!response.ok) {
     throw new Error(`Failed to fetch dataset files: ${response.status}`);
