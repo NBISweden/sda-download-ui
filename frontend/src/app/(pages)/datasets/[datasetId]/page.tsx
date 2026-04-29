@@ -58,9 +58,6 @@ export default async function DatasetDetailsView({
   return (
     <main>
       <div className="container">
-        <h2 className="my-3">
-          Dataset {dataset?.datasetId ? dataset?.datasetId : "details"}
-        </h2>
         <div className="row">
           {errorMessage ? (
             <div className="alert alert-warning" role="alert">
@@ -77,7 +74,7 @@ export default async function DatasetDetailsView({
           )}
         </div>
       </div>
-      <div className="container">
+      <div className="container mt-5 px-0">
         <h3>Files</h3>
         <DatasetFiles files={files} />
       </div>
