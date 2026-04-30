@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useMemo, useEffect, ReactNode } from "react";
+import { useState, useMemo } from "react";
 import { type DatasetFile } from "../actions/datasets";
 import Pagination from "./Pagination";
 import { Table } from "./Table";
@@ -10,41 +10,29 @@ type DatasetFilesProps = {
   itemsPerPage?: number;
 };
 
-type FileTableRow = {
-  fileId: string;
-  filePath: string;
-  decryptedSize: number;
-  checksums: string;
-  downloadUrl: ReactNode;
-};
-
 export default function DatasetFiles({
   files,
   itemsPerPage = 10,
 }: DatasetFilesProps) {
   const [currentPage, setCurrentPage] = useState(1);
-  const [tableFiles, setTableFiles] = useState<FileTableRow[]>([]);
   const [searchTerm, setSearchTerm] = useState("");
 
-  useEffect(() => {
-    const formattedFiles = files.map((file) => ({
-      fileId: file.fileId,
-      filePath: file.filePath,
-      decryptedSize: file.decryptedSize,
-      checksums: file.checksums.map((c) => c.checksum).join(","),
-      downloadUrl: <a href={file.downloadUrl}>Download file</a>,
-    }));
-    setTableFiles(formattedFiles);
-  }, []);
+  const formattedFiles = files.map((file) => ({
+    fileId: file.fileId,
+    filePath: file.filePath,
+    decryptedSize: file.decryptedSize,
+    checksums: file.checksums.map((c) => c.checksum).join(","),
+    downloadUrl: <a href={file.downloadUrl}>Download file</a>,
+  }));
 
   const filteredFiles = useMemo(() => {
     const normalizedSearchTerm = searchTerm.trim().toLowerCase();
 
     if (!normalizedSearchTerm) {
-      return tableFiles;
+      return formattedFiles;
     }
 
-    return tableFiles.filter((file) => {
+    return formattedFiles.filter((file) => {
       const searchableMetadata = [
         file.fileId,
         file.filePath,
@@ -56,7 +44,7 @@ export default function DatasetFiles({
 
       return searchableMetadata.includes(normalizedSearchTerm);
     });
-  }, [tableFiles, searchTerm]);
+  }, [formattedFiles, searchTerm]);
 
   const totalPages = Math.ceil(files.length / itemsPerPage);
 

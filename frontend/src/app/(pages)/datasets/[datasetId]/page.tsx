@@ -65,7 +65,7 @@ export default async function DatasetDetailsView({
           ) : !dataset ? (
             <div className="alert alert-info" role="alert">
               <i className="bi bi-info-circle-fill fs-4 pe-1"></i>
-              Information on the dataset couln't be loaded.
+              Information on the dataset coul not be loaded.
             </div>
           ) : (
             <>
