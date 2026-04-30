@@ -1,5 +1,9 @@
 import { describe, expect, test, vi, beforeEach, afterEach } from "vitest";
-import { fetchDatasets, fetchDatasetMetadata } from "./datasets";
+import {
+  fetchDatasets,
+  fetchDatasetMetadata,
+  fetchDatasetFiles,
+} from "./datasets";
 
 /**
  * Unit tests for the dataset fetch functions in datasets.ts.
@@ -69,6 +73,23 @@ describe("datasets API functions", () => {
       },
       expectedUrl: `${sdaBaseUrl}/datasets/ds1`,
     },
+    {
+      name: "fetchDatasetFiles returns parsed JSON on success",
+      call: () => fetchDatasetFiles("my-token", "ds1"),
+      mockData: {
+        files: [
+          {
+            fileId: "file1",
+            filePath: "/path/to/file1",
+            size: 123,
+            decryptedSize: 456,
+            checksums: [{ type: "md5", checksum: "abc123" }],
+            downloadUrl: "http://example.com/file1",
+          },
+        ],
+      },
+      expectedUrl: `${sdaBaseUrl}/datasets/ds1/files`,
+    },
   ])("$name", async ({ call, mockData, expectedUrl }) => {
     vi.spyOn(globalThis, "fetch").mockResolvedValue(jsonResponse(mockData));
 
@@ -99,6 +120,13 @@ describe("datasets API functions", () => {
       body: "Not Found",
       expectedMessage: "Failed to fetch dataset metadata: 404",
     },
+    {
+      name: "fetchDatasetFiles throws on non-ok response",
+      call: () => fetchDatasetFiles("my-token", "ds1"),
+      status: 403,
+      body: "Forbidden",
+      expectedMessage: "Failed to fetch dataset files: 403",
+    },
   ])("$name", async ({ call, status, body, expectedMessage }) => {
     vi.spyOn(globalThis, "fetch").mockResolvedValue(
       new Response(body, { status }),
@@ -116,6 +144,11 @@ describe("datasets API functions", () => {
     {
       name: "fetchDatasetMetadata rejects if fetch itself fails",
       call: () => fetchDatasetMetadata("my-token", "ds1"),
+      expectedMessage: "Network error",
+    },
+    {
+      name: "fetchDatasetFiles rejects if fetch itself fails",
+      call: () => fetchDatasetFiles("my-token", "ds1"),
       expectedMessage: "Network error",
     },
   ])("$name", async ({ call, expectedMessage }) => {
