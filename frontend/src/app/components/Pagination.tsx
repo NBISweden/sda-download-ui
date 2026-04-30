@@ -1,12 +1,16 @@
 "use client";
 
 type PaginationProps = {
+  itemsPerPage?: number;
+  totalItems?: number;
   currentPage: number;
   totalPages: number;
   onPageChange: (page: number) => void;
 };
 
 export default function Pagination({
+  itemsPerPage,
+  totalItems,
   currentPage,
   totalPages,
   onPageChange,
@@ -22,6 +26,14 @@ export default function Pagination({
 
   const isFirstPage = currentPage === 1;
   const isLastPage = currentPage === totalPages;
+
+  let startItem;
+  let endItem;
+
+  if (itemsPerPage && totalItems) {
+    startItem = totalItems === 0 ? 0 : (currentPage - 1) * itemsPerPage + 1;
+    endItem = Math.min(currentPage * itemsPerPage, totalItems);
+  }
 
   return (
     <nav aria-label="Pagination">
@@ -87,6 +99,15 @@ export default function Pagination({
             Last
           </button>
         </li>
+        {itemsPerPage && totalItems && (
+          <p className="ms-3 ms-lg-4 my-3 my-lg-0 align-self-center">
+            Viewing{" "}
+            <strong>
+              {startItem}-{endItem}
+            </strong>{" "}
+            of <strong>{totalItems}</strong>
+          </p>
+        )}
       </ul>
     </nav>
   );

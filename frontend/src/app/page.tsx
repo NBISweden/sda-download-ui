@@ -1,5 +1,6 @@
 import mockAuth from "./actions/auth";
 import { getSession, getClaims } from "./lib/session";
+import Link from "next/link";
 
 export default async function Home() {
   const sessionData = await getSession();
@@ -22,9 +23,9 @@ export default async function Home() {
             <i className="bi bi-github"></i> Go to repository
           </a>
           <hr />
-          <a className="btn btn-success m-1" href="/datasets">
+          <Link className="btn btn-success m-1" href="/datasets">
             My Datasets
-          </a>
+          </Link>
 
           <form action={mockAuth}>
             <button className="btn btn-primary" type="submit">
