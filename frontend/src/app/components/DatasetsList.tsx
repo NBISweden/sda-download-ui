@@ -131,7 +131,10 @@ export default function DatasetsList({
                   <span>{dataset.size} bytes</span>
                 </div>
                 <div className="text-left">
-                  <a className="btn btn-secondary" href="">
+                  <a
+                    className="btn btn-secondary"
+                    href={`/datasets/${dataset.datasetId}`}
+                  >
                     View dataset
                   </a>
                 </div>

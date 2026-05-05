@@ -14,6 +14,25 @@ export type DatasetMetadata = {
   size: number;
 };
 
+export type Checksum = {
+  type: string;
+  checksum: string;
+};
+
+export type DatasetFile = {
+  fileId: string;
+  filePath: string;
+  size: number;
+  decryptedSize: number;
+  checksums: Checksum[];
+  downloadUrl: string;
+};
+
+export type DatasetFilesResponse = {
+  files: DatasetFile[];
+  nextPageToken: string | null;
+};
+
 export async function fetchDatasets(
   token: string,
 ): Promise<DatasetListResponse> {
@@ -46,6 +65,25 @@ export async function fetchDatasetMetadata(
 
   if (!response.ok) {
     throw new Error(`Failed to fetch dataset metadata: ${response.status}`);
+  }
+
+  return response.json();
+}
+
+export async function fetchDatasetFiles(
+  token: string,
+  datasetId: string,
+): Promise<DatasetFilesResponse> {
+  const { sdaBaseUrl } = await getConfig();
+  const response = await fetch(`${sdaBaseUrl}/datasets/${datasetId}/files`, {
+    headers: {
+      Authorization: `Bearer ${token}`,
+    },
+    cache: "no-store",
+  });
+
+  if (!response.ok) {
+    throw new Error(`Failed to fetch dataset files: ${response.status}`);
   }
 
   return response.json();
