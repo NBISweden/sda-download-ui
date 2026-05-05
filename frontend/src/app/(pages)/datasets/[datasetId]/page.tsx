@@ -46,11 +46,11 @@ export default async function DatasetDetailsView({
     files = response.files;
   } catch (error) {
     const message =
-      error instanceof Error ? error.message : "unknown error occured";
+      error instanceof Error ? error.message : "unknown error occurred";
 
     errorMessage = message.includes("fetch failed")
       ? "Could not connect to backend. Is it running?"
-      : `Cound not load dataset files: ${message}`;
+      : `Could not load dataset files: ${message}`;
   }
 
   return (
@@ -65,7 +65,7 @@ export default async function DatasetDetailsView({
           ) : !dataset ? (
             <div className="alert alert-info" role="alert">
               <i className="bi bi-info-circle-fill fs-4 pe-1"></i>
-              Information on the dataset coul not be loaded.
+              Information on the dataset could not be loaded.
             </div>
           ) : (
             <>

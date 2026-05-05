@@ -21,7 +21,12 @@ export default function DatasetFiles({
     fileId: file.fileId,
     filePath: file.filePath,
     decryptedSize: file.decryptedSize,
-    checksums: file.checksums.map((c) => c.checksum).join(","),
+    checksums: file.checksums.map((c) => (
+      <span key={c.checksum}>
+        <i>{c.type}:</i> {c.checksum}
+      </span>
+    )),
+
     downloadUrl: <a href={file.downloadUrl}>Download file</a>,
   }));
 
@@ -46,7 +51,7 @@ export default function DatasetFiles({
     });
   }, [formattedFiles, searchTerm]);
 
-  const totalPages = Math.ceil(files.length / itemsPerPage);
+  const totalPages = Math.ceil(filteredFiles.length / itemsPerPage);
 
   const currentFiles = useMemo(() => {
     const startIndex = (currentPage - 1) * itemsPerPage;
