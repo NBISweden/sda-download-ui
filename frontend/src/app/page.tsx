@@ -25,7 +25,7 @@ export default async function Home() {
             My Datasets
           </Link>
           <a className="btn btn-info m-1" href="/userinfo">
-              User info
+            User info
           </a>
 
           <form action={mockAuth}>

@@ -5,10 +5,7 @@ type UserInfoProps = {
   tokenInfoRows: TokenInfoRow[];
 };
 
-export default function UserInfo({
-  userName,
-  tokenInfoRows,
-}: UserInfoProps) {
+export default function UserInfo({ userName, tokenInfoRows }: UserInfoProps) {
   return (
     <div className="col-12 col-xl-8">
       <div className="card shadow-sm">
