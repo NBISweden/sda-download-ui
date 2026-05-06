@@ -34,7 +34,14 @@ export default function Pagination({
     }
 
     if (currentPage >= totalPages - 2) {
-      return [1, "ellipsis-left", totalPages - 3, totalPages - 2, totalPages - 1, totalPages];
+      return [
+        1,
+        "ellipsis-left",
+        totalPages - 3,
+        totalPages - 2,
+        totalPages - 1,
+        totalPages,
+      ];
     }
 
     return [
@@ -85,26 +92,26 @@ export default function Pagination({
           </button>
         </li>
         {visibleItems.map((item) =>
-            typeof item === "number" ? (
-                <li
-                    key={item}
-                    className={`page-item ${item === currentPage ? "active" : ""}`}
-                    aria-current={item === currentPage ? "page" : undefined}
-                >
-                  <button
-                      type="button"
-                      className="page-link"
-                      onClick={() => onPageChange(item)}
-                      aria-label={`Go to page ${item}`}
-                  >
-                    {item}
-                  </button>
-                </li>
-            ) : (
-                <li key={item} className="page-item disabled" aria-hidden="true">
-                  <span className="page-link">…</span>
-                </li>
-            ),
+          typeof item === "number" ? (
+            <li
+              key={item}
+              className={`page-item ${item === currentPage ? "active" : ""}`}
+              aria-current={item === currentPage ? "page" : undefined}
+            >
+              <button
+                type="button"
+                className="page-link"
+                onClick={() => onPageChange(item)}
+                aria-label={`Go to page ${item}`}
+              >
+                {item}
+              </button>
+            </li>
+          ) : (
+            <li key={item} className="page-item disabled" aria-hidden="true">
+              <span className="page-link">…</span>
+            </li>
+          ),
         )}
 
         <li className={`page-item ${isLastPage ? "disabled" : ""}`}>
