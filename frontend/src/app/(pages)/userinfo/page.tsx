@@ -2,12 +2,7 @@ import { getSession } from "@/app/lib/session";
 import * as jose from "jose";
 import UserInfo from "@/app/components/UserInfo";
 
-export type TokenPayloadRow = {
-  label: string;
-  value: string;
-};
-
-export type TokenHeaderRow = {
+export type TokenInfoRow = {
   label: string;
   value: string;
 };
@@ -38,22 +33,30 @@ function formatValue(value: unknown) {
   return String(value);
 }
 
-function getPayloadRows(payload: jose.JWTPayload): TokenPayloadRow[] {
+function getTokenInfoRows(payload: jose.JWTPayload): TokenInfoRow[] {
   return [
-    { label: "Issuer", value: formatValue(payload.iss) },
-    { label: "Subject", value: formatValue(payload.sub) },
-    { label: "Audience", value: formatValue(payload.aud) },
-    { label: "Issued at", value: formatUnixTimestamp(payload.iat) },
-    { label: "Expires at", value: formatUnixTimestamp(payload.exp) },
-    { label: "Token ID", value: formatValue(payload.jti) },
-  ].filter((row) => row.value !== "");
-}
-
-function getHeaderRows(header: jose.ProtectedHeaderParameters): TokenHeaderRow[] {
-  return [
-    { label: "Algorithm", value: formatValue(header.alg) },
-    { label: "Type", value: formatValue(header.typ) },
-    { label: "Key ID", value: formatValue(header.kid) },
+    {
+      label: "Signed in as",
+      value: formatValue(
+        payload.sub ?? payload.email ?? payload["user"] ?? "Unknown user",
+      ),
+    },
+    {
+      label: "Issued",
+      value: formatUnixTimestamp(payload.iat),
+    },
+    {
+      label: "Expires",
+      value: formatUnixTimestamp(payload.exp),
+    },
+    {
+      label: "Provided by",
+      value: formatValue(payload.iss),
+    },
+    {
+      label: "For application",
+      value: formatValue(payload.aud),
+    },
   ].filter((row) => row.value !== "");
 }
 
@@ -63,21 +66,18 @@ export default async function UserPage() {
 
   let errorMessage: string | null = null;
   let userName = "";
-  let payloadRows: TokenPayloadRow[] = [];
-  let headerRows: TokenHeaderRow[] = [];
+  let tokenInfoRows: TokenInfoRow[] = [];
 
   if (!token) {
     errorMessage = "No token found in session.";
   } else {
     try {
       const payload = jose.decodeJwt(token);
-      const header = jose.decodeProtectedHeader(token);
 
       userName = formatValue(
         payload.sub ?? payload.email ?? payload["user"] ?? "Unknown user",
       );
-      payloadRows = getPayloadRows(payload);
-      headerRows = getHeaderRows(header);
+      tokenInfoRows = getTokenInfoRows(payload);
     } catch (error) {
       const message =
         error instanceof Error ? error.message : "Unknown error occurred";
@@ -98,11 +98,7 @@ export default async function UserPage() {
               </div>
             </div>
           ) : (
-            <UserInfo
-              userName={userName}
-              payloadRows={payloadRows}
-              headerRows={headerRows}
-            />
+            <UserInfo userName={userName} tokenInfoRows={tokenInfoRows} />
           )}
         </div>
       </div>
