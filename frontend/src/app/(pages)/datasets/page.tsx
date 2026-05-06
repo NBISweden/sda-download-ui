@@ -5,6 +5,7 @@ import {
 } from "../../actions/datasets";
 import { getSession } from "@/app/lib/session";
 import DatasetsList from "../../components/DatasetsList";
+import { Header } from "@/app/components/Header";
 
 export default async function DataSetsViewPage() {
   const sessionData = await getSession();
@@ -34,6 +35,7 @@ export default async function DataSetsViewPage() {
   }
   return (
     <main>
+      <Header />
       <div className="container">
         <h2 className="my-3">Datasets</h2>
         <div className="row">
