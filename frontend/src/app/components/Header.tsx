@@ -33,22 +33,22 @@ export function Header() {
             Sensitive Data Archive
           </Link>
           <button
-            className="navbar-toggler fs-2"
+            className="navbar-toggler fs-2 d-flex flex-column d-md-none p-3 hamburger"
             type="button"
             aria-controls="navbarNav"
             aria-expanded={!isNavCollapsed}
             aria-label="Toggle navigation"
             onClick={handleNavCollapse}
           >
-            <i className={`${isNavCollapsed ? "bi bi-list" : "bi bi-x-lg"}`} />
+            <span className={`bar ${isNavCollapsed ? "" : "is-active"}`}></span>
+            <span className={`bar ${isNavCollapsed ? "" : "is-active"}`}></span>
+            <span className={`bar ${isNavCollapsed ? "" : "is-active"}`}></span>
           </button>
           <div
-            className={`${isNavCollapsed ? "collapse justify-content-end" : "d-flex justify-content-center"} navbar-collapse `}
+            className={`navbar-collapse justify-content-end ${isNavCollapsed ? "nav-collapsed" : "nav-expanded"}`}
             id="navbarNav"
           >
-            <ul
-              className={`${isNavCollapsed ? "" : "text-center w-100 pt-3"} navbar-nav`}
-            >
+            <ul className="navbar-nav text-center text-md-start mt-3 mt-md-0">
               {navLinks.map((link) => {
                 const isActive = pathname === link.href;
                 return (

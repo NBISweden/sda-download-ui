@@ -43,11 +43,62 @@ body {
 @import "bootstrap/scss/variables";
 @import "bootstrap/scss/mixins";
 
-// Mobile navbar hover effect
+// Animated hamburger menu
+.hamburger {
+  gap: 6px;
+}
+
+.bar {
+  display: block;
+  width: 30px;
+  height: 2px;
+  background-color: $info;
+  border: 1px solid $info;
+  border-radius: 30px;
+  transition: all 0.3s ease-in-out;
+}
+
+.is-active:nth-child(1) {
+  transform: translateY(8px) rotate(45deg);
+}
+
+.is-active:nth-child(2) {
+  opacity: 0;
+}
+
+.is-active:nth-child(3) {
+  transform: translateY(-8px) rotate(-45deg);
+}
+
+// Small screen navbar hover effect
 .nav-link {
   transition: background-color 0.2s ease;
 
   &:hover {
     background-color: var(--bs-secondary-bg);
+  }
+}
+
+// Small screen navigation animation
+.navbar-collapse {
+  @include media-breakpoint-down(md) {
+    overflow: hidden;
+    transition:
+      max-height 0.3s ease-in-out,
+      opacity 0.3s ease-in-out;
+  }
+}
+
+.nav-collapsed {
+  @include media-breakpoint-down(md) {
+    max-height: 0;
+    opacity: 0;
+  }
+}
+
+.nav-expanded {
+  @include media-breakpoint-down(md) {
+    max-height: 300px;
+    opacity: 1;
   }
 }
