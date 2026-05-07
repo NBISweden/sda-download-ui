@@ -22,7 +22,7 @@ export default function Pagination({
   const isFirstPage = currentPage === 1;
   const isLastPage = currentPage === totalPages;
 
-  const pageThreshold = 6;
+  const pageThreshold = 7;
 
   const getVisibleItems = () => {
     if (totalPages <= pageThreshold) {
