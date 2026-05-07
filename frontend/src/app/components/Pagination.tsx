@@ -15,7 +15,12 @@ export default function Pagination({
   totalPages,
   onPageChange,
 }: PaginationProps) {
-  if (totalPages <= 1) {
+  const shouldShowPagination = totalPages > 1;
+  const shouldShowViewingSummary =
+      typeof itemsPerPage === "number" &&
+      typeof totalItems === "number";
+
+  if (!shouldShowPagination && !shouldShowViewingSummary) {
     return null;
   }
 
@@ -68,76 +73,81 @@ export default function Pagination({
   return (
     <nav aria-label="Pagination">
       <ul className="pagination flex-wrap">
-        <li className={`page-item ${isFirstPage ? "disabled" : ""}`}>
-          <button
-            type="button"
-            className="page-link"
-            onClick={() => onPageChange(1)}
-            disabled={isFirstPage}
-          >
-            <span className="d-inline d-sm-none">&lt;&lt;</span>
-            <span className="d-none d-sm-inline">First</span>
-          </button>
-        </li>
+        {shouldShowPagination && (
+            <>
+              <li className={`page-item ${isFirstPage ? "disabled" : ""}`}>
+                <button
+                    type="button"
+                    className="page-link"
+                    onClick={() => onPageChange(1)}
+                    disabled={isFirstPage}
+                >
+                  <span className="d-inline d-sm-none">&lt;&lt;</span>
+                  <span className="d-none d-sm-inline">First</span>
+                </button>
+              </li>
 
-        <li className={`page-item ${isFirstPage ? "disabled" : ""}`}>
-          <button
-            type="button"
-            className="page-link"
-            onClick={() => onPageChange(currentPage - 1)}
-            disabled={isFirstPage}
-          >
-            <span className="d-inline d-sm-none">&lt;</span>
-            <span className="d-none d-sm-inline">Previous</span>
-          </button>
-        </li>
-        {visibleItems.map((item) =>
-          typeof item === "number" ? (
-            <li
-              key={item}
-              className={`page-item ${item === currentPage ? "active" : ""}`}
-              aria-current={item === currentPage ? "page" : undefined}
-            >
-              <button
-                type="button"
-                className="page-link"
-                onClick={() => onPageChange(item)}
-                aria-label={`Go to page ${item}`}
-              >
-                {item}
-              </button>
-            </li>
-          ) : (
-            <li key={item} className="page-item disabled" aria-hidden="true">
-              <span className="page-link">…</span>
-            </li>
-          ),
+              <li className={`page-item ${isFirstPage ? "disabled" : ""}`}>
+                <button
+                    type="button"
+                    className="page-link"
+                    onClick={() => onPageChange(currentPage - 1)}
+                    disabled={isFirstPage}
+                >
+                  <span className="d-inline d-sm-none">&lt;</span>
+                  <span className="d-none d-sm-inline">Previous</span>
+                </button>
+              </li>
+              {visibleItems.map((item) =>
+                  typeof item === "number" ? (
+                      <li
+                          key={item}
+                          className={`page-item ${item === currentPage ? "active" : ""}`}
+                          aria-current={item === currentPage ? "page" : undefined}
+                      >
+                        <button
+                            type="button"
+                            className="page-link"
+                            onClick={() => onPageChange(item)}
+                            aria-label={`Go to page ${item}`}
+                        >
+                          {item}
+                        </button>
+                      </li>
+                  ) : (
+                      <li key={item} className="page-item disabled" aria-hidden="true">
+                        <span className="page-link">…</span>
+                      </li>
+                  ),
+              )}
+
+              <li className={`page-item ${isLastPage ? "disabled" : ""}`}>
+                <button
+                    type="button"
+                    className="page-link"
+                    onClick={() => onPageChange(currentPage + 1)}
+                    disabled={isLastPage}
+                >
+                  <span className="d-inline d-sm-none">&gt;</span>
+                  <span className="d-none d-sm-inline">Next</span>
+                </button>
+              </li>
+
+              <li className={`page-item ${isLastPage ? "disabled" : ""}`}>
+                <button
+                    type="button"
+                    className="page-link"
+                    onClick={() => onPageChange(totalPages)}
+                    disabled={isLastPage}
+                >
+                  <span className="d-inline d-sm-none">&gt;&gt;</span>
+                  <span className="d-none d-sm-inline">Last</span>
+                </button>
+              </li>
+            </>
         )}
 
-        <li className={`page-item ${isLastPage ? "disabled" : ""}`}>
-          <button
-            type="button"
-            className="page-link"
-            onClick={() => onPageChange(currentPage + 1)}
-            disabled={isLastPage}
-          >
-            <span className="d-inline d-sm-none">&gt;</span>
-            <span className="d-none d-sm-inline">Next</span>
-          </button>
-        </li>
-
-        <li className={`page-item ${isLastPage ? "disabled" : ""}`}>
-          <button
-            type="button"
-            className="page-link"
-            onClick={() => onPageChange(totalPages)}
-            disabled={isLastPage}
-          >
-            <span className="d-inline d-sm-none">&gt;&gt;</span>
-            <span className="d-none d-sm-inline">Last</span>
-          </button>
-        </li>
-        {itemsPerPage && totalItems && (
+        {shouldShowViewingSummary && (
           <li className="ms-3 ms-lg-4 my-3 my-lg-0 align-self-center">
             Viewing{" "}
             <strong>
