@@ -1,12 +1,10 @@
 import mockAuth from "./actions/auth";
-import { getSession, getClaims } from "./lib/session";
+import { getSession } from "./lib/session";
 import Link from "next/link";
 
 export default async function Home() {
   const sessionData = await getSession();
-  const tokenInfo = sessionData?.token
-    ? await getClaims(sessionData.token)
-    : undefined;
+
   return (
     <div>
       <main>
@@ -26,24 +24,20 @@ export default async function Home() {
           <Link className="btn btn-success m-1" href="/datasets">
             My Datasets
           </Link>
+          <a className="btn btn-info m-1" href="/userinfo">
+            User info
+          </a>
 
           <form action={mockAuth}>
-            <button className="btn btn-primary" type="submit">
-              Sign in
+            <button
+              className="btn btn-primary"
+              type="submit"
+              disabled={!!sessionData?.token}
+            >
+              {sessionData?.token ? "Signed in" : "Sign in"}
             </button>
           </form>
           <hr />
-          {tokenInfo ? (
-            <ul>
-              {Object.keys(tokenInfo).map((key) => (
-                <li key={key}>
-                  <em>{key}:</em> {String(tokenInfo[key])}
-                </li>
-              ))}
-            </ul>
-          ) : (
-            <></>
-          )}
         </div>
         <div className="d-flex justify-content-between p-5">
           <button className="btn btn-primary">Primary</button>
