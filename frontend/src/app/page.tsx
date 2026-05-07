@@ -1,7 +1,6 @@
 import mockAuth from "./actions/auth";
 import { getSession } from "./lib/session";
 import Link from "next/link";
-import { Header } from "./components/Header";
 
 export default async function Home() {
   const sessionData = await getSession();
@@ -9,7 +8,6 @@ export default async function Home() {
   return (
     <div>
       <main>
-        <Header />
         <div className="d-flex justify-content-center align-items-center flex-column mt-5">
           <h1>Welcome to SDA download UI!</h1>
           <p>The CLI you know, with a UI you’ll love.</p>

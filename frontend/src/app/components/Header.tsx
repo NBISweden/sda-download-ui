@@ -29,6 +29,7 @@ export function Header() {
             className={`navbar-brand fs-4 ${isHome ? "text-info" : ""}`}
             href="/"
             aria-current={isHome ? "page" : undefined}
+            onClick={() => setIsNavCollapsed(true)}
           >
             Sensitive Data Archive
           </Link>
@@ -57,6 +58,7 @@ export function Header() {
                       className={`nav-link px-3 ${isActive ? "text-info" : ""}`}
                       href={link.href}
                       aria-current={isActive ? "page" : undefined}
+                      onClick={() => setIsNavCollapsed(true)}
                     >
                       {link.label}
                     </Link>
