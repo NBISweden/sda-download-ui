@@ -5,7 +5,7 @@ type PaginationProps = {
   totalItems?: number;
   currentPage: number;
   totalPages: number;
-  onPageChange: (page: number) => void;
+  onPageChange: (page: number | string) => void;
 };
 
 export default function Pagination({
@@ -19,13 +19,43 @@ export default function Pagination({
     return null;
   }
 
-  const pageNumbers = Array.from(
-    { length: totalPages },
-    (_, index) => index + 1,
-  );
-
   const isFirstPage = currentPage === 1;
   const isLastPage = currentPage === totalPages;
+
+  const pageThreshold = 7;
+
+  const getVisibleItems = () => {
+    if (totalPages <= pageThreshold) {
+      return Array.from({ length: totalPages }, (_, index) => index + 1);
+    }
+
+    if (currentPage <= 3) {
+      return [1, 2, 3, 4, "ellipsis-right", totalPages];
+    }
+
+    if (currentPage >= totalPages - 2) {
+      return [
+        1,
+        "ellipsis-left",
+        totalPages - 3,
+        totalPages - 2,
+        totalPages - 1,
+        totalPages,
+      ];
+    }
+
+    return [
+      1,
+      "ellipsis-left",
+      currentPage - 1,
+      currentPage,
+      currentPage + 1,
+      "ellipsis-right",
+      totalPages,
+    ];
+  };
+
+  const visibleItems = getVisibleItems();
 
   let startItem;
   let endItem;
@@ -45,7 +75,8 @@ export default function Pagination({
             onClick={() => onPageChange(1)}
             disabled={isFirstPage}
           >
-            First
+            <span className="d-inline d-sm-none">&lt;&lt;</span>
+            <span className="d-none d-sm-inline">First</span>
           </button>
         </li>
 
@@ -56,26 +87,32 @@ export default function Pagination({
             onClick={() => onPageChange(currentPage - 1)}
             disabled={isFirstPage}
           >
-            <span className="d-inline d-sm-none">&lt;&lt;</span>
+            <span className="d-inline d-sm-none">&lt;</span>
             <span className="d-none d-sm-inline">Previous</span>
           </button>
         </li>
-
-        {pageNumbers.map((pageNumber) => (
-          <li
-            key={pageNumber}
-            className={`page-item ${pageNumber === currentPage ? "active" : ""}`}
-            aria-current={pageNumber === currentPage ? "page" : undefined}
-          >
-            <button
-              type="button"
-              className="page-link"
-              onClick={() => onPageChange(pageNumber)}
+        {visibleItems.map((item) =>
+          typeof item === "number" ? (
+            <li
+              key={item}
+              className={`page-item ${item === currentPage ? "active" : ""}`}
+              aria-current={item === currentPage ? "page" : undefined}
             >
-              {pageNumber}
-            </button>
-          </li>
-        ))}
+              <button
+                type="button"
+                className="page-link"
+                onClick={() => onPageChange(item)}
+                aria-label={`Go to page ${item}`}
+              >
+                {item}
+              </button>
+            </li>
+          ) : (
+            <li key={item} className="page-item disabled" aria-hidden="true">
+              <span className="page-link">…</span>
+            </li>
+          ),
+        )}
 
         <li className={`page-item ${isLastPage ? "disabled" : ""}`}>
           <button
@@ -84,7 +121,7 @@ export default function Pagination({
             onClick={() => onPageChange(currentPage + 1)}
             disabled={isLastPage}
           >
-            <span className="d-inline d-sm-none">&gt;&gt;</span>
+            <span className="d-inline d-sm-none">&gt;</span>
             <span className="d-none d-sm-inline">Next</span>
           </button>
         </li>
@@ -96,17 +133,18 @@ export default function Pagination({
             onClick={() => onPageChange(totalPages)}
             disabled={isLastPage}
           >
-            Last
+            <span className="d-inline d-sm-none">&gt;&gt;</span>
+            <span className="d-none d-sm-inline">Last</span>
           </button>
         </li>
         {itemsPerPage && totalItems && (
-          <p className="ms-3 ms-lg-4 my-3 my-lg-0 align-self-center">
+          <li className="ms-3 ms-lg-4 my-3 my-lg-0 align-self-center">
             Viewing{" "}
             <strong>
               {startItem}-{endItem}
             </strong>{" "}
             of <strong>{totalItems}</strong>
-          </p>
+          </li>
         )}
       </ul>
     </nav>
