@@ -29,8 +29,12 @@ export default async function Home() {
           </a>
 
           <form action={mockAuth}>
-            <button className="btn btn-primary" type="submit">
-              Sign in
+            <button
+              className="btn btn-primary"
+              type="submit"
+              disabled={!!sessionData?.token}
+            >
+              {sessionData?.token ? "Signed in" : "Sign in"}
             </button>
           </form>
           <hr />
