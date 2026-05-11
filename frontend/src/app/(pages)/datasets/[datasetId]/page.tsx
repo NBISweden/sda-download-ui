@@ -72,7 +72,7 @@ export default async function DatasetDetailsView({
               <DatasetDetails dataset={dataset} />
               <div className="container mt-5 px-0">
                 <h3>Files</h3>
-                <DatasetFiles files={files} />
+                <DatasetFiles files={files} itemsPerPage={10} />
               </div>
             </>
           )}
