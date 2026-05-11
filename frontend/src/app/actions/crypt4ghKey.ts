@@ -5,8 +5,8 @@ import { validateCrypt4GHPublicKey } from "../lib/crypt4gh";
 import * as crypto from "crypto";
 
 const Crypt4GHForm = z.object({
-  pemFile: z.optional(z.file()),
-  pemKey: z.optional(z.string()),
+  pemFile: z.nullable(z.file()),
+  pemKey: z.nullable(z.string()),
   action: z.enum(["submit", "remove"]),
 });
 
