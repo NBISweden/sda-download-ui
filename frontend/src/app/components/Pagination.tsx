@@ -64,7 +64,7 @@ export default function Pagination({
   let startItem;
   let endItem;
 
-  if (itemsPerPage && totalItems) {
+  if (shouldShowViewingSummary) {
     startItem = totalItems === 0 ? 0 : (currentPage - 1) * itemsPerPage + 1;
     endItem = Math.min(currentPage * itemsPerPage, totalItems);
   }
