@@ -1,7 +1,7 @@
 "use client";
 import type { TokenInfoRow } from "@/app/(pages)/userinfo/page";
 import { useActionState } from "react";
-import type { PublicKeyData } from "../actions/crypt4ghKey";
+import type { Crypt4GHFormStateData } from "../actions/crypt4ghKey";
 
 type UserInfoProps = {
   tokenInfoRows: TokenInfoRow[];
@@ -10,9 +10,9 @@ type UserInfoProps = {
 };
 
 type SetKeyFormFunction = (
-  state: PublicKeyData | { errors: string[] },
+  state: Crypt4GHFormStateData,
   d?: FormData,
-) => Promise<PublicKeyData | { errors: string[] }>;
+) => Promise<Crypt4GHFormStateData>;
 
 export default function UserInfo({
   tokenInfoRows,
@@ -20,9 +20,10 @@ export default function UserInfo({
   currentPemChecksum,
 }: UserInfoProps) {
   const noAction: SetKeyFormFunction = async () => ({});
-  const [state, formAction, pending] = useActionState<
-    PublicKeyData | { errors: string[] }
-  >(keyFormAction || noAction, { pemChecksum: currentPemChecksum });
+  const [state, formAction, pending] = useActionState<Crypt4GHFormStateData>(
+    keyFormAction || noAction,
+    { pemChecksum: currentPemChecksum },
+  );
   const pemChecksum =
     "pemChecksum" in state ? state.pemChecksum : currentPemChecksum;
 
@@ -51,16 +52,29 @@ export default function UserInfo({
             <section>
               <h4 className="h5 mb-3">Crypt4gh public encryption key</h4>
 
-              {pemChecksum ? (
-                <div className="alert alert-success" role="alert">
-                  <i className="bi bi-filetype-key fs-4 pe-1"></i>
-                  Current public key PEM file MD5 checksum:{" "}
-                  <em>{pemChecksum}</em>
-                </div>
-              ) : (
-                <></>
-              )}
               <form method="POST" action={formAction}>
+                {pemChecksum ? (
+                  <div className="alert alert-success d-flex" role="alert">
+                    <div className="flex-fill">
+                      <i className="bi bi-filetype-key fs-4 pe-1"></i>
+                      Current public key PEM file MD5 checksum:{" "}
+                      <em>{pemChecksum}</em>
+                    </div>
+                    <div className="flex-shrink-0">
+                      <button
+                        className="btn btn-danger"
+                        type="submit"
+                        name="action"
+                        value="remove"
+                        disabled={pending || !pemChecksum}
+                      >
+                        Remove key
+                      </button>
+                    </div>
+                  </div>
+                ) : (
+                  <></>
+                )}
                 <label htmlFor="public-key-upload" className="form-label">
                   Select a crypt4gh public key to upload:
                 </label>
@@ -94,12 +108,29 @@ export default function UserInfo({
                 ) : (
                   <></>
                 )}
-                <input
-                  className="btn btn-primary"
+                {"messages" in state ? (
+                  state.messages.map((message, index) => (
+                    <div
+                      className="alert alert-success"
+                      role="alert"
+                      key={index}
+                    >
+                      <i className="bi bi-check-circle-fill fs-4 pe-1"></i>
+                      {message}
+                    </div>
+                  ))
+                ) : (
+                  <></>
+                )}
+                <button
+                  className="btn btn-primary me-2"
                   type="submit"
-                  value="Set public key"
+                  name="action"
+                  value="submit"
                   disabled={pending}
-                />
+                >
+                  Submit key
+                </button>
               </form>
             </section>
           ) : (

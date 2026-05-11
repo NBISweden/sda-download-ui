@@ -11,7 +11,7 @@ export type SessionData = {
   publicKey?: {
     key: string;
     pemChecksum: string;
-  };
+  } | null;
 };
 
 class SessionManager<ST extends Record<string, unknown>> {

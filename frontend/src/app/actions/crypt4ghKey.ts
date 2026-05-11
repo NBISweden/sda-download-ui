@@ -7,6 +7,7 @@ import * as crypto from "crypto";
 const Crypt4GHForm = z.object({
   pemFile: z.optional(z.file()),
   pemKey: z.optional(z.string()),
+  action: z.enum(["submit", "remove"]),
 });
 
 type Crypt4GHForm = z.infer<typeof Crypt4GHForm>;
@@ -15,10 +16,15 @@ export type PublicKeyData = {
   pemChecksum?: string;
 };
 
+export type Crypt4GHFormStateData =
+  | PublicKeyData
+  | { errors: string[] }
+  | { messages: string[] };
+
 export async function postCrypt4GHPublicKey(
-  _initialState: PublicKeyData | { errors: string[] },
+  _initialState: Crypt4GHFormStateData,
   data?: FormData,
-): Promise<{ pemChecksum: string } | { errors: string[] }> {
+): Promise<Crypt4GHFormStateData> {
   if (!data) {
     return {
       errors: ["No form data supplied."],
@@ -28,6 +34,7 @@ export async function postCrypt4GHPublicKey(
   const validatedFields = Crypt4GHForm.safeParse({
     pemKey: data.get("pemKey"),
     pemFile: data.get("pemFile"),
+    action: data.get("action"),
   });
 
   if (!validatedFields.success) {
@@ -35,6 +42,16 @@ export async function postCrypt4GHPublicKey(
       errors: z.treeifyError(validatedFields.error).errors,
     };
   }
+
+  if (validatedFields.data.action === "remove") {
+    await createOrUpdateSession({
+      publicKey: null,
+    });
+    return {
+      messages: ["Public key removed."],
+    };
+  }
+
   try {
     const { key, pemChecksum } = await parseCrypt4GHPublicKey(
       validatedFields.data,
