@@ -2,6 +2,7 @@ import { getSession } from "@/app/lib/session";
 import * as jose from "jose";
 import UserInfo from "@/app/components/UserInfo";
 import Alert from "@/app/components/Alert";
+import { postCrypt4GHPublicKey } from "@/app/actions/crypt4ghKey";
 
 export type TokenInfoRow = {
   label: string;
@@ -66,7 +67,6 @@ export default async function UserPage() {
   const token = sessionData?.token;
 
   let errorMessage: string | null = null;
-  let userName = "";
   let tokenInfoRows: TokenInfoRow[] = [];
 
   if (!token) {
@@ -75,9 +75,6 @@ export default async function UserPage() {
     try {
       const payload = jose.decodeJwt(token);
 
-      userName = formatValue(
-        payload.sub ?? payload.email ?? payload["user"] ?? "Unknown user",
-      );
       tokenInfoRows = getTokenInfoRows(payload);
     } catch (error) {
       const message =
@@ -100,7 +97,11 @@ export default async function UserPage() {
               />
             </div>
           ) : (
-            <UserInfo userName={userName} tokenInfoRows={tokenInfoRows} />
+            <UserInfo
+              tokenInfoRows={tokenInfoRows}
+              keyFormAction={postCrypt4GHPublicKey}
+              currentPemChecksum={sessionData?.publicKey?.pemChecksum}
+            />
           )}
         </div>
       </div>
