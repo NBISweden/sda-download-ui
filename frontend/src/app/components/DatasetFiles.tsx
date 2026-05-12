@@ -7,7 +7,7 @@ import { Table } from "./Table";
 
 type DatasetFilesProps = {
   files: DatasetFile[];
-  itemsPerPage?: number;
+  itemsPerPage: number;
 };
 
 export default function DatasetFiles({

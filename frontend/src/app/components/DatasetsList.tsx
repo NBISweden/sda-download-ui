@@ -7,7 +7,7 @@ import Alert from "@/app/components/Alert";
 
 type DatasetsListProps = {
   datasets: DatasetMetadata[];
-  itemsPerPage?: number;
+  itemsPerPage: number;
 };
 
 export default function DatasetsList({
@@ -77,28 +77,13 @@ export default function DatasetsList({
           onChange={handleSearchChange}
         />
       </div>
-      {filteredDatasets.length > 0 && (
-        <div className="col-12 mb-3">
-          <div className="d-flex justify-content-between align-items-center px-3 py-2 border border-info-subtle bg-info-subtle rounded ">
-            <span className="text-body-secondary">
-              Viewing{" "}
-              <strong>
-                {startItem}-{endItem}
-              </strong>{" "}
-              of <strong>{filteredDatasets.length}</strong>
-            </span>
-            <span className="text-muted fw-light">
-              Total of {datasets.length} datasets
-            </span>
-          </div>
-        </div>
-      )}
-
       {totalPages > 1 && (
         <Pagination
           currentPage={currentPage}
           totalPages={totalPages}
           onPageChange={setCurrentPage}
+          totalItems={filteredDatasets.length}
+          itemsPerPage={itemsPerPage}
         />
       )}
 
@@ -150,6 +135,8 @@ export default function DatasetsList({
           currentPage={currentPage}
           totalPages={totalPages}
           onPageChange={setCurrentPage}
+          totalItems={filteredDatasets.length}
+          itemsPerPage={itemsPerPage}
         />
       )}
     </>
