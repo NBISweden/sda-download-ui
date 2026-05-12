@@ -3,6 +3,7 @@
 import { useMemo, useState } from "react";
 import Pagination from "@/app/components/Pagination";
 import type { DatasetMetadata } from "../actions/datasets";
+import Alert from "@/app/components/Alert";
 
 type DatasetsListProps = {
   datasets: DatasetMetadata[];
@@ -103,10 +104,11 @@ export default function DatasetsList({
 
       {filteredDatasets.length === 0 ? (
         <div className="col-12">
-          <div className="alert alert-warning" role="alert">
-            <i className="bi bi-exclamation-triangle-fill fs-4 pe-1"></i>
-            No datasets match your search.
-          </div>
+          <Alert
+            type="warning"
+            alertMessage="No datasets match your search."
+            iconClass="bi bi-exclamation-triangle-fill"
+          />
         </div>
       ) : (
         currentDatasets.map((dataset) => (

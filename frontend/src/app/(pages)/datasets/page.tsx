@@ -5,6 +5,7 @@ import {
 } from "../../actions/datasets";
 import { getSession } from "@/app/lib/session";
 import DatasetsList from "../../components/DatasetsList";
+import Alert from "@/app/components/Alert";
 
 export default async function DataSetsViewPage() {
   const sessionData = await getSession();
@@ -39,17 +40,19 @@ export default async function DataSetsViewPage() {
         <div className="row">
           {errorMessage ? (
             <div className="col-12 col-lg-6">
-              <div className="alert alert-warning" role="alert">
-                <i className="bi bi-exclamation-triangle-fill fs-4 pe-1"></i>
-                {errorMessage}
-              </div>
+              <Alert
+                type="warning"
+                alertMessage={errorMessage}
+                iconClass="bi bi-exclamation-triangle-fill"
+              />
             </div>
           ) : datasetMetadataList.length === 0 ? (
             <div className="col-12 col-lg-6">
-              <div className="alert alert-info" role="alert">
-                <i className="bi bi-info-circle-fill fs-4 pe-1"></i>
-                No datasets were found.
-              </div>
+              <Alert
+                type="info"
+                alertMessage="No datasets were found."
+                iconClass="bi bi-info-circle-fill"
+              />
             </div>
           ) : (
             <DatasetsList datasets={datasetMetadataList} itemsPerPage={15} />

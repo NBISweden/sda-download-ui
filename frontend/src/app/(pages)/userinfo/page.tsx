@@ -1,6 +1,7 @@
 import { getSession } from "@/app/lib/session";
 import * as jose from "jose";
 import UserInfo from "@/app/components/UserInfo";
+import Alert from "@/app/components/Alert";
 
 export type TokenInfoRow = {
   label: string;
@@ -92,10 +93,11 @@ export default async function UserPage() {
         <div className="row">
           {errorMessage ? (
             <div className="col-12 col-lg-6">
-              <div className="alert alert-warning" role="alert">
-                <i className="bi bi-exclamation-triangle-fill fs-4 pe-1"></i>
-                {errorMessage}
-              </div>
+              <Alert
+                type="warning"
+                alertMessage={errorMessage}
+                iconClass="bi bi-exclamation-triangle-fill"
+              />
             </div>
           ) : (
             <UserInfo userName={userName} tokenInfoRows={tokenInfoRows} />

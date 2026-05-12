@@ -7,6 +7,7 @@ import {
 import { getSession } from "@/app/lib/session";
 import DatasetDetails from "../../../components/DatasetDetails";
 import DatasetFiles from "@/app/components/DatasetFiles";
+import Alert from "@/app/components/Alert";
 
 interface DatasetDetailsViewProps {
   params: Promise<{
@@ -58,15 +59,17 @@ export default async function DatasetDetailsView({
       <div className="container">
         <div className="row mt-5">
           {errorMessage ? (
-            <div className="alert alert-warning" role="alert">
-              <i className="bi bi-exclamation-triangle-fill fs-4 pe-1"></i>
-              {errorMessage}
-            </div>
+            <Alert
+              type="warning"
+              alertMessage={errorMessage}
+              iconClass="bi bi-exclamation-triangle-fill"
+            />
           ) : !dataset ? (
-            <div className="alert alert-info" role="alert">
-              <i className="bi bi-info-circle-fill fs-4 pe-1"></i>
-              Information on the dataset could not be loaded.
-            </div>
+            <Alert
+              type="info"
+              alertMessage="Information on the dataset could not be loaded."
+              iconClass="bi bi-info-circle-fill"
+            />
           ) : (
             <>
               <DatasetDetails dataset={dataset} />
