@@ -2,6 +2,7 @@
 import type { TokenInfoRow } from "@/app/(pages)/userinfo/page";
 import { useActionState } from "react";
 import type { Crypt4GHFormStateData } from "../actions/crypt4ghKey";
+import Alert from "./Alert";
 
 type UserInfoProps = {
   tokenInfoRows: TokenInfoRow[];
@@ -54,24 +55,29 @@ export default function UserInfo({
 
               <form method="POST" action={formAction}>
                 {pemChecksum ? (
-                  <div className="alert alert-success d-flex" role="alert">
-                    <div className="flex-fill">
-                      <i className="bi bi-filetype-key fs-4 pe-1"></i>
-                      Current public key PEM file MD5 checksum:{" "}
-                      <em>{pemChecksum}</em>
-                    </div>
-                    <div className="flex-shrink-0">
-                      <button
-                        className="btn btn-danger"
-                        type="submit"
-                        name="action"
-                        value="remove"
-                        disabled={pending || !pemChecksum}
-                      >
-                        Remove key
-                      </button>
-                    </div>
-                  </div>
+                  <Alert
+                    type="success"
+                    alertMessage={
+                      <div className="d-flex">
+                        <div className="flex-fill pe-1">
+                          <i className="bi bi-filetype-key fs-4 pe-1"></i>
+                          Current public key PEM file MD5 checksum:{" "}
+                          <em>{pemChecksum}</em>
+                        </div>
+                        <div className="flex-shrink-0">
+                          <button
+                            className="btn btn-danger"
+                            type="submit"
+                            name="action"
+                            value="remove"
+                            disabled={pending || !pemChecksum}
+                          >
+                            Remove key
+                          </button>
+                        </div>
+                      </div>
+                    }
+                  />
                 ) : (
                   <></>
                 )}
@@ -96,28 +102,24 @@ export default function UserInfo({
                 />
                 {"errors" in state ? (
                   state.errors.map((error, index) => (
-                    <div
-                      className="alert alert-warning"
-                      role="alert"
+                    <Alert
+                      type="warning"
+                      iconClass="bi bi-exclamation-triangle-fill"
+                      alertMessage={error}
                       key={index}
-                    >
-                      <i className="bi bi-exclamation-triangle-fill fs-4 pe-1"></i>
-                      {error}
-                    </div>
+                    />
                   ))
                 ) : (
                   <></>
                 )}
                 {"messages" in state ? (
                   state.messages.map((message, index) => (
-                    <div
-                      className="alert alert-success"
-                      role="alert"
+                    <Alert
+                      type="success"
+                      iconClass="bi bi-check-circle-fill"
+                      alertMessage={message}
                       key={index}
-                    >
-                      <i className="bi bi-check-circle-fill fs-4 pe-1"></i>
-                      {message}
-                    </div>
+                    />
                   ))
                 ) : (
                   <></>
