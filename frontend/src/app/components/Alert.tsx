@@ -1,3 +1,5 @@
+import { ReactNode } from "react";
+
 type AlertProps = {
   type:
     | "primary"
@@ -8,7 +10,7 @@ type AlertProps = {
     | "danger"
     | "light"
     | "dark";
-  alertMessage: string;
+  alertMessage: string | ReactNode;
   iconClass?: string;
 };
 
