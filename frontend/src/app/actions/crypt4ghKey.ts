@@ -77,7 +77,9 @@ export async function parseCrypt4GHPublicKey(data: Crypt4GHForm) {
   const pemData = fileData || (data.pemKey ? data.pemKey : null);
 
   if (!pemData) {
-    throw new Error("Either 'pemFile' or 'pemKey' need to be supplied.");
+    throw new Error(
+      "You need to supply either the content of a public key PEM file or the PEM file itself.",
+    );
   }
 
   const key = validateCrypt4GHPublicKey(pemData);
