@@ -2,12 +2,24 @@ import "server-only";
 import * as jose from "jose";
 import { getSessionManager, SessionData } from "./SessionManager";
 
-export async function createOrUpdateSession(data: SessionData) {
+export async function createOrUpdateSession(data: Partial<SessionData>) {
   const sessionManager = await getSessionManager();
-  const tokenInfo = await getClaims(data.token);
+  const session = await sessionManager.getSession();
+  const token = data.token || session?.token;
+  if (!token) {
+    throw new Error("No token available for session.");
+  }
+  const tokenInfo = await getClaims(token);
   const now = new Date().getTime() / 1000;
   const sessionLength = Math.max(_getOrDefault(tokenInfo.exp, now) - now, 0);
-  return await sessionManager.createOrUpdateSession(data, sessionLength * 1000);
+  return await sessionManager.createOrUpdateSession(
+    {
+      ...(session || {}),
+      token: token,
+      ...data,
+    },
+    sessionLength * 1000,
+  );
 }
 
 function _getOrDefault<T>(value: T | undefined, defaultValue: T): T {

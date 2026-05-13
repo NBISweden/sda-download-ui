@@ -8,6 +8,10 @@ import { connection } from "next/server";
 
 export type SessionData = {
   token: string;
+  publicKey?: {
+    key: string;
+    pemChecksum: string;
+  } | null;
 };
 
 class SessionManager<ST extends Record<string, unknown>> {
@@ -104,7 +108,10 @@ export function createSDADSessionManager(secret: string) {
     "sda:download-ui:audience",
     "sdad-session",
     (payload) => ({
-      token: payload["token"] as string,
+      token: payload["token"] as SessionData["token"],
+      publicKey: payload["publicKey"]
+        ? (payload["publicKey"] as SessionData["publicKey"])
+        : undefined,
     }),
   );
 }
