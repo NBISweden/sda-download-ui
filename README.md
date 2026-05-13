@@ -10,7 +10,11 @@ environment consists of a compose file for starting a minimal sda
 development stack and the compose file for deploying the download UI
 webapp.
 
-### SDA development stack
+### Documentation References
+
+For calculating the file size we use the npm library [filesize](https://www.npmjs.com/package/filesize).
+
+#### SDA development stack
 
 The necessary configuration and compose files for starting the
 development stack for the `sda` backend services can be found under
