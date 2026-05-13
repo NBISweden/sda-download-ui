@@ -4,6 +4,7 @@ import { useState, useMemo } from "react";
 import { type DatasetFile } from "../actions/datasets";
 import Pagination from "./Pagination";
 import { Table } from "./Table";
+import { ClipboardValue } from "./ClipboardValue";
 
 type DatasetFilesProps = {
   files: DatasetFile[];
@@ -22,9 +23,7 @@ export default function DatasetFiles({
     filePath: file.filePath,
     decryptedSize: file.decryptedSize,
     checksums: file.checksums.map((c) => (
-      <span key={c.checksum}>
-        <i>{c.type}:</i> {c.checksum}
-      </span>
+      <ClipboardValue key={c.checksum} value={c.checksum} label={c.type} />
     )),
 
     downloadUrl: <a href={file.downloadUrl}>Download file</a>,
