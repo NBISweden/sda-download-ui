@@ -50,10 +50,6 @@ export default function DatasetsList({
     return filteredDatasets.slice(startIndex, endIndex);
   }, [filteredDatasets, currentPage, itemsPerPage]);
 
-  const startItem =
-    filteredDatasets.length === 0 ? 0 : (currentPage - 1) * itemsPerPage + 1;
-  const endItem = Math.min(currentPage * itemsPerPage, filteredDatasets.length);
-
   function handleSearchChange(event: React.ChangeEvent<HTMLInputElement>) {
     setSearchTerm(event.target.value);
     setCurrentPage(1);
