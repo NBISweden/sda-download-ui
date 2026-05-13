@@ -4,6 +4,7 @@ import { useMemo, useState } from "react";
 import Pagination from "@/app/components/Pagination";
 import type { DatasetMetadata } from "../actions/datasets";
 import Alert from "@/app/components/Alert";
+import { filesize } from "filesize";
 
 type DatasetsListProps = {
   datasets: DatasetMetadata[];
@@ -115,7 +116,7 @@ export default function DatasetsList({
                     <i className="bi bi-calendar pe-1"></i>Created{" "}
                     {new Date(dataset.date).toLocaleDateString("sv-SE")}
                   </span>
-                  <span>{dataset.size} bytes</span>
+                  <span>{filesize(dataset.size)}</span>
                 </div>
                 <div className="text-left">
                   <a
