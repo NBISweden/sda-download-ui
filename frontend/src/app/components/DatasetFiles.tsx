@@ -11,11 +11,13 @@ import { ItemSelector, useItemsPerPage } from "./ItemsPerPage";
 type DatasetFilesProps = {
   files: DatasetFile[];
   defaultItemsPerPage: number;
+  canDownload?: boolean;
 };
 
 export default function DatasetFiles({
   files,
   defaultItemsPerPage = 15,
+  canDownload = true,
 }: DatasetFilesProps) {
   const { itemsPerPage, setItemsPerPage, itemsPerPageOptions } =
     useItemsPerPage(defaultItemsPerPage);
@@ -30,7 +32,22 @@ export default function DatasetFiles({
       <ClipboardValue key={c.checksum} value={c.checksum} label={c.type} />
     )),
 
-    downloadUrl: <a href={file.downloadUrl}>Download file</a>,
+    downloadUrl: canDownload ? (
+      <a
+        href={`/api/files/${encodeURIComponent(file.fileId)}`}
+        download
+        rel="noopener"
+      >
+        Download file
+      </a>
+    ) : (
+      <span
+        className="text-muted"
+        title="Upload your Crypt4GH public key on the profile page to enable downloads."
+      >
+        Download file
+      </span>
+    ),
   }));
 
   const filteredFiles = useMemo(() => {
