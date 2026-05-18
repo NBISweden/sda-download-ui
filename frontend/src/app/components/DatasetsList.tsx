@@ -4,6 +4,7 @@ import { useMemo, useState } from "react";
 import Pagination from "@/app/components/Pagination";
 import type { DatasetMetadata } from "../actions/datasets";
 import Alert from "@/app/components/Alert";
+import { filesize } from "filesize";
 
 type DatasetsListProps = {
   datasets: DatasetMetadata[];
@@ -48,10 +49,6 @@ export default function DatasetsList({
     const endIndex = startIndex + itemsPerPage;
     return filteredDatasets.slice(startIndex, endIndex);
   }, [filteredDatasets, currentPage, itemsPerPage]);
-
-  const startItem =
-    filteredDatasets.length === 0 ? 0 : (currentPage - 1) * itemsPerPage + 1;
-  const endItem = Math.min(currentPage * itemsPerPage, filteredDatasets.length);
 
   function handleSearchChange(event: React.ChangeEvent<HTMLInputElement>) {
     setSearchTerm(event.target.value);
@@ -115,7 +112,7 @@ export default function DatasetsList({
                     <i className="bi bi-calendar pe-1"></i>Created{" "}
                     {new Date(dataset.date).toLocaleDateString("sv-SE")}
                   </span>
-                  <span>{dataset.size} bytes</span>
+                  <span>{filesize(dataset.size)}</span>
                 </div>
                 <div className="text-left">
                   <a

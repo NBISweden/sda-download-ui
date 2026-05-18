@@ -4,6 +4,7 @@ import { useState, useMemo } from "react";
 import { type DatasetFile } from "../actions/datasets";
 import Pagination from "./Pagination";
 import { Table } from "./Table";
+import { filesize } from "filesize";
 
 type DatasetFilesProps = {
   files: DatasetFile[];
@@ -20,7 +21,7 @@ export default function DatasetFiles({
   const formattedFiles = files.map((file) => ({
     fileId: file.fileId,
     filePath: file.filePath,
-    decryptedSize: file.decryptedSize,
+    decryptedSize: filesize(file.decryptedSize),
     checksums: file.checksums.map((c) => (
       <span key={c.checksum}>
         <i>{c.type}:</i> {c.checksum}
