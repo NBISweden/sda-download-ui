@@ -41,6 +41,7 @@ export function Table<T extends RowData>({
       <table className="table">
         <thead>
           <tr>
+            <th scope="col">Select</th>
             {tableColumns.map((column) => (
               <th key={String(column)}>{formatHeader(column)}</th>
             ))}
@@ -49,6 +50,7 @@ export function Table<T extends RowData>({
         <tbody>
           {data.map((row, rowIndex) => (
             <tr key={rowIndex}>
+              <th><input type="checkbox"></input></th>
               {tableColumns.map((column) => (
                 <td key={String(column)}>{renderCell(row[column])}</td>
               ))}
