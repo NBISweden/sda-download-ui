@@ -42,12 +42,27 @@ async function extractProblemDetail(
   return null;
 }
 
+function buildContentDisposition(filename: string): string {
+  // filePath is assumed to be HTTP-header-safe
+  const encoded = encodeURIComponent(filename);
+  return `attachment; filename="${filename}"; filename*=UTF-8''${encoded}`;
+}
+
+function getFallbackFilename(filePath: string | null, fileId: string): string {
+  if (filePath) {
+    const basename = filePath.split("/").pop();
+    if (basename) return basename;
+  }
+  return `${fileId}.c4gh`; //2nd fallback
+}
+
 export async function GET(
   request: NextRequest,
   { params }: { params: Promise<{ fileId: string }> },
 ) {
   const { fileId } = await params;
   const sessionData = await getSession();
+  const filePath = request.nextUrl.searchParams.get("name");
 
   if (!sessionData?.token) {
     return errorResponse(401, "Not authenticated.");
@@ -117,7 +132,7 @@ export async function GET(
   if (!responseHeaders.has("content-disposition")) {
     responseHeaders.set(
       "content-disposition",
-      `attachment; filename="${fileId}.c4gh"`,
+      buildContentDisposition(getFallbackFilename(filePath, fileId)),
     );
   }
 

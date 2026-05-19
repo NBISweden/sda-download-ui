@@ -34,7 +34,7 @@ export default function DatasetFiles({
 
     downloadUrl: canDownload ? (
       <a
-        href={`/api/files/${encodeURIComponent(file.fileId)}`}
+        href={`/api/files/${encodeURIComponent(file.fileId)}?name=${encodeURIComponent(file.filePath)}`}
         download
         target="_blank"
         rel="noopener noreferrer"
