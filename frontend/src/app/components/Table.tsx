@@ -8,12 +8,18 @@ type TableProps<T extends RowData> = {
   data: T[];
   columns?: (keyof T)[];
   headers?: Partial<Record<keyof T, string>>;
+  getRowId?: (row: T) => string;
+  selectedIds?: Set<string>;
+  onToggleRow?: (id: string) => void;
 };
 
 export function Table<T extends RowData>({
   data,
   columns,
   headers,
+  getRowId,
+  selectedIds,
+  onToggleRow,
 }: TableProps<T>) {
   const tableColumns =
     columns ?? (data.length > 0 ? (Object.keys(data[0]) as (keyof T)[]) : []);
@@ -48,14 +54,30 @@ export function Table<T extends RowData>({
           </tr>
         </thead>
         <tbody>
-          {data.map((row, rowIndex) => (
-            <tr key={rowIndex}>
-              <th><input type="checkbox"></input></th>
-              {tableColumns.map((column) => (
-                <td key={String(column)}>{renderCell(row[column])}</td>
-              ))}
-            </tr>
-          ))}
+          {data.map((row, rowIndex) => {
+            const rowId = getRowId?.(row);
+            const isSelected = rowId ? selectedIds?.has(rowId) : false;
+            return (
+              <tr key={rowId ?? rowIndex}>
+                <td>
+                  <input
+                    type="checkbox"
+                    className="form-check-input"
+                    checked={isSelected}
+                    onChange={() => {
+                      if (rowId) {
+                        onToggleRow?.(rowId);
+                      }
+                    }}
+                    aria-label="Select file"
+                  />
+                </td>
+                {tableColumns.map((column) => (
+                  <td key={String(column)}>{renderCell(row[column])}</td>
+                ))}
+              </tr>
+            );
+          })}
         </tbody>
       </table>
     </div>

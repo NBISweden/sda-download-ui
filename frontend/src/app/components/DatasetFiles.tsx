@@ -18,6 +18,9 @@ export default function DatasetFiles({
 }: DatasetFilesProps) {
   const [currentPage, setCurrentPage] = useState(1);
   const [searchTerm, setSearchTerm] = useState("");
+  const [selectedFileIds, setSelectedFileIds] = useState<Set<string>>(
+    new Set(),
+  );
 
   const formattedFiles = files.map((file) => ({
     fileId: file.fileId,
@@ -63,6 +66,35 @@ export default function DatasetFiles({
     setSearchTerm(event.target.value);
     setCurrentPage(1);
   }
+  const toggleFileSelection = (fileId: string) => {
+    setSelectedFileIds((previousSelectedIds) => {
+      const nextSelectedIds = new Set(previousSelectedIds);
+
+      if (nextSelectedIds.has(fileId)) {
+        nextSelectedIds.delete(fileId);
+      } else {
+        nextSelectedIds.add(fileId);
+      }
+
+      return nextSelectedIds;
+    });
+  };
+
+  const selectCurrentPage = () => {
+    setSelectedFileIds((previousSelectedIds) => {
+      const nextSelectedIds = new Set(previousSelectedIds);
+
+      currentFiles.forEach((file) => {
+        nextSelectedIds.add(file.fileId);
+      });
+
+      return nextSelectedIds;
+    });
+  };
+
+  const clearSelection = () => {
+    setSelectedFileIds(new Set());
+  };
 
   return (
     <>
@@ -83,6 +115,32 @@ export default function DatasetFiles({
           onChange={handleSearchChange}
         />
       </div>
+      <div className="d-flex justify-content-between align-items-center mb-3">
+        <div className="d-flex gap-2">
+          <button
+            type="button"
+            className="btn btn-primary btn-sm"
+            onClick={selectCurrentPage}
+            disabled={currentFiles.length === 0}
+          >
+            Select visible files
+          </button>
+
+          <button
+            type="button"
+            className="btn btn-secondary btn-sm"
+            onClick={clearSelection}
+            disabled={selectedFileIds.size === 0}
+          >
+            Clear selection
+          </button>
+        </div>
+        <div>
+          <strong>{selectedFileIds.size}</strong>{" "}
+          {selectedFileIds.size === 1 ? "file selected" : "files selected"}
+        </div>
+      </div>
+
       <Pagination
         itemsPerPage={itemsPerPage}
         totalItems={filteredFiles.length}
@@ -93,6 +151,9 @@ export default function DatasetFiles({
       {currentFiles.length > 0 && (
         <Table
           data={currentFiles}
+          getRowId={(file) => file.fileId}
+          selectedIds={selectedFileIds}
+          onToggleRow={toggleFileSelection}
           headers={{
             fileId: "File ID",
             filePath: "Path",
