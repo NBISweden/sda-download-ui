@@ -2,20 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { getSession } from "@/app/lib/session";
 import { getConfig } from "@/app/lib/config";
 
-// Response headers we want to forward from upstream to the browser so
-// that streaming, resuming, and "save as" filename work correctly.
-// Only forwarded on successful (2xx) responses.
-const FORWARDED_HEADERS = [
-  "content-type",
-  "content-length",
-  "content-disposition",
-  "content-range",
-  "accept-ranges",
-  "etag",
-  "last-modified",
-];
-
-// Makes a JSON error responses predictable for the frontend to handle, with no caching.
+// Predictable JSON error response for the frontend, with no caching.
 function errorResponse(status: number, message: string) {
   return NextResponse.json(
     { error: message, status },
@@ -26,7 +13,7 @@ function errorResponse(status: number, message: string) {
   );
 }
 
-// Extract a human-readable message from the upstream response. Expects an application/problem+json error body.
+// Extract a human-readable message from an application/problem+json body.
 async function extractProblemDetail(
   upstream: Response,
 ): Promise<string | null> {
@@ -42,8 +29,23 @@ async function extractProblemDetail(
   return null;
 }
 
+function translateUpstreamError(
+  upstream: Response,
+  detail: string | null,
+): NextResponse {
+  const fallback =
+    upstream.status === 401
+      ? "Authentication with the download backend failed. Please sign in again."
+      : upstream.status === 403
+        ? "You do not have access to this file (or it does not exist)."
+        : upstream.status === 416
+          ? "The requested byte range is not satisfiable."
+          : `Download failed with status ${upstream.status}.`;
+  return errorResponse(upstream.status, detail || fallback);
+}
+
 function buildContentDisposition(filename: string): string {
-  // filePath is assumed to be HTTP-header-safe
+  // filename is assumed to be HTTP-header-safe
   const encoded = encodeURIComponent(filename);
   return `attachment; filename="${filename}"; filename*=UTF-8''${encoded}`;
 }
@@ -54,6 +56,23 @@ function getFallbackFilename(filePath: string | null, fileId: string): string {
     if (basename) return basename;
   }
   return `${fileId}.c4gh`; //2nd fallback
+}
+
+type Range = { start: number; end: number };
+
+// Parse a single-range "bytes=<start>-<end?>" header in combined-stream space.
+// Returns null if not present/unparseable or "unsatisfiable" if start >= totalLen or start > end.
+function parseRange(header: string | null, totalLen: number): Range | "unsatisfiable" | null {
+  if (!header) return null;
+
+  const m = header.match(/^bytes=(\d+)-(\d*)$/);
+  if (!m) return null;
+
+  const start = parseInt(m[1], 10);
+  const end = m[2] ? parseInt(m[2], 10) : totalLen - 1;
+  if (start >= totalLen || start > end) return "unsatisfiable";
+
+  return { start, end: Math.min(end, totalLen - 1) };
 }
 
 export async function GET(
@@ -76,27 +95,34 @@ export async function GET(
   }
 
   const { sdaBaseUrl } = await getConfig();
-
-  const upstreamHeaders: Record<string, string> = {
+  const headerAuth = {
     Authorization: `Bearer ${sessionData.token}`,
     "X-C4GH-Public-Key": sessionData.publicKey.key,
   };
+  const contentAuth = {
+    Authorization: `Bearer ${sessionData.token}`,
+  };
+  const headerUrl = `${sdaBaseUrl}/files/${encodeURIComponent(fileId)}/header`;
+  const contentUrl = `${sdaBaseUrl}/files/${encodeURIComponent(fileId)}/content`;
 
-  // Forward Range / If-Range so partial downloads and resume continue to work.
-  const range = request.headers.get("range");
-  if (range) upstreamHeaders["Range"] = range;
-  const ifRange = request.headers.get("if-range");
-  if (ifRange) upstreamHeaders["If-Range"] = ifRange;
-
-  let upstream: Response;
+  // Probe both sub-resources in parallel to learn sizes and the stable content ETag.
+  // This is the first step in order to support partial downloads. We rely on headless file (content)
+  // ranges(and etag) because the header part is unstable due to re-encryption.
+  let headerHead: Response;
+  let contentHead: Response;
   try {
-    upstream = await fetch(
-      `${sdaBaseUrl}/files/${encodeURIComponent(fileId)}`,
-      {
-        headers: upstreamHeaders,
+    [headerHead, contentHead] = await Promise.all([
+      fetch(headerUrl, {
+        method: "HEAD",
+        headers: headerAuth,
         cache: "no-store",
-      },
-    );
+      }),
+      fetch(contentUrl, {
+        method: "HEAD",
+        headers: contentAuth,
+        cache: "no-store",
+      }),
+    ]);
   } catch (error) {
     const message =
       error instanceof Error ? error.message : "Unknown error occurred";
@@ -105,41 +131,135 @@ export async function GET(
       `Could not reach the download backend: ${message}`,
     );
   }
-
-  // Return upstream errors as clean JSON error response with appropriate status code.
-  // Don't attempt to stream the body in this case.
-  if (!upstream.ok) {
-    const detail = await extractProblemDetail(upstream);
-    const fallback =
-      upstream.status === 401
-        ? "Authentication with the download backend failed. Please sign in again."
-        : upstream.status === 403
-          ? "You do not have access to this file (or it does not exist)."
-          : upstream.status === 416
-            ? "The requested byte range is not satisfiable."
-            : `Download failed with status ${upstream.status}.`;
-    return errorResponse(upstream.status, detail || fallback);
+  if (!headerHead.ok) {
+    return translateUpstreamError(
+      headerHead,
+      await extractProblemDetail(headerHead),
+    );
   }
-
-  const responseHeaders = new Headers();
-  for (const name of FORWARDED_HEADERS) {
-    const value = upstream.headers.get(name);
-    if (value) responseHeaders.set(name, value);
-  }
-
-  // Make sure browsers actually trigger a file save even if the backend
-  // omits Content-Disposition for some reason.
-  if (!responseHeaders.has("content-disposition")) {
-    responseHeaders.set(
-      "content-disposition",
-      buildContentDisposition(getFallbackFilename(filePath, fileId)),
+  if (!contentHead.ok) {
+    return translateUpstreamError(
+      contentHead,
+      await extractProblemDetail(contentHead),
     );
   }
 
-  responseHeaders.set("cache-control", "no-store");
+  const headerLen = parseInt(
+    headerHead.headers.get("content-length") || "0",
+    10,
+  );
+  const contentLen = parseInt(
+    contentHead.headers.get("content-length") || "0",
+    10,
+  );
+  const totalLen = headerLen + contentLen;
+  const etag = contentHead.headers.get("etag");
 
-  return new NextResponse(upstream.body, {
-    status: upstream.status,
-    headers: responseHeaders,
+  // Use If-Range only when it matches the (stable, content-derived) ETag.
+  // This is step 2 in supporting partial downloads.
+  const ifRange = request.headers.get("if-range");
+  const honorRange = !ifRange || (etag !== null && ifRange === etag);
+  const rangeHeader = honorRange ? request.headers.get("range") : null;
+  const range = parseRange(rangeHeader, totalLen);
+
+  if (range === "unsatisfiable") {
+    return NextResponse.json(
+      {
+        error: "The requested byte range is not satisfiable.",
+        status: 416,
+      },
+      {
+        status: 416,
+        headers: {
+          "cache-control": "no-store",
+          "content-range": `bytes */${totalLen}`,
+        },
+      },
+    );
+  }
+
+  // Decide which upstream bodies we need. Note that no range is supported for the header by the backend API.
+  // The header is very small so it will be downloaded if needed and range will be adjusted.
+  // This is step 3 in supporting partial downloads.
+  const effective: Range = range || { start: 0, end: totalLen - 1 };
+  const needHeader = effective.start < headerLen;
+  const needContent = effective.end >= headerLen;
+
+  // Fetch (and buffer) just the slice of the header we need.
+  let headerSlice: Uint8Array | null = null;
+  if (needHeader) {
+    const r = await fetch(headerUrl, {
+      headers: headerAuth,
+      cache: "no-store",
+    });
+    if (!r.ok) {
+      return translateUpstreamError(r, await extractProblemDetail(r));
+    }
+    const buf = new Uint8Array(await r.arrayBuffer());
+    const sliceStart = effective.start;
+    const sliceEnd = Math.min(effective.end, headerLen - 1);
+    headerSlice = buf.subarray(sliceStart, sliceEnd + 1);
+  }
+
+  // Stream the content portion with a translated Range if it's a sub-slice.
+  let contentBody: ReadableStream<Uint8Array> | null = null;
+  if (needContent) {
+    const contentStart = Math.max(0, effective.start - headerLen);
+    const contentEnd = effective.end - headerLen;
+    const wantsSubSlice =
+      contentStart > 0 || contentEnd < contentLen - 1;
+    const headers: Record<string, string> = { ...contentAuth };
+    if (wantsSubSlice) {
+      headers["Range"] = `bytes=${contentStart}-${contentEnd}`;
+    }
+    const r = await fetch(contentUrl, { headers, cache: "no-store" });
+    if (!r.ok) {
+      return translateUpstreamError(r, await extractProblemDetail(r));
+    }
+    contentBody = r.body;
+  }
+
+  // Stitch header slice (if any) + content stream (if any).
+  // This is step 4 in supporting partial downloads.
+  const stream = new ReadableStream<Uint8Array>({
+    async start(controller) {
+      if (headerSlice) controller.enqueue(headerSlice);
+      if (contentBody) {
+        const reader = contentBody.getReader();
+        try {
+          while (true) {
+            const { done, value } = await reader.read();
+            if (done) break;
+            if (value) controller.enqueue(value);
+          }
+        } catch (e) {
+          controller.error(e);
+          return;
+        }
+      }
+      controller.close();
+    },
   });
+
+  const responseHeaders = new Headers();
+  responseHeaders.set("content-type", "application/octet-stream");
+  responseHeaders.set("accept-ranges", "bytes");
+  responseHeaders.set("cache-control", "no-store");
+  if (etag) responseHeaders.set("etag", etag);
+  responseHeaders.set(
+    "content-disposition",
+    buildContentDisposition(getFallbackFilename(filePath, fileId)),
+  );
+
+  const responseLen = effective.end - effective.start + 1;
+  responseHeaders.set("content-length", String(responseLen));
+
+  if (range) {
+    responseHeaders.set(
+      "content-range",
+      `bytes ${range.start}-${range.end}/${totalLen}`,
+    );
+    return new NextResponse(stream, { status: 206, headers: responseHeaders });
+  }
+  return new NextResponse(stream, { status: 200, headers: responseHeaders });
 }
