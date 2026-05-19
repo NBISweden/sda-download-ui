@@ -76,6 +76,130 @@ const validSession: SessionData = {
   publicKey: { key: "PUBKEY", pemChecksum: "checksum" },
 };
 
+const HEADER_LEN = 124;
+const CONTENT_LEN = 1000;
+const TOTAL_LEN = HEADER_LEN + CONTENT_LEN;
+const ETAG = '"content-etag-abc"';
+
+// Fixed body fixtures so tests can assert on stitched output.
+const headerBody = new Uint8Array(HEADER_LEN).map((_, i) => (i + 1) % 256);
+const contentBody = new Uint8Array(CONTENT_LEN).map(
+  (_, i) => (i + 200) % 256,
+);
+
+type DispatchHandler = (
+  url: string,
+  init: RequestInit | undefined,
+) => Response | Promise<Response>;
+
+function installDispatchedFetch(handler: DispatchHandler) {
+  return vi
+    .spyOn(globalThis, "fetch")
+    .mockImplementation((input, init) => {
+      const url =
+        typeof input === "string"
+          ? input
+          : input instanceof URL
+            ? input.toString()
+            : (input as Request).url;
+      return Promise.resolve(handler(url, init));
+    });
+}
+
+function headerHeadResponse() {
+  return new Response(null, {
+    status: 200,
+    headers: { "content-length": String(HEADER_LEN) },
+  });
+}
+
+function contentHeadResponse() {
+  return new Response(null, {
+    status: 200,
+    headers: {
+      "content-length": String(CONTENT_LEN),
+      etag: ETAG,
+      "accept-ranges": "bytes",
+    },
+  });
+}
+
+function headerGetResponse() {
+  return new Response(headerBody, {
+    status: 200,
+    headers: { "content-length": String(HEADER_LEN) },
+  });
+}
+
+function contentGetResponse(range?: { start: number; end: number }) {
+  if (!range) {
+    return new Response(contentBody, {
+      status: 200,
+      headers: {
+        "content-length": String(CONTENT_LEN),
+        etag: ETAG,
+      },
+    });
+  }
+  const slice = contentBody.subarray(range.start, range.end + 1);
+  return new Response(slice, {
+    status: 206,
+    headers: {
+      "content-length": String(slice.byteLength),
+      "content-range": `bytes ${range.start}-${range.end}/${CONTENT_LEN}`,
+      etag: ETAG,
+    },
+  });
+}
+
+function defaultHandler(
+  url: string,
+  init: RequestInit | undefined,
+): Response | Promise<Response> {
+  const method = (init?.method || "GET").toUpperCase();
+
+  if (url.endsWith("/header") && method === "HEAD") return headerHeadResponse();
+  if (url.endsWith("/content") && method === "HEAD")
+    return contentHeadResponse();
+
+  if (url.endsWith("/header") && method === "GET") return headerGetResponse();
+
+  if (url.endsWith("/content") && method === "GET") {
+    const rangeHdr = new Headers(init?.headers).get("range");
+    if (rangeHdr) {
+      const m = rangeHdr.match(/^bytes=(\d+)-(\d+)$/);
+      if (m) {
+        return contentGetResponse({
+          start: parseInt(m[1], 10),
+          end: parseInt(m[2], 10),
+        });
+      }
+    }
+    return contentGetResponse();
+  }
+
+  return new Response("unmocked URL", { status: 500 });
+}
+
+async function readAll(stream: ReadableStream<Uint8Array> | null) {
+  if (!stream) return new Uint8Array(0);
+  const reader = stream.getReader();
+  const chunks: Uint8Array[] = [];
+  while (true) {
+    const { done, value } = await reader.read();
+    if (done) break;
+    if (value) chunks.push(value);
+  }
+  const total = chunks.reduce((acc, c) => acc + c.byteLength, 0);
+  const out = new Uint8Array(total);
+  let offset = 0;
+  for (const c of chunks) {
+    out.set(c, offset);
+    offset += c.byteLength;
+  }
+  return out;
+}
+
 describe("GET /api/files/[fileId]", () => {
   beforeEach(() => {
     vi.restoreAllMocks();
@@ -113,106 +237,76 @@ describe("GET /api/files/[fileId]", () => {
     expect(response.status).toBe(400);
     expect(response.headers.get("cache-control")).toBe("no-store");
     expect(response.headers.get("content-disposition")).toBeNull();
-    await expect(response.json()).resolves.toMatchObject({
-      status: 400,
-    });
+    await expect(response.json()).resolves.toMatchObject({ status: 400 });
     expect(fetchSpy).not.toHaveBeenCalled();
   });
 
-  test("calls upstream with Authorization, X-C4GH-Public-Key and forwards Range/If-Range", async () => {
+  test("probes /header with auth+public-key and /content with auth only", async () => {
     setSession(validSession);
-    const fetchSpy = vi.spyOn(globalThis, "fetch").mockResolvedValue(
-      new Response("payload", {
-        status: 200,
-        headers: {
-          "content-type": "application/octet-stream",
-          "content-disposition": 'attachment; filename="upstream.c4gh"',
-        },
-      }),
-    );
-
-    const { request, params } = makeRequest("file-1", {
-      range: "bytes=0-1048575",
-      ifRange: '"etag-value"',
-    });
-    await GET(request, { params });
-
-    expect(fetchSpy).toHaveBeenCalledWith(`${sdaBaseUrl}/files/file-1`, {
-      headers: {
-        Authorization: "Bearer my-token",
-        "X-C4GH-Public-Key": "PUBKEY",
-        Range: "bytes=0-1048575",
-        "If-Range": '"etag-value"',
-      },
-      cache: "no-store",
-    });
-  });
-
-  test("forwards documented response headers and streams body on success", async () => {
-    setSession(validSession);
-    vi.spyOn(globalThis, "fetch").mockResolvedValue(
-      new Response("payload", {
-        status: 200,
-        headers: {
-          "content-type": "application/octet-stream",
-          "content-length": "7",
-          "content-disposition": 'attachment; filename="upstream.c4gh"',
-          "accept-ranges": "bytes",
-          etag: '"abc123"',
-          "last-modified": "Wed, 01 Jan 2025 00:00:00 GMT",
-        },
-      }),
-    );
+    const spy = installDispatchedFetch(defaultHandler);
 
     const { request, params } = makeRequest("file-1");
+    await GET(request, { params });
+
+    const calls = spy.mock.calls.map(([url, init]) => ({
+      url: String(url),
+      method: (init?.method || "GET").toUpperCase(),
+      headers: new Headers(init?.headers),
+    }));
+
+    const headerHead = calls.find(
+      (c) => c.url.endsWith("/header") && c.method === "HEAD",
+    );
+    const contentHead = calls.find(
+      (c) => c.url.endsWith("/content") && c.method === "HEAD",
+    );
+
+    expect(headerHead).toBeDefined();
+    expect(contentHead).toBeDefined();
+    expect(headerHead!.url).toBe(`${sdaBaseUrl}/files/file-1/header`);
+    expect(contentHead!.url).toBe(`${sdaBaseUrl}/files/file-1/content`);
+
+    expect(headerHead!.headers.get("authorization")).toBe("Bearer my-token");
+    expect(headerHead!.headers.get("x-c4gh-public-key")).toBe("PUBKEY");
+    expect(contentHead!.headers.get("authorization")).toBe("Bearer my-token");
+    expect(contentHead!.headers.get("x-c4gh-public-key")).toBeNull();
+  });
+
+  // Happy path: full file
+
+  test("returns 200 with stitched header+content and correct headers", async () => {
+    setSession(validSession);
+    installDispatchedFetch(defaultHandler);
+
+    const { request, params } = makeRequest("file-1", {
+      name: "samples/sample1.cram.c4gh",
+    });
     const response = await GET(request, { params });
 
     expect(response.status).toBe(200);
     expect(response.headers.get("content-type")).toBe(
       "application/octet-stream",
     );
-    expect(response.headers.get("content-length")).toBe("7");
-    expect(response.headers.get("content-disposition")).toBe(
-      'attachment; filename="upstream.c4gh"',
-    );
+    expect(response.headers.get("content-length")).toBe(String(TOTAL_LEN));
     expect(response.headers.get("accept-ranges")).toBe("bytes");
-    expect(response.headers.get("etag")).toBe('"abc123"');
-    expect(response.headers.get("last-modified")).toBe(
-      "Wed, 01 Jan 2025 00:00:00 GMT",
-    );
+    expect(response.headers.get("etag")).toBe(ETAG);
     expect(response.headers.get("cache-control")).toBe("no-store");
-    await expect(response.text()).resolves.toBe("payload");
-  });
-
-  test("fallback Content-Disposition uses basename from name query param", async () => {
-    setSession(validSession);
-    vi.spyOn(globalThis, "fetch").mockResolvedValue(
-      new Response("payload", {
-        status: 200,
-        headers: { "content-type": "application/octet-stream" },
-      }),
-    );
-
-    const { request, params } = makeRequest("file-1", {
-      name: "samples/controls/sample1.cram.c4gh",
-    });
-    const response = await GET(request, { params });
-
     expect(response.headers.get("content-disposition")).toBe(
       "attachment; " +
         'filename="sample1.cram.c4gh"; ' +
         "filename*=UTF-8''sample1.cram.c4gh",
     );
+    expect(response.headers.get("content-range")).toBeNull();
+
+    const body = await readAll(response.body);
+    expect(body.byteLength).toBe(TOTAL_LEN);
+    expect(body.subarray(0, HEADER_LEN)).toEqual(headerBody);
+    expect(body.subarray(HEADER_LEN)).toEqual(contentBody);
   });
 
-  test("fallback Content-Disposition uses <fileId>.c4gh when no name is given", async () => {
+  test("fallback Content-Disposition uses <fileId>.c4gh when no name given", async () => {
     setSession(validSession);
-    vi.spyOn(globalThis, "fetch").mockResolvedValue(
-      new Response("payload", {
-        status: 200,
-        headers: { "content-type": "application/octet-stream" },
-      }),
-    );
+    installDispatchedFetch(defaultHandler);
 
     const { request, params } = makeRequest("file-1");
     const response = await GET(request, { params });
@@ -224,47 +318,225 @@ describe("GET /api/files/[fileId]", () => {
     );
   });
 
+  // Resuming with range entirely inside the header
+
+  test("Range entirely inside the header → 206, no /content GET", async () => {
+    setSession(validSession);
+    const spy = installDispatchedFetch(defaultHandler);
+
+    const { request, params } = makeRequest("file-1", {
+      range: `bytes=10-${HEADER_LEN - 10}`,
+    });
+    const response = await GET(request, { params });
+
+    expect(response.status).toBe(206);
+    const expectedLen = HEADER_LEN - 10 - 10 + 1;
+    expect(response.headers.get("content-length")).toBe(String(expectedLen));
+    expect(response.headers.get("content-range")).toBe(
+      `bytes 10-${HEADER_LEN - 10}/${TOTAL_LEN}`,
+    );
+    expect(response.headers.get("etag")).toBe(ETAG);
+
+    const body = await readAll(response.body);
+    expect(body).toEqual(headerBody.subarray(10, HEADER_LEN - 10 + 1));
+
+    const getContent = spy.mock.calls.find(
+      ([url, init]) =>
+        String(url).endsWith("/content") &&
+        (init?.method || "GET").toUpperCase() === "GET",
+    );
+    expect(getContent).toBeUndefined();
+  });
+
+  // Resuming with range entirely inside the content
+
+  test("Range entirely inside the content → 206, no /header GET, translated Range", async () => {
+    setSession(validSession);
+    const spy = installDispatchedFetch(defaultHandler);
+
+    const start = HEADER_LEN + 100;
+    const end = HEADER_LEN + 199;
+
+    const { request, params } = makeRequest("file-1", {
+      range: `bytes=${start}-${end}`,
+    });
+    const response = await GET(request, { params });
+
+    expect(response.status).toBe(206);
+    expect(response.headers.get("content-length")).toBe("100");
+    expect(response.headers.get("content-range")).toBe(
+      `bytes ${start}-${end}/${TOTAL_LEN}`,
+    );
+
+    const body = await readAll(response.body);
+    expect(body).toEqual(contentBody.subarray(100, 200));
+
+    const getHeader = spy.mock.calls.find(
+      ([url, init]) =>
+        String(url).endsWith("/header") &&
+        (init?.method || "GET").toUpperCase() === "GET",
+    );
+    expect(getHeader).toBeUndefined();
+
+    const getContent = spy.mock.calls.find(
+      ([url, init]) =>
+        String(url).endsWith("/content") &&
+        (init?.method || "GET").toUpperCase() === "GET",
+    );
+    expect(getContent).toBeDefined();
+    const sentRange = new Headers(getContent![1]?.headers).get("range");
+    expect(sentRange).toBe("bytes=100-199");
+  });
+
+  // Resuming with range spanning both header and content
+
+  test("Range spanning header/content boundary → stitched 206", async () => {
+    setSession(validSession);
+    installDispatchedFetch(defaultHandler);
+
+    const start = HEADER_LEN - 10;
+    const end = HEADER_LEN + 9;
+
+    const { request, params } = makeRequest("file-1", {
+      range: `bytes=${start}-${end}`,
+    });
+    const response = await GET(request, { params });
+
+    expect(response.status).toBe(206);
+    expect(response.headers.get("content-length")).toBe("20");
+    expect(response.headers.get("content-range")).toBe(
+      `bytes ${start}-${end}/${TOTAL_LEN}`,
+    );
+
+    const body = await readAll(response.body);
+    const expected = new Uint8Array(20);
+    expected.set(headerBody.subarray(HEADER_LEN - 10), 0);
+    expected.set(contentBody.subarray(0, 10), 10);
+    expect(body).toEqual(expected);
+  });
+
+  // Resuming with open-ended range (partial file download with unknown total size)
+
+  test("open-ended Range bytes=N- → 206 from N to end", async () => {
+    setSession(validSession);
+    installDispatchedFetch(defaultHandler);
+
+    const start = HEADER_LEN + 500;
+
+    const { request, params } = makeRequest("file-1", {
+      range: `bytes=${start}-`,
+    });
+    const response = await GET(request, { params });
+
+    expect(response.status).toBe(206);
+    expect(response.headers.get("content-range")).toBe(
+      `bytes ${start}-${TOTAL_LEN - 1}/${TOTAL_LEN}`,
+    );
+
+    const body = await readAll(response.body);
+    expect(body).toEqual(contentBody.subarray(500));
+  });
+
+  // If-Range matching ETag should honor the Range, otherwise ignore it and return 200 with full body.
+
+  test("If-Range matching ETag honors the Range", async () => {
+    setSession(validSession);
+    installDispatchedFetch(defaultHandler);
+
+    const start = HEADER_LEN + 50;
+    const end = HEADER_LEN + 99;
+
+    const { request, params } = makeRequest("file-1", {
+      range: `bytes=${start}-${end}`,
+      ifRange: ETAG,
+    });
+    const response = await GET(request, { params });
+
+    expect(response.status).toBe(206);
+    expect(response.headers.get("content-range")).toBe(
+      `bytes ${start}-${end}/${TOTAL_LEN}`,
+    );
+  });
+
+  test("If-Range mismatching ETag → ignore Range, return 200 full body", async () => {
+    setSession(validSession);
+    installDispatchedFetch(defaultHandler);
+
+    const { request, params } = makeRequest("file-1", {
+      range: "bytes=0-99",
+      ifRange: '"stale-etag"',
+    });
+    const response = await GET(request, { params });
+
+    expect(response.status).toBe(200);
+    expect(response.headers.get("content-length")).toBe(String(TOTAL_LEN));
+    expect(response.headers.get("content-range")).toBeNull();
+  });
+
+  // Unsatisfiable range
+
+  test("Range past end of file → 416 with Content-Range total", async () => {
+    setSession(validSession);
+    installDispatchedFetch(defaultHandler);
+
+    const { request, params } = makeRequest("file-1", {
+      range: `bytes=${TOTAL_LEN + 100}-`,
+    });
+    const response = await GET(request, { params });
+
+    expect(response.status).toBe(416);
+    expect(response.headers.get("cache-control")).toBe("no-store");
+    expect(response.headers.get("content-range")).toBe(`bytes */${TOTAL_LEN}`);
+    expect(response.headers.get("content-disposition")).toBeNull();
+    await expect(response.json()).resolves.toMatchObject({ status: 416 });
+  });
+
+  // Upstream errors during HEAD probes
+
   test.each([
     {
-      name: "401 from upstream surfaces detail from problem+json",
-      status: 401,
-      body: { title: "Unauthorized", status: 401, detail: "Token expired." },
-      expectedDetail: "Token expired.",
-    },
-    {
-      name: "403 from upstream surfaces detail from problem+json",
+      name: "404 on /header HEAD surfaces problem+json detail",
+      failed: "header",
       status: 403,
-      body: {
-        title: "Forbidden",
-        status: 403,
-        detail: "You do not have access.",
-      },
-      expectedDetail: "You do not have access.",
+      body: { title: "Forbidden", status: 403, detail: "No access." },
+      expectedDetail: "No access.",
     },
     {
-      name: "416 from upstream surfaces detail from problem+json",
-      status: 416,
-      body: {
-        title: "Range Not Satisfiable",
-        status: 416,
-        detail: "Out of range.",
-      },
-      expectedDetail: "Out of range.",
-    },
-    {
-      name: "500 from upstream surfaces detail from problem+json",
+      name: "500 on /content HEAD uses generic fallback",
+      failed: "content",
       status: 500,
-      body: { title: "Internal Server Error", status: 500, detail: "Boom." },
-      expectedDetail: "Boom.",
+      body: "boom",
+      expectedDetail: "Download failed with status 500.",
     },
-  ])("$name", async ({ status, body, expectedDetail }) => {
+  ])("$name", async ({ failed, status, body, expectedDetail }) => {
     setSession(validSession);
-    vi.spyOn(globalThis, "fetch").mockResolvedValue(
-      new Response(JSON.stringify(body), {
-        status,
-        headers: { "content-type": "application/problem+json" },
-      }),
-    );
+    installDispatchedFetch((url, init) => {
+      const method = (init?.method || "GET").toUpperCase();
+
+      if (failed === "header" && url.endsWith("/header") && method === "HEAD") {
+        const bodyStr = typeof body === "string" ? body : JSON.stringify(body);
+        const contentType =
+          typeof body === "string" ? "text/plain" : "application/problem+json";
+        return new Response(bodyStr, {
+          status,
+          headers: { "content-type": contentType },
+        });
+      }
+      if (
+        failed === "content" &&
+        url.endsWith("/content") &&
+        method === "HEAD"
+      ) {
+        const bodyStr = typeof body === "string" ? body : JSON.stringify(body);
+        const contentType =
+          typeof body === "string" ? "text/plain" : "application/problem+json";
+        return new Response(bodyStr, {
+          status,
+          headers: { "content-type": contentType },
+        });
+      }
+      return defaultHandler(url, init);
+    });
 
     const { request, params } = makeRequest("file-1");
     const response = await GET(request, { params });
@@ -278,54 +550,43 @@ describe("GET /api/files/[fileId]", () => {
     });
   });
 
-  test.each([
-    {
-      name: "401 with non-JSON body uses 401 fallback message",
-      status: 401,
-      body: "not json",
-      expected:
-        "Authentication with the download backend failed. Please sign in again.",
-    },
-    {
-      name: "403 with non-JSON body uses 403 fallback message",
-      status: 403,
-      body: "not json",
-      expected: "You do not have access to this file (or it does not exist).",
-    },
-    {
-      name: "416 with non-JSON body uses 416 fallback message",
-      status: 416,
-      body: "not json",
-      expected: "The requested byte range is not satisfiable.",
-    },
-    {
-      name: "500 with non-JSON body uses generic fallback message",
-      status: 500,
-      body: "not json",
-      expected: "Download failed with status 500.",
-    },
-  ])("$name", async ({ status, body, expected }) => {
+  // Upstream errors during body fetches
+
+  test("403 on /content GET after successful HEADs surfaces problem+json detail", async () => {
     setSession(validSession);
-    vi.spyOn(globalThis, "fetch").mockResolvedValue(
-      new Response(body, {
-        status,
-        headers: { "content-type": "text/plain" },
-      }),
-    );
+    installDispatchedFetch((url, init) => {
+      const method = (init?.method || "GET").toUpperCase();
+      if (url.endsWith("/content") && method === "GET") {
+        return new Response(
+          JSON.stringify({
+            title: "Forbidden",
+            status: 403,
+            detail: "Access revoked mid-stream.",
+          }),
+          {
+            status: 403,
+            headers: { "content-type": "application/problem+json" },
+          },
+        );
+      }
+      return defaultHandler(url, init);
+    });
 
     const { request, params } = makeRequest("file-1");
     const response = await GET(request, { params });
 
-    expect(response.status).toBe(status);
+    expect(response.status).toBe(403);
     expect(response.headers.get("cache-control")).toBe("no-store");
     expect(response.headers.get("content-disposition")).toBeNull();
     await expect(response.json()).resolves.toEqual({
-      error: expected,
-      status,
+      error: "Access revoked mid-stream.",
+      status: 403,
     });
   });
 
-  test("returns 502 when fetch itself fails", async () => {
+  // Network failure
+
+  test("returns 502 when the probe fetch itself fails", async () => {
     setSession(validSession);
     vi.spyOn(globalThis, "fetch").mockRejectedValue(
       new Error("Network error"),
