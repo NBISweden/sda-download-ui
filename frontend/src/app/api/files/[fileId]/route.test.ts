@@ -83,9 +83,7 @@ const ETAG = '"content-etag-abc"';
 
 // Fixed body fixtures so tests can assert on stitched output.
 const headerBody = new Uint8Array(HEADER_LEN).map((_, i) => (i + 1) % 256);
-const contentBody = new Uint8Array(CONTENT_LEN).map(
-  (_, i) => (i + 200) % 256,
-);
+const contentBody = new Uint8Array(CONTENT_LEN).map((_, i) => (i + 200) % 256);
 
 type DispatchHandler = (
   url: string,
@@ -93,17 +91,15 @@ type DispatchHandler = (
 ) => Response | Promise<Response>;
 
 function installDispatchedFetch(handler: DispatchHandler) {
-  return vi
-    .spyOn(globalThis, "fetch")
-    .mockImplementation((input, init) => {
-      const url =
-        typeof input === "string"
-          ? input
-          : input instanceof URL
-            ? input.toString()
-            : (input as Request).url;
-      return Promise.resolve(handler(url, init));
-    });
+  return vi.spyOn(globalThis, "fetch").mockImplementation((input, init) => {
+    const url =
+      typeof input === "string"
+        ? input
+        : input instanceof URL
+          ? input.toString()
+          : (input as Request).url;
+    return Promise.resolve(handler(url, init));
+  });
 }
 
 function headerHeadResponse() {
@@ -588,9 +584,7 @@ describe("GET /api/files/[fileId]", () => {
 
   test("returns 502 when the probe fetch itself fails", async () => {
     setSession(validSession);
-    vi.spyOn(globalThis, "fetch").mockRejectedValue(
-      new Error("Network error"),
-    );
+    vi.spyOn(globalThis, "fetch").mockRejectedValue(new Error("Network error"));
 
     const { request, params } = makeRequest("file-1");
     const response = await GET(request, { params });

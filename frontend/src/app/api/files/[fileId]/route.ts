@@ -62,7 +62,10 @@ type Range = { start: number; end: number };
 
 // Parse a single-range "bytes=<start>-<end?>" header in combined-stream space.
 // Returns null if not present/unparseable or "unsatisfiable" if start >= totalLen or start > end.
-function parseRange(header: string | null, totalLen: number): Range | "unsatisfiable" | null {
+function parseRange(
+  header: string | null,
+  totalLen: number,
+): Range | "unsatisfiable" | null {
   if (!header) return null;
 
   const m = header.match(/^bytes=(\d+)-(\d*)$/);
@@ -206,8 +209,7 @@ export async function GET(
   if (needContent) {
     const contentStart = Math.max(0, effective.start - headerLen);
     const contentEnd = effective.end - headerLen;
-    const wantsSubSlice =
-      contentStart > 0 || contentEnd < contentLen - 1;
+    const wantsSubSlice = contentStart > 0 || contentEnd < contentLen - 1;
     const headers: Record<string, string> = { ...contentAuth };
     if (wantsSubSlice) {
       headers["Range"] = `bytes=${contentStart}-${contentEnd}`;
