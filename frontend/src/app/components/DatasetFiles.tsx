@@ -123,25 +123,6 @@ export default function DatasetFiles({
           onChange={handleSearchChange}
         />
       </div>
-      <div className="d-flex justify-content-between align-items-center mb-3">
-        <div className="d-flex gap-2">
-          <button
-            type="button"
-            className="btn btn-primary btn-sm"
-            onClick={handleSelectionButtonClick}
-            disabled={currentFiles.length === 0}
-          >
-            {allCurrentPageFilesSelected
-              ? "Clear selection"
-              : "Select visible files"}
-          </button>
-        </div>
-        <div>
-          <strong>{selectedFileIds.size}</strong>{" "}
-          {selectedFileIds.size === 1 ? "file selected" : "files selected"}
-        </div>
-      </div>
-
       <Pagination
         itemsPerPage={itemsPerPage}
         totalItems={filteredFiles.length}
@@ -149,6 +130,24 @@ export default function DatasetFiles({
         totalPages={totalPages}
         onPageChange={setCurrentPage}
       />
+      <div className="d-flex justify-content-start align-items-center mb-3 gap-3">
+        <div className="d-flex gap-2">
+          <button
+              type="button"
+              className="btn btn-secondary selection-button"
+              onClick={handleSelectionButtonClick}
+              disabled={currentFiles.length === 0}
+          >
+            {allCurrentPageFilesSelected
+                ? "Clear selection"
+                : "Select visible files"}
+          </button>
+        </div>
+        <div>
+          <strong>{selectedFileIds.size}</strong>{" "}
+          {selectedFileIds.size === 1 ? "file selected" : "files selected"}
+        </div>
+      </div>
       {currentFiles.length > 0 && (
         <Table
           data={currentFiles}
