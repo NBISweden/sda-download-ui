@@ -6,16 +6,19 @@ import Pagination from "./Pagination";
 import { Table } from "./Table";
 import { filesize } from "filesize";
 import { ClipboardValue } from "./ClipboardValue";
+import { ItemSelector, useItemsPerPage } from "./ItemsPerPage";
 
 type DatasetFilesProps = {
   files: DatasetFile[];
-  itemsPerPage: number;
+  defaultItemsPerPage: number;
 };
 
 export default function DatasetFiles({
   files,
-  itemsPerPage = 10,
+  defaultItemsPerPage = 15,
 }: DatasetFilesProps) {
+  const { itemsPerPage, setItemsPerPage, itemsPerPageOptions } =
+    useItemsPerPage(defaultItemsPerPage);
   const [currentPage, setCurrentPage] = useState(1);
   const [searchTerm, setSearchTerm] = useState("");
 
@@ -83,6 +86,15 @@ export default function DatasetFiles({
           onChange={handleSearchChange}
         />
       </div>
+      <ItemSelector
+        item={itemsPerPage}
+        setItem={(i) => {
+          setItemsPerPage(i);
+          setCurrentPage(1);
+        }}
+        items={itemsPerPageOptions}
+        label="Items per page"
+      />
       <Pagination
         itemsPerPage={itemsPerPage}
         totalItems={filteredFiles.length}

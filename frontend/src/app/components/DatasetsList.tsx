@@ -5,16 +5,19 @@ import Pagination from "@/app/components/Pagination";
 import type { DatasetMetadata } from "../actions/datasets";
 import Alert from "@/app/components/Alert";
 import { filesize } from "filesize";
+import { ItemSelector, useItemsPerPage } from "./ItemsPerPage";
 
 type DatasetsListProps = {
   datasets: DatasetMetadata[];
-  itemsPerPage: number;
+  defaultItemsPerPage: number;
 };
 
 export default function DatasetsList({
   datasets,
-  itemsPerPage = 10,
+  defaultItemsPerPage = 15,
 }: DatasetsListProps) {
+  const { itemsPerPage, setItemsPerPage, itemsPerPageOptions } =
+    useItemsPerPage(defaultItemsPerPage);
   const [currentPage, setCurrentPage] = useState(1);
   const [searchTerm, setSearchTerm] = useState("");
 
@@ -74,6 +77,15 @@ export default function DatasetsList({
           onChange={handleSearchChange}
         />
       </div>
+      <ItemSelector
+        item={itemsPerPage}
+        setItem={(i) => {
+          setItemsPerPage(i);
+          setCurrentPage(1);
+        }}
+        items={itemsPerPageOptions}
+        label="Items per page"
+      />
       {totalPages > 1 && (
         <Pagination
           currentPage={currentPage}
