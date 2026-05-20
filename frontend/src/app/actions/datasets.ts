@@ -2,10 +2,13 @@
 
 import { getConfig } from "../lib/config";
 
-export type DatasetListResponse = {
-  datasets: string[];
+type NextPageToken = {
   nextPageToken: string | null;
 };
+
+export type DatasetListResponse = {
+  datasets: string[];
+} & NextPageToken;
 
 export type DatasetMetadata = {
   datasetId: string;
@@ -30,14 +33,19 @@ export type DatasetFile = {
 
 export type DatasetFilesResponse = {
   files: DatasetFile[];
-  nextPageToken: string | null;
-};
+} & NextPageToken;
 
 export async function fetchDatasets(
   token: string,
+  pageToken?: string,
 ): Promise<DatasetListResponse> {
   const { sdaBaseUrl } = await getConfig();
-  const response = await fetch(`${sdaBaseUrl}/datasets`, {
+  const params = new URLSearchParams();
+  if (pageToken) {
+    params.set("pageToken", pageToken);
+  }
+  const baseUrl = `${sdaBaseUrl}/datasets`;
+  const response = await fetch(baseUrl + (params.size ? `?${params}` : ""), {
     headers: {
       Authorization: `Bearer ${token}`,
     },
@@ -73,9 +81,15 @@ export async function fetchDatasetMetadata(
 export async function fetchDatasetFiles(
   token: string,
   datasetId: string,
+  pageToken?: string,
 ): Promise<DatasetFilesResponse> {
   const { sdaBaseUrl } = await getConfig();
-  const response = await fetch(`${sdaBaseUrl}/datasets/${datasetId}/files`, {
+  const params = new URLSearchParams();
+  if (pageToken) {
+    params.set("pageToken", pageToken);
+  }
+  const baseUrl = `${sdaBaseUrl}/datasets/${datasetId}/files`;
+  const response = await fetch(baseUrl + (params.size ? `?${params}` : ""), {
     headers: {
       Authorization: `Bearer ${token}`,
     },
@@ -87,4 +101,17 @@ export async function fetchDatasetFiles(
   }
 
   return response.json();
+}
+
+export async function fetchAll<T>(
+  fetchPage: (pageToken?: string) => Promise<{ items: T[] } & NextPageToken>,
+) {
+  const items: T[] = [];
+  let nextPageToken: NextPageToken["nextPageToken"] | false = null;
+  while (nextPageToken !== false) {
+    const data = await fetchPage(nextPageToken || undefined);
+    items.push(...data.items);
+    nextPageToken = data.nextPageToken || false;
+  }
+  return items;
 }

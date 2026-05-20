@@ -3,6 +3,7 @@ import {
   type DatasetMetadata,
   type DatasetFile,
   fetchDatasetFiles,
+  fetchAll,
 } from "../../../actions/datasets";
 import { getSession } from "@/app/lib/session";
 import DatasetDetails from "../../../components/DatasetDetails";
@@ -43,8 +44,10 @@ export default async function DatasetDetailsView({
   }
 
   try {
-    const response = await fetchDatasetFiles(token, datasetId);
-    files = response.files;
+    files = await fetchAll(async (pageToken) => {
+      const page = await fetchDatasetFiles(token, datasetId, pageToken);
+      return { items: page.files, nextPageToken: page.nextPageToken };
+    });
   } catch (error) {
     const message =
       error instanceof Error ? error.message : "unknown error occurred";
