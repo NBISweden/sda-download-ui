@@ -92,8 +92,16 @@ export default function DatasetFiles({
     });
   };
 
-  const clearSelection = () => {
-    setSelectedFileIds(new Set());
+  const allCurrentPageFilesSelected =
+    currentFiles.length > 0 &&
+    currentFiles.every((file) => selectedFileIds.has(file.fileId));
+
+  const handleSelectionButtonClick = () => {
+    if (allCurrentPageFilesSelected) {
+      setSelectedFileIds(new Set());
+    } else {
+      selectCurrentPage();
+    }
   };
 
   return (
@@ -120,19 +128,12 @@ export default function DatasetFiles({
           <button
             type="button"
             className="btn btn-primary btn-sm"
-            onClick={selectCurrentPage}
+            onClick={handleSelectionButtonClick}
             disabled={currentFiles.length === 0}
           >
-            Select visible files
-          </button>
-
-          <button
-            type="button"
-            className="btn btn-secondary btn-sm"
-            onClick={clearSelection}
-            disabled={selectedFileIds.size === 0}
-          >
-            Clear selection
+            {allCurrentPageFilesSelected
+              ? "Clear selection"
+              : "Select visible files"}
           </button>
         </div>
         <div>
