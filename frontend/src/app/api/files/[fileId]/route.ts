@@ -181,16 +181,13 @@ export async function GET(
     );
   }
 
-  // Decide which upstream bodies we need. Note that no range is supported for the header by the backend API.
-  // The header is very small so it will be downloaded if needed and range will be adjusted.
-  // This is step 3 in supporting partial downloads.
-  const effective: Range = range || { start: 0, end: totalLen - 1 };
-  const needHeader = effective.start < headerLen;
-  const needContent = effective.end >= headerLen;
+  // If the requested range overlaps the header, ignore the range and thus serve the full file.
+  const effectiveRange = range && range.start >= headerLen ? range : null;
+  const isFullDownload = effectiveRange === null;
 
-  // Fetch (and buffer) just the slice of the header we need.
-  let headerSlice: Uint8Array | null = null;
-  if (needHeader) {
+  // Fetch the header only when we're serving a full download.
+  let headerBody: Uint8Array | null = null;
+  if (isFullDownload) {
     const r = await fetch(headerUrl, {
       headers: headerAuth,
       cache: "no-store",
@@ -198,34 +195,37 @@ export async function GET(
     if (!r.ok) {
       return translateUpstreamError(r, await extractProblemDetail(r));
     }
-    const buf = new Uint8Array(await r.arrayBuffer());
-    const sliceStart = effective.start;
-    const sliceEnd = Math.min(effective.end, headerLen - 1);
-    headerSlice = buf.subarray(sliceStart, sliceEnd + 1);
+    headerBody = new Uint8Array(await r.arrayBuffer());
   }
 
-  // Stream the content portion with a translated Range if it's a sub-slice.
-  let contentBody: ReadableStream<Uint8Array> | null = null;
-  if (needContent) {
-    const contentStart = Math.max(0, effective.start - headerLen);
-    const contentEnd = effective.end - headerLen;
-    const wantsSubSlice = contentStart > 0 || contentEnd < contentLen - 1;
-    const headers: Record<string, string> = { ...contentAuth };
-    if (wantsSubSlice) {
-      headers["Range"] = `bytes=${contentStart}-${contentEnd}`;
-    }
-    const r = await fetch(contentUrl, { headers, cache: "no-store" });
-    if (!r.ok) {
-      return translateUpstreamError(r, await extractProblemDetail(r));
-    }
-    contentBody = r.body;
-  }
+  // Stream the content portion, translating the Range into content-local
+  // offsets when present. This is step 3 in supporting partial downloads.
+  const contentStart = effectiveRange ? effectiveRange.start - headerLen : 0;
+  const contentEnd = effectiveRange
+    ? effectiveRange.end - headerLen
+    : contentLen - 1;
+  const wantsSubSlice = contentStart > 0 || contentEnd < contentLen - 1;
 
-  // Stitch header slice (if any) + content stream (if any).
-  // This is step 4 in supporting partial downloads.
+  const contentHeaders: Record<string, string> = { ...contentAuth };
+  if (wantsSubSlice) {
+    contentHeaders["Range"] = `bytes=${contentStart}-${contentEnd}`;
+  }
+  const contentResp = await fetch(contentUrl, {
+    headers: contentHeaders,
+    cache: "no-store",
+  });
+  if (!contentResp.ok) {
+    return translateUpstreamError(
+      contentResp,
+      await extractProblemDetail(contentResp),
+    );
+  }
+  const contentBody = contentResp.body;
+
+  // Stitch header bytes (full download only) + content stream.
   const stream = new ReadableStream<Uint8Array>({
     async start(controller) {
-      if (headerSlice) controller.enqueue(headerSlice);
+      if (headerBody) controller.enqueue(headerBody);
       if (contentBody) {
         const reader = contentBody.getReader();
         try {
@@ -253,15 +253,16 @@ export async function GET(
     buildContentDisposition(getFallbackFilename(filePath, fileId)),
   );
 
-  const responseLen = effective.end - effective.start + 1;
-  responseHeaders.set("content-length", String(responseLen));
-
-  if (range) {
+  if (effectiveRange) {
+    const responseLen = effectiveRange.end - effectiveRange.start + 1;
+    responseHeaders.set("content-length", String(responseLen));
     responseHeaders.set(
       "content-range",
-      `bytes ${range.start}-${range.end}/${totalLen}`,
+      `bytes ${effectiveRange.start}-${effectiveRange.end}/${totalLen}`,
     );
     return new NextResponse(stream, { status: 206, headers: responseHeaders });
   }
+
+  responseHeaders.set("content-length", String(totalLen));
   return new NextResponse(stream, { status: 200, headers: responseHeaders });
 }

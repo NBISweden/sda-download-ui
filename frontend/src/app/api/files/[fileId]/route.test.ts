@@ -314,36 +314,6 @@ describe("GET /api/files/[fileId]", () => {
     );
   });
 
-  // Resuming with range entirely inside the header
-
-  test("Range entirely inside the header → 206, no /content GET", async () => {
-    setSession(validSession);
-    const spy = installDispatchedFetch(defaultHandler);
-
-    const { request, params } = makeRequest("file-1", {
-      range: `bytes=10-${HEADER_LEN - 10}`,
-    });
-    const response = await GET(request, { params });
-
-    expect(response.status).toBe(206);
-    const expectedLen = HEADER_LEN - 10 - 10 + 1;
-    expect(response.headers.get("content-length")).toBe(String(expectedLen));
-    expect(response.headers.get("content-range")).toBe(
-      `bytes 10-${HEADER_LEN - 10}/${TOTAL_LEN}`,
-    );
-    expect(response.headers.get("etag")).toBe(ETAG);
-
-    const body = await readAll(response.body);
-    expect(body).toEqual(headerBody.subarray(10, HEADER_LEN - 10 + 1));
-
-    const getContent = spy.mock.calls.find(
-      ([url, init]) =>
-        String(url).endsWith("/content") &&
-        (init?.method || "GET").toUpperCase() === "GET",
-    );
-    expect(getContent).toBeUndefined();
-  });
-
   // Resuming with range entirely inside the content
 
   test("Range entirely inside the content → 206, no /header GET, translated Range", async () => {
@@ -384,33 +354,6 @@ describe("GET /api/files/[fileId]", () => {
     expect(sentRange).toBe("bytes=100-199");
   });
 
-  // Resuming with range spanning both header and content
-
-  test("Range spanning header/content boundary → stitched 206", async () => {
-    setSession(validSession);
-    installDispatchedFetch(defaultHandler);
-
-    const start = HEADER_LEN - 10;
-    const end = HEADER_LEN + 9;
-
-    const { request, params } = makeRequest("file-1", {
-      range: `bytes=${start}-${end}`,
-    });
-    const response = await GET(request, { params });
-
-    expect(response.status).toBe(206);
-    expect(response.headers.get("content-length")).toBe("20");
-    expect(response.headers.get("content-range")).toBe(
-      `bytes ${start}-${end}/${TOTAL_LEN}`,
-    );
-
-    const body = await readAll(response.body);
-    const expected = new Uint8Array(20);
-    expected.set(headerBody.subarray(HEADER_LEN - 10), 0);
-    expected.set(contentBody.subarray(0, 10), 10);
-    expect(body).toEqual(expected);
-  });
-
   // Resuming with open-ended range (partial file download with unknown total size)
 
   test("open-ended Range bytes=N- → 206 from N to end", async () => {
@@ -431,6 +374,57 @@ describe("GET /api/files/[fileId]", () => {
 
     const body = await readAll(response.body);
     expect(body).toEqual(contentBody.subarray(500));
+  });
+
+  // Header-overlapping ranges are refused and the proxy serves the full file
+  // instead. This protects against resumes that would splice a fresh
+  // re-encrypted header onto a stale one thus resulting in corrupted downloads.
+
+  test("Range spanning header/content boundary → 200 full file", async () => {
+    setSession(validSession);
+    installDispatchedFetch(defaultHandler);
+
+    const start = HEADER_LEN - 10;
+    const end = HEADER_LEN + 9;
+
+    const { request, params } = makeRequest("file-1", {
+      range: `bytes=${start}-${end}`,
+    });
+    const response = await GET(request, { params });
+
+    expect(response.status).toBe(200);
+    expect(response.headers.get("content-length")).toBe(String(TOTAL_LEN));
+    expect(response.headers.get("content-range")).toBeNull();
+  });
+
+  test("Range starting exactly at headerLen with If-Range → 206, no /header GET", async () => {
+    setSession(validSession);
+    const spy = installDispatchedFetch(defaultHandler);
+
+    const start = HEADER_LEN;
+    const end = HEADER_LEN + 99;
+
+    const { request, params } = makeRequest("file-1", {
+      range: `bytes=${start}-${end}`,
+      ifRange: ETAG,
+    });
+    const response = await GET(request, { params });
+
+    expect(response.status).toBe(206);
+    expect(response.headers.get("content-length")).toBe("100");
+    expect(response.headers.get("content-range")).toBe(
+      `bytes ${start}-${end}/${TOTAL_LEN}`,
+    );
+
+    const body = await readAll(response.body);
+    expect(body).toEqual(contentBody.subarray(0, 100));
+
+    const getHeader = spy.mock.calls.find(
+      ([url, init]) =>
+        String(url).endsWith("/header") &&
+        (init?.method || "GET").toUpperCase() === "GET",
+    );
+    expect(getHeader).toBeUndefined();
   });
 
   // If-Range matching ETag should honor the Range, otherwise ignore it and return 200 with full body.
@@ -459,7 +453,7 @@ describe("GET /api/files/[fileId]", () => {
     installDispatchedFetch(defaultHandler);
 
     const { request, params } = makeRequest("file-1", {
-      range: "bytes=0-99",
+      range: `bytes=${HEADER_LEN + 50}-${HEADER_LEN + 99}`,
       ifRange: '"stale-etag"',
     });
     const response = await GET(request, { params });
