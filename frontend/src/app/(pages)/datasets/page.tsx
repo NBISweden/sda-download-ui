@@ -2,6 +2,7 @@ import {
   fetchDatasets,
   fetchDatasetMetadata,
   type DatasetMetadata,
+  fetchAll,
 } from "../../actions/datasets";
 import { getSession } from "@/app/lib/session";
 import DatasetsList from "../../components/DatasetsList";
@@ -18,8 +19,10 @@ export default async function DataSetsViewPage() {
     return <p>No token found in session.</p>;
   } else {
     try {
-      const result = await fetchDatasets(token);
-      const datasetIds = result.datasets;
+      const datasetIds = await fetchAll(async (pageToken) => {
+        const page = await fetchDatasets(token, pageToken);
+        return { items: page.datasets, nextPageToken: page.nextPageToken };
+      });
 
       datasetMetadataList = await Promise.all(
         datasetIds.map((datasetId) => fetchDatasetMetadata(token, datasetId)),
@@ -55,7 +58,10 @@ export default async function DataSetsViewPage() {
               />
             </div>
           ) : (
-            <DatasetsList datasets={datasetMetadataList} itemsPerPage={15} />
+            <DatasetsList
+              datasets={datasetMetadataList}
+              defaultItemsPerPage={15}
+            />
           )}
         </div>
       </div>
