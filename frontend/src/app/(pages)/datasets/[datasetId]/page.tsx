@@ -86,10 +86,9 @@ export default async function DatasetDetailsView({
                     iconClass="bi bi-exclamation-triangle-fill"
                     alertMessage={
                       <>
-                        You have not uploaded a Crypt4GH public key. File
-                        downloads will fail until you{" "}
+                        File download will be unavailable until you{" "}
                         <Link href="/userinfo">
-                          upload a public key on your profile page
+                          upload a Crypt4GH public key on your profile page
                         </Link>
                         .
                       </>
