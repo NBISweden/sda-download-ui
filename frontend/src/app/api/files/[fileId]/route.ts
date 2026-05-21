@@ -156,7 +156,12 @@ export async function GET(
     10,
   );
   const totalLen = headerLen + contentLen;
-  const etag = contentHead.headers.get("etag");
+  // Bind the ETag to the recipient public key so that resumes only succeed when the same
+  // key is in use.
+  const contentEtagRaw = contentHead.headers.get("etag");
+  const etag = contentEtagRaw
+    ? `"${contentEtagRaw.replace(/^"|"$/g, "")}-${sessionData.publicKey.pemChecksum}"`
+    : null;
 
   // Use If-Range only when it matches the (stable, content-derived) ETag.
   // This is step 2 in supporting partial downloads.

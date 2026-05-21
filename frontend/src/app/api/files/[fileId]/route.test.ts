@@ -80,6 +80,8 @@ const HEADER_LEN = 124;
 const CONTENT_LEN = 1000;
 const TOTAL_LEN = HEADER_LEN + CONTENT_LEN;
 const ETAG = '"content-etag-abc"';
+const PEM_CHECKSUM = "checksum"; // matches validSession.publicKey.pemChecksum
+const EXPOSED_ETAG = `"content-etag-abc-${PEM_CHECKSUM}"`;
 
 // Fixed body fixtures so tests can assert on stitched output.
 const headerBody = new Uint8Array(HEADER_LEN).map((_, i) => (i + 1) % 256);
@@ -285,7 +287,7 @@ describe("GET /api/files/[fileId]", () => {
     );
     expect(response.headers.get("content-length")).toBe(String(TOTAL_LEN));
     expect(response.headers.get("accept-ranges")).toBe("bytes");
-    expect(response.headers.get("etag")).toBe(ETAG);
+    expect(response.headers.get("etag")).toBe(EXPOSED_ETAG);
     expect(response.headers.get("cache-control")).toBe("no-store");
     expect(response.headers.get("content-disposition")).toBe(
       "attachment; " +
@@ -406,7 +408,7 @@ describe("GET /api/files/[fileId]", () => {
 
     const { request, params } = makeRequest("file-1", {
       range: `bytes=${start}-${end}`,
-      ifRange: ETAG,
+      ifRange: EXPOSED_ETAG,
     });
     const response = await GET(request, { params });
 
@@ -438,7 +440,7 @@ describe("GET /api/files/[fileId]", () => {
 
     const { request, params } = makeRequest("file-1", {
       range: `bytes=${start}-${end}`,
-      ifRange: ETAG,
+      ifRange: EXPOSED_ETAG,
     });
     const response = await GET(request, { params });
 
@@ -590,5 +592,31 @@ describe("GET /api/files/[fileId]", () => {
       error: "Could not reach the download backend: Network error",
       status: 502,
     });
+  });
+
+  // Simulate a session where the user has just uploaded a new key.
+  // The browser is replaying the If-Range it captured from the previous
+  // download (when a different key was in use).
+  test("resume with old key's ETag after key swap → 200 full file", async () => {
+    setSession({
+      token: "my-token",
+      publicKey: { key: "NEW_PUBKEY", pemChecksum: "new-checksum" },
+    });
+    installDispatchedFetch(defaultHandler);
+
+    const oldExposedEtag = `"content-etag-abc-old-checksum"`;
+
+    const { request, params } = makeRequest("file-1", {
+      range: `bytes=${HEADER_LEN + 100}-${HEADER_LEN + 199}`,
+      ifRange: oldExposedEtag,
+    });
+    const response = await GET(request, { params });
+
+    expect(response.status).toBe(200);
+    expect(response.headers.get("content-length")).toBe(String(TOTAL_LEN));
+    expect(response.headers.get("content-range")).toBeNull();
+    expect(response.headers.get("etag")).toBe(
+      `"content-etag-abc-new-checksum"`,
+    );
   });
 });
