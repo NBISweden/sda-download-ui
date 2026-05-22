@@ -6,16 +6,21 @@ import Pagination from "./Pagination";
 import { Table } from "./Table";
 import { filesize } from "filesize";
 import { ClipboardValue } from "./ClipboardValue";
+import { ItemSelector, useItemsPerPage } from "./ItemsPerPage";
 
 type DatasetFilesProps = {
   files: DatasetFile[];
-  itemsPerPage: number;
+  defaultItemsPerPage: number;
+  canDownload?: boolean;
 };
 
 export default function DatasetFiles({
   files,
-  itemsPerPage = 10,
+  defaultItemsPerPage = 15,
+  canDownload = true,
 }: DatasetFilesProps) {
+  const { itemsPerPage, setItemsPerPage, itemsPerPageOptions } =
+    useItemsPerPage(defaultItemsPerPage);
   const [currentPage, setCurrentPage] = useState(1);
   const [searchTerm, setSearchTerm] = useState("");
   const [selectedFileIds, setSelectedFileIds] = useState<Set<string>>(
@@ -30,7 +35,23 @@ export default function DatasetFiles({
       <ClipboardValue key={c.checksum} value={c.checksum} label={c.type} />
     )),
 
-    downloadUrl: <a href={file.downloadUrl}>Download file</a>,
+    downloadUrl: canDownload ? (
+      <a
+        href={`/api/files/${encodeURIComponent(file.fileId)}?name=${encodeURIComponent(file.filePath)}`}
+        download
+        target="_blank"
+        rel="noopener noreferrer"
+      >
+        Download file
+      </a>
+    ) : (
+      <span
+        className="text-muted"
+        title="Upload your Crypt4GH public key on the profile page to enable downloads."
+      >
+        Download file
+      </span>
+    ),
   }));
 
   const filteredFiles = useMemo(() => {
@@ -123,6 +144,15 @@ export default function DatasetFiles({
           onChange={handleSearchChange}
         />
       </div>
+      <ItemSelector
+        item={itemsPerPage}
+        setItem={(i) => {
+          setItemsPerPage(i);
+          setCurrentPage(1);
+        }}
+        items={itemsPerPageOptions}
+        label="Items per page"
+      />
       <Pagination
         itemsPerPage={itemsPerPage}
         totalItems={filteredFiles.length}
