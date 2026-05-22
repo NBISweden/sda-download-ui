@@ -133,14 +133,14 @@ export default function DatasetFiles({
       <div className="d-flex justify-content-start align-items-center mb-3 gap-3">
         <div className="d-flex gap-2">
           <button
-              type="button"
-              className="btn btn-secondary selection-button"
-              onClick={handleSelectionButtonClick}
-              disabled={currentFiles.length === 0}
+            type="button"
+            className="btn btn-secondary selection-button"
+            onClick={handleSelectionButtonClick}
+            disabled={currentFiles.length === 0}
           >
             {allCurrentPageFilesSelected
-                ? "Clear selection"
-                : "Select visible files"}
+              ? "Clear selection"
+              : "Select visible files"}
           </button>
         </div>
         <div>
