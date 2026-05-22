@@ -172,6 +172,16 @@ The stack is pre-seeded with:
 
 The mock OIDC token for `integration_test@example.org` includes visas for datasets `EGAD00000000001` through `EGAD00000000110`.
 
+### Optional: seed large file
+
+Sometimes it may be useful to include a large file into a dataset for testing e.g. partial downloads and resuming functionality. To achive this include the `seed-large-file` profile in the docker compose command. For example:
+
+```bash
+docker compose -f sda-dev-stack.yml --profile seed-large-file up -d
+```
+
+This will include a 2 GB file in dataset `EGAD00000000002`.
+
 ## Cleanup
 
 ``` bash

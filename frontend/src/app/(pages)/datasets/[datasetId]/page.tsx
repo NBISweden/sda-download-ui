@@ -9,6 +9,7 @@ import { getSession } from "@/app/lib/session";
 import DatasetDetails from "../../../components/DatasetDetails";
 import DatasetFiles from "@/app/components/DatasetFiles";
 import Alert from "@/app/components/Alert";
+import Link from "next/link";
 
 interface DatasetDetailsViewProps {
   params: Promise<{
@@ -23,6 +24,7 @@ export default async function DatasetDetailsView({
 
   const sessionData = await getSession();
   const token = sessionData?.token;
+  const hasPublicKey = !!sessionData?.publicKey?.key;
 
   let errorMessage: string | null = null;
   let dataset: DatasetMetadata | null = null;
@@ -78,7 +80,26 @@ export default async function DatasetDetailsView({
               <DatasetDetails dataset={dataset} />
               <div className="container mt-5 px-0">
                 <h3>Files</h3>
-                <DatasetFiles files={files} defaultItemsPerPage={15} />
+                {!hasPublicKey && (
+                  <Alert
+                    type="warning"
+                    iconClass="bi bi-exclamation-triangle-fill"
+                    alertMessage={
+                      <>
+                        File download will be unavailable until you{" "}
+                        <Link href="/userinfo">
+                          upload a Crypt4GH public key on your profile page
+                        </Link>
+                        .
+                      </>
+                    }
+                  />
+                )}
+                <DatasetFiles
+                  files={files}
+                  defaultItemsPerPage={10}
+                  canDownload={hasPublicKey}
+                />
               </div>
             </>
           )}
