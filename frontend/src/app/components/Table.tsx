@@ -62,7 +62,7 @@ export function Table<T extends RowData>({
                 <td>
                   <input
                     type="checkbox"
-                    className="form-check-input"
+                    className="form-check-input file-selection-checkbox"
                     checked={isSelected}
                     onChange={() => {
                       if (rowId) {
