@@ -23,6 +23,9 @@ export default function DatasetFiles({
     useItemsPerPage(defaultItemsPerPage);
   const [currentPage, setCurrentPage] = useState(1);
   const [searchTerm, setSearchTerm] = useState("");
+  const [selectedFileIds, setSelectedFileIds] = useState<Set<string>>(
+    new Set(),
+  );
 
   const formattedFiles = files.map((file) => ({
     fileId: file.fileId,
@@ -84,6 +87,43 @@ export default function DatasetFiles({
     setSearchTerm(event.target.value);
     setCurrentPage(1);
   }
+  const toggleFileSelection = (fileId: string) => {
+    setSelectedFileIds((previousSelectedIds) => {
+      const nextSelectedIds = new Set(previousSelectedIds);
+
+      if (nextSelectedIds.has(fileId)) {
+        nextSelectedIds.delete(fileId);
+      } else {
+        nextSelectedIds.add(fileId);
+      }
+
+      return nextSelectedIds;
+    });
+  };
+
+  const selectCurrentPage = () => {
+    setSelectedFileIds((previousSelectedIds) => {
+      const nextSelectedIds = new Set(previousSelectedIds);
+
+      currentFiles.forEach((file) => {
+        nextSelectedIds.add(file.fileId);
+      });
+
+      return nextSelectedIds;
+    });
+  };
+
+  const allCurrentPageFilesSelected =
+    currentFiles.length > 0 &&
+    currentFiles.every((file) => selectedFileIds.has(file.fileId));
+
+  const handleSelectionButtonClick = () => {
+    if (allCurrentPageFilesSelected) {
+      setSelectedFileIds(new Set());
+    } else {
+      selectCurrentPage();
+    }
+  };
 
   return (
     <>
@@ -120,9 +160,30 @@ export default function DatasetFiles({
         totalPages={totalPages}
         onPageChange={setCurrentPage}
       />
+      <div className="d-flex justify-content-start align-items-center mb-3 gap-3">
+        <div className="d-flex gap-2">
+          <button
+            type="button"
+            className="btn btn-secondary selection-button"
+            onClick={handleSelectionButtonClick}
+            disabled={currentFiles.length === 0}
+          >
+            {allCurrentPageFilesSelected
+              ? "Clear selection"
+              : "Select visible files"}
+          </button>
+        </div>
+        <div>
+          <strong>{selectedFileIds.size}</strong>{" "}
+          {selectedFileIds.size === 1 ? "file selected" : "files selected"}
+        </div>
+      </div>
       {currentFiles.length > 0 && (
         <Table
           data={currentFiles}
+          getRowId={(file) => file.fileId}
+          selectedIds={selectedFileIds}
+          onToggleRow={toggleFileSelection}
           headers={{
             fileId: "File ID",
             filePath: "Path",
