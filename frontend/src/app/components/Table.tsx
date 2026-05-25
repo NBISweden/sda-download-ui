@@ -70,6 +70,7 @@ export function Table<T extends RowData>({
                       }
                     }}
                     aria-label="Select file"
+                    autoComplete="off"
                   />
                 </td>
                 {tableColumns.map((column) => (
