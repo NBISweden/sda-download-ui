@@ -7,6 +7,7 @@ import { Table } from "./Table";
 import { filesize } from "filesize";
 import { ClipboardValue } from "./ClipboardValue";
 import { ItemSelector, useItemsPerPage } from "./ItemsPerPage";
+import { ChecksumExportActions } from "./ChecksumExportActions";
 
 type DatasetFilesProps = {
   files: DatasetFile[];
@@ -177,6 +178,10 @@ export default function DatasetFiles({
           <strong>{selectedFileIds.size}</strong>{" "}
           {selectedFileIds.size === 1 ? "file selected" : "files selected"}
         </div>
+        <ChecksumExportActions
+          files={files}
+          selectedFileIds={selectedFileIds}
+        />
       </div>
       {currentFiles.length > 0 && (
         <Table
