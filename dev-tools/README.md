@@ -182,6 +182,16 @@ docker compose -f sda-dev-stack.yml --profile seed-large-file up -d
 
 This will include a 2 GB file in dataset `EGAD00000000002`.
 
+### Optional: seed large dataset
+
+Sometimes it may be useful to include a large dataset for testing e.g. pagination. To achive this include the `seed-large-dataset` profile in the docker compose command. For example:
+
+```bash
+docker compose -f sda-dev-stack.yml --profile seed-large-file --profile seed-large-dataset up -d
+```
+
+This will include a 40k file dataset `EGAD00000040000`.
+
 ## Cleanup
 
 ``` bash
