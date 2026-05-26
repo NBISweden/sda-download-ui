@@ -62,6 +62,8 @@ with open("/tmp/seed_metadata.env", "w") as f:
     f.write(f"DECRYPTED_SIZE={len(plaintext)}\n")
     f.write(f"ARCHIVE_CHECKSUM={hashlib.sha256(body).hexdigest()}\n")
     f.write(f"DECRYPTED_CHECKSUM={hashlib.sha256(plaintext).hexdigest()}\n")
+    f.write(f"ARCHIVE_MD5_CHECKSUM={hashlib.md5(body).hexdigest()}\n")
+    f.write(f"DECRYPTED_MD5_CHECKSUM={hashlib.md5(plaintext).hexdigest()}\n")
 
 print(f"Header: {len(header)} bytes, Body: {len(body)} bytes")
 PYEOF
@@ -103,6 +105,9 @@ done
 dataset_idx=2
 while [ "$dataset_idx" -le 120 ]; do
   file_count=$(( ((dataset_idx - 2) % 10) + 1 ))
+  if [ "$dataset_idx" -eq 2 ]; then
+    file_count=2
+  fi
   j=1
   while [ "$j" -le "$file_count" ]; do
     OBJ_NAME=$(printf "generated-file-%011d.c4gh" "$GLOBAL_FILE_SEQ")
@@ -157,7 +162,9 @@ INSERT INTO sda.file_dataset (file_id, dataset_id)
 DELETE FROM sda.checksums WHERE file_id = '$BASE_FILE_UUID';
 INSERT INTO sda.checksums (file_id, checksum, type, source) VALUES
   ('$BASE_FILE_UUID', '$ARCHIVE_CHECKSUM', 'SHA256', 'ARCHIVED'),
-  ('$BASE_FILE_UUID', '$DECRYPTED_CHECKSUM', 'SHA256', 'UNENCRYPTED');
+  ('$BASE_FILE_UUID', '$DECRYPTED_CHECKSUM', 'SHA256', 'UNENCRYPTED'),
+  ('$BASE_FILE_UUID', '$ARCHIVE_MD5_CHECKSUM', 'MD5', 'ARCHIVED'),
+  ('$BASE_FILE_UUID', '$DECRYPTED_MD5_CHECKSUM', 'MD5', 'UNENCRYPTED');
 EOSQL
 
 # File sequence counter:
@@ -204,7 +211,9 @@ INSERT INTO sda.file_dataset (file_id, dataset_id)
 DELETE FROM sda.checksums WHERE file_id = '$FILE_UUID';
 INSERT INTO sda.checksums (file_id, checksum, type, source) VALUES
   ('$FILE_UUID', '$ARCHIVE_CHECKSUM', 'SHA256', 'ARCHIVED'),
-  ('$FILE_UUID', '$DECRYPTED_CHECKSUM', 'SHA256', 'UNENCRYPTED');
+  ('$FILE_UUID', '$DECRYPTED_CHECKSUM', 'SHA256', 'UNENCRYPTED'),
+  ('$FILE_UUID', '$ARCHIVE_MD5_CHECKSUM', 'MD5', 'ARCHIVED'),
+  ('$FILE_UUID', '$DECRYPTED_MD5_CHECKSUM', 'MD5', 'UNENCRYPTED');
 EOSQL
 
   NEXT_FILE_SEQ=$((NEXT_FILE_SEQ+1))
@@ -220,6 +229,9 @@ while [ "$dataset_idx" -le 120 ]; do
   DATASET_STABLE_ID=$(printf "EGAD%011d" "$dataset_idx")
   DATASET_TITLE=$(printf "Test Dataset %03d" "$dataset_idx")
   FILE_COUNT=$(( ((dataset_idx - 2) % 10) + 1 ))
+  if [ "$dataset_idx" -eq 2 ]; then
+    FILE_COUNT=2
+  fi
 
   psql -h postgres -U postgres -d sda << EOSQL
 INSERT INTO sda.datasets (stable_id, title)
@@ -264,9 +276,19 @@ INSERT INTO sda.file_dataset (file_id, dataset_id)
   ON CONFLICT DO NOTHING;
 
 DELETE FROM sda.checksums WHERE file_id = '$FILE_UUID';
-INSERT INTO sda.checksums (file_id, checksum, type, source) VALUES
-  ('$FILE_UUID', '$ARCHIVE_CHECKSUM', 'SHA256', 'ARCHIVED'),
-  ('$FILE_UUID', '$DECRYPTED_CHECKSUM', 'SHA256', 'UNENCRYPTED');
+
+INSERT INTO sda.checksums (file_id, checksum, type, source)
+  SELECT '$FILE_UUID', '$ARCHIVE_CHECKSUM', 'SHA256', 'ARCHIVED'
+  WHERE NOT (($dataset_idx = 2 AND $j = 1) OR $dataset_idx = 3);
+INSERT INTO sda.checksums (file_id, checksum, type, source)
+  SELECT '$FILE_UUID', '$DECRYPTED_CHECKSUM', 'SHA256', 'UNENCRYPTED'
+  WHERE NOT (($dataset_idx = 2 AND $j = 1) OR $dataset_idx = 3);
+INSERT INTO sda.checksums (file_id, checksum, type, source)
+  SELECT '$FILE_UUID', '$ARCHIVE_MD5_CHECKSUM', 'MD5', 'ARCHIVED'
+  WHERE (($dataset_idx = 2 AND $j = 1) OR $dataset_idx = 3);
+INSERT INTO sda.checksums (file_id, checksum, type, source)
+  SELECT '$FILE_UUID', '$DECRYPTED_MD5_CHECKSUM', 'MD5', 'UNENCRYPTED'
+  WHERE (($dataset_idx = 2 AND $j = 1) OR $dataset_idx = 3);
 EOSQL
 
     NEXT_FILE_SEQ=$((NEXT_FILE_SEQ+1))
