@@ -56,7 +56,7 @@ with open("/tmp/body.bin", "wb") as f:
 
 plaintext = open("/tmp/plaintext.bin", "rb").read()
 
-with open("/tmp/seed_metadata.env", "w") as f:
+with open("/shared/seed_metadata.env", "w") as f:
     f.write(f"HEADER_HEX={header.hex()}\n")
     f.write(f"ARCHIVE_SIZE={len(body)}\n")
     f.write(f"DECRYPTED_SIZE={len(plaintext)}\n")
@@ -69,7 +69,7 @@ print(f"Header: {len(header)} bytes, Body: {len(body)} bytes")
 PYEOF
 
 # Load computed metadata
-. /tmp/seed_metadata.env
+. /shared/seed_metadata.env
 
 # MinIO setup
 mc alias set myminio http://s3:9000 access secretKey --quiet

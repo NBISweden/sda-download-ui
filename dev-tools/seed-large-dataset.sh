@@ -15,12 +15,12 @@ if [ -f "$SEED_MARKER" ]; then
 fi
 
 # Requires the base seed to have run (we reuse its metadata + archive object)
-if [ ! -f /tmp/seed_metadata.env ]; then
-  echo "ERROR: /tmp/seed_metadata.env not found. Run the base seed script first." >&2
+if [ ! -f /shared/seed_metadata.env ]; then
+  echo "ERROR: /shared/seed_metadata.env not found. Run the base seed script first." >&2
   exit 1
 fi
 
-. /tmp/seed_metadata.env
+. /shared/seed_metadata.env
 
 echo "=== Seeding large dataset (40k files) ==="
 
