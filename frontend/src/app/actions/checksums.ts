@@ -1,12 +1,18 @@
 import type { DatasetFile } from "../actions/datasets";
 
-export function getChecksum(file: DatasetFile, checksumType: string) {
+export function getChecksum(
+  file: DatasetFile,
+  checksumType: string,
+): string | undefined {
   return file.checksums.find(
     (checksum) => checksum.type.toLowerCase() === checksumType.toLowerCase(),
   )?.checksum;
 }
 
-export function canExportChecksums(files: DatasetFile[], checksumType: string) {
+export function canExportChecksums(
+  files: DatasetFile[],
+  checksumType: string,
+): boolean {
   return (
     files.length > 0 && files.every((file) => getChecksum(file, checksumType))
   );
@@ -15,7 +21,7 @@ export function canExportChecksums(files: DatasetFile[], checksumType: string) {
 export function createChecksumFileContent(
   files: DatasetFile[],
   checksumType: string,
-) {
+): string {
   return (
     files
       .map((file) => {
