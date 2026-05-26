@@ -1,5 +1,6 @@
 import { DatasetMetadata } from "../actions/datasets";
 import { filesize } from "filesize";
+import InfoTooltip from "./InfoTooltip";
 
 type DatasetDetailsProps = {
   dataset: DatasetMetadata;
@@ -22,7 +23,13 @@ export default function DatasetDetails({
                   {dataset.files} {dataset.files === 1 ? "file" : "files"}
                 </p>
               </div>
-              <p className="fs-5">{filesize(dataset.size)}</p>
+              <InfoTooltip
+                content={`${dataset.size.toLocaleString("en-GB")} bytes`}
+              >
+                <span className="fs-5" tabIndex={0}>
+                  {filesize(dataset.size)}
+                </span>
+              </InfoTooltip>
             </div>
             <span
               className="d-inline-flex align-self-start mb-3 px-2 py-1 text-secondary-emphasis

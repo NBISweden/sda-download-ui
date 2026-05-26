@@ -6,6 +6,7 @@ import type { DatasetMetadata } from "../actions/datasets";
 import Alert from "@/app/components/Alert";
 import { filesize } from "filesize";
 import { ItemSelector, useItemsPerPage } from "./ItemsPerPage";
+import InfoTooltip from "./InfoTooltip";
 
 type DatasetsListProps = {
   datasets: DatasetMetadata[];
@@ -124,7 +125,13 @@ export default function DatasetsList({
                     <i className="bi bi-calendar pe-1"></i>Created{" "}
                     {new Date(dataset.date).toLocaleDateString("sv-SE")}
                   </span>
-                  <span>{filesize(dataset.size)}</span>
+                  <InfoTooltip
+                    content={`${dataset.size.toLocaleString("en-GB")} bytes`}
+                  >
+                    <span className="text-muted" tabIndex={0}>
+                      {filesize(dataset.size)}
+                    </span>
+                  </InfoTooltip>
                 </div>
                 <div className="text-left">
                   <a
