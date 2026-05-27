@@ -68,7 +68,6 @@ export function ChecksumExportActions({
               className="dropdown-item"
               onClick={() => handleChecksumExport("sha256")}
               disabled={!canExportSha256}
-              href="#"
             >
               Export SHA256 checksums
             </button>
@@ -78,7 +77,6 @@ export function ChecksumExportActions({
               className="dropdown-item"
               onClick={() => handleChecksumExport("md5")}
               disabled={!canExportMd5}
-              href="#"
             >
               Export md5 checksums
             </button>
