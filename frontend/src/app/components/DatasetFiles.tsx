@@ -174,7 +174,7 @@ export default function DatasetFiles({
               : "Select visible files"}
           </button>
         </div>
-        <div>
+        <div className="selection-info">
           <strong>{selectedFileIds.size}</strong>{" "}
           {selectedFileIds.size === 1 ? "file selected" : "files selected"}
         </div>
