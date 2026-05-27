@@ -1,4 +1,5 @@
 import { DatasetMetadata } from "../actions/datasets";
+import { filesize } from "filesize";
 
 type DatasetDetailsProps = {
   dataset: DatasetMetadata;
@@ -21,7 +22,7 @@ export default function DatasetDetails({
                   {dataset.files} {dataset.files === 1 ? "file" : "files"}
                 </p>
               </div>
-              <p className="fs-5">{dataset.size} bytes</p>
+              <p className="fs-5">{filesize(dataset.size)}</p>
             </div>
             <span
               className="d-inline-flex align-self-start mb-3 px-2 py-1 text-secondary-emphasis
