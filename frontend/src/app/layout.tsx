@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import "bootstrap/dist/css/bootstrap.min.css";
 import "bootstrap-icons/font/bootstrap-icons.css";
+import BootstrapClient from "@/app/components/BootstrapClient";
 import "./globals.scss";
 import { Header } from "./components/Header";
 
@@ -18,6 +19,7 @@ export default function RootLayout({
     <html lang="en">
       <body>
         <Header />
+        <BootstrapClient />
         {children}
       </body>
     </html>

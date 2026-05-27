@@ -25,15 +25,16 @@ export function ChecksumExportActions({
   }, [files, selectedFileIds]);
 
   const canExportSha256 = canExportChecksums(selectedFiles, "sha256");
+  const canExportMd5 = canExportChecksums(selectedFiles, "md5");
 
-  function handleExportSha256() {
+  function handleChecksumExport(checksumType: string) {
     setErrorMessage(null);
 
     const timestamp = new Date().toISOString().slice(0, 19);
 
     try {
-      const content = createChecksumFileContent(selectedFiles, "sha256");
-      downloadTextFile(content, `checksums.${timestamp}.sha256`);
+      const content = createChecksumFileContent(selectedFiles, checksumType);
+      downloadTextFile(content, `checksums.${timestamp}.${checksumType}`);
     } catch (error) {
       const message =
         error instanceof Error ? error.message : "Could not export checksums.";
@@ -51,15 +52,39 @@ export function ChecksumExportActions({
           iconClass="bi bi-exclamation-circle"
         />
       )}
-
-      <button
-        type="button"
-        className="btn btn-outline-primary"
-        onClick={handleExportSha256}
-        disabled={!canExportSha256}
-      >
-        Export SHA256 checksums
-      </button>
+      <div className="dropdown">
+        <button
+          className="btn btn-outline-primary dropdown-toggle"
+          type="button"
+          data-bs-toggle="dropdown"
+          aria-expanded="false"
+          disabled={selectedFiles.length === 0}
+        >
+          Export options
+        </button>
+        <ul className="dropdown-menu">
+          <li>
+            <button
+              className="dropdown-item"
+              onClick={() => handleChecksumExport("sha256")}
+              disabled={!canExportSha256}
+              href="#"
+            >
+              Export SHA256 checksums
+            </button>
+          </li>
+          <li>
+            <button
+              className="dropdown-item"
+              onClick={() => handleChecksumExport("md5")}
+              disabled={!canExportMd5}
+              href="#"
+            >
+              Export md5 checksums
+            </button>
+          </li>
+        </ul>
+      </div>
     </div>
   );
 }

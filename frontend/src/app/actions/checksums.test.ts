@@ -37,6 +37,23 @@ const files: DatasetFile[] = [
     ],
     downloadUrl: "https://example.com/file-2",
   },
+  {
+    fileId: "file-3",
+    filePath: "folder/file-3.cram",
+    size: 150,
+    decryptedSize: 120,
+    checksums: [
+      {
+        type: "sha256",
+        checksum: "sha256-checksum-file-3",
+      },
+      {
+        type: "md5",
+        checksum: "md5-checksum-file-3",
+      },
+    ],
+    downloadUrl: "https://example.com/file-3",
+  },
 ];
 
 describe("getChecksum", () => {
@@ -58,6 +75,10 @@ describe("canExportChecksums", () => {
     expect(canExportChecksums(files, "sha256")).toBe(true);
   });
 
+  it("returns true when all files have md5 checksums", () => {
+    expect(canExportChecksums([files[0], files[2]], "md5")).toBe(true);
+  });
+
   it("returns false when at least one file is missing the requested checksum type", () => {
     expect(canExportChecksums(files, "md5")).toBe(false);
   });
@@ -73,6 +94,7 @@ describe("createChecksumFileContent", () => {
       [
         "sha256-checksum-file-1  folder/file-1.cram",
         "sha256-checksum-file-2  folder/file-2.cram",
+        "sha256-checksum-file-3  folder/file-3.cram",
         "",
       ].join("\n"),
     );
