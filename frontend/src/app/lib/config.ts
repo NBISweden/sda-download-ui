@@ -3,9 +3,16 @@ import { connection } from "next/server";
 import fs from "fs";
 import * as z from "zod";
 
+const relaxedUrl = z.union([z.httpUrl(), z.url({ hostname: /^localhost$/ })]);
+
 const Config = z.strictObject({
-  sdaBaseUrl: z.httpUrl(),
+  sdaBaseUrl: relaxedUrl,
   sessionSecretPath: z.string(),
+  nextAuthSecretPath: z.string(),
+  nextAuthUrl: relaxedUrl,
+  oidcClientSecretPath: z.string(),
+  oidcClientIdPath: z.string(),
+  oidcRoot: relaxedUrl,
 });
 
 export type Config = z.infer<typeof Config>;

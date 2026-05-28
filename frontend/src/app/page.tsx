@@ -1,4 +1,4 @@
-import mockAuth from "./actions/auth";
+import Link from "next/link";
 import { getSession } from "./lib/session";
 import { PageWrapper } from "./components/PageWrapper";
 
@@ -13,11 +13,9 @@ export default async function Home() {
           <p className="mt-4">
             Sign in to explore datasets and download files.
           </p>
-          <form action={mockAuth}>
-            <button className="btn btn-primary" type="submit">
-              Sign in
-            </button>
-          </form>
+          <Link className="btn btn-primary" href="/api/auth/signin/lsaai-oidc">
+            Sign in
+          </Link>
         </>
       ) : (
         <>
