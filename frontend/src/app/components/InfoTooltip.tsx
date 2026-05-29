@@ -1,7 +1,9 @@
 "use client";
 
 import * as Tooltip from "@radix-ui/react-tooltip";
-import { type ReactNode } from "react";
+import { type ReactNode, useSyncExternalStore } from "react";
+
+const emptySubscribe = () => () => {};
 
 type InfoTooltipProps = {
   content: ReactNode;
@@ -14,6 +16,14 @@ export default function InfoTooltip({
   children,
   monospace = false,
 }: InfoTooltipProps) {
+  const hydrated = useSyncExternalStore(
+    emptySubscribe,
+    () => true,
+    () => false,
+  );
+
+  if (!hydrated) return <>{children}</>;
+
   return (
     <Tooltip.Provider delayDuration={200}>
       <Tooltip.Root>
