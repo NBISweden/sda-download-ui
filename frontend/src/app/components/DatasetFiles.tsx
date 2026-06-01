@@ -7,17 +7,20 @@ import { Table } from "./Table";
 import { filesize } from "filesize";
 import { ClipboardValue } from "./ClipboardValue";
 import { ItemSelector, useItemsPerPage } from "./ItemsPerPage";
+import { ChecksumExportActions } from "./ChecksumExportActions";
 
 type DatasetFilesProps = {
   files: DatasetFile[];
   defaultItemsPerPage: number;
   canDownload?: boolean;
+  datasetId: string;
 };
 
 export default function DatasetFiles({
   files,
   defaultItemsPerPage = 15,
   canDownload = true,
+  datasetId,
 }: DatasetFilesProps) {
   const { itemsPerPage, setItemsPerPage, itemsPerPageOptions } =
     useItemsPerPage(defaultItemsPerPage);
@@ -173,10 +176,15 @@ export default function DatasetFiles({
               : "Select visible files"}
           </button>
         </div>
-        <div>
+        <div className="selection-info">
           <strong>{selectedFileIds.size}</strong>{" "}
           {selectedFileIds.size === 1 ? "file selected" : "files selected"}
         </div>
+        <ChecksumExportActions
+          files={files}
+          selectedFileIds={selectedFileIds}
+          datasetId={datasetId}
+        />
       </div>
       {currentFiles.length > 0 && (
         <Table

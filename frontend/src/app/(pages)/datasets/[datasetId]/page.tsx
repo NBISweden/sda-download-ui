@@ -99,6 +99,7 @@ export default async function DatasetDetailsView({
                   files={files}
                   defaultItemsPerPage={10}
                   canDownload={hasPublicKey}
+                  datasetId={dataset.datasetId}
                 />
               </div>
             </>
