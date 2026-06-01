@@ -193,6 +193,28 @@ services:
       - ./seed-large-file.sh:/seed-large-file.sh:ro
       - shared:/shared
 
+  seed-large-dataset:
+    extends:
+      service: seed
+    profiles: ["seed-large-dataset"]
+    depends_on:
+      seed:
+        condition: service_completed_successfully
+    command:
+      - /bin/sh
+      - -c
+      - |
+        apt-get -o DPkg::Lock::Timeout=60 update > /dev/null
+        apt-get -o DPkg::Lock::Timeout=60 install -y curl postgresql-client > /dev/null
+        pip install --upgrade pip > /dev/null
+        pip install crypt4gh > /dev/null
+        curl -sL https://dl.min.io/client/mc/release/linux-amd64/mc -o /usr/local/bin/mc
+        chmod +x /usr/local/bin/mc
+        sh /seed-large-dataset.sh
+    volumes:
+      - ./seed-large-dataset.sh:/seed-large-dataset.sh:ro
+      - shared:/shared
+
   # Mock OIDC server with /tokens endpoint for easy token retrieval
   mockauth:
     command:

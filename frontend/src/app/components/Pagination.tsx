@@ -80,7 +80,6 @@ export default function Pagination({
                 className="page-link"
                 onClick={() => onPageChange(1)}
                 disabled={isFirstPage}
-                autoComplete="off"
               >
                 <span className="d-inline d-sm-none">&lt;&lt;</span>
                 <span className="d-none d-sm-inline">First</span>
@@ -93,7 +92,6 @@ export default function Pagination({
                 className="page-link"
                 onClick={() => onPageChange(currentPage - 1)}
                 disabled={isFirstPage}
-                autoComplete="off"
               >
                 <span className="d-inline d-sm-none">&lt;</span>
                 <span className="d-none d-sm-inline">Previous</span>
@@ -132,7 +130,6 @@ export default function Pagination({
                 className="page-link"
                 onClick={() => onPageChange(currentPage + 1)}
                 disabled={isLastPage}
-                autoComplete="off"
               >
                 <span className="d-inline d-sm-none">&gt;</span>
                 <span className="d-none d-sm-inline">Next</span>
@@ -147,7 +144,6 @@ export default function Pagination({
                 className="page-link"
                 onClick={() => onPageChange(totalPages)}
                 disabled={isLastPage}
-                autoComplete="off"
               >
                 <span className="d-inline d-sm-none">&gt;&gt;</span>
                 <span className="d-none d-sm-inline ">Last</span>
