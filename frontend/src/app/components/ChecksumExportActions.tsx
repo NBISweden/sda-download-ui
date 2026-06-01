@@ -12,11 +12,13 @@ import Alert from "@/app/components/Alert";
 type ChecksumExportActionsProps = {
   files: DatasetFile[];
   selectedFileIds: Set<string>;
+  datasetId: string;
 };
 
 export function ChecksumExportActions({
   files,
   selectedFileIds,
+  datasetId,
 }: ChecksumExportActionsProps) {
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
 
@@ -30,11 +32,9 @@ export function ChecksumExportActions({
   function handleChecksumExport(checksumType: string) {
     setErrorMessage(null);
 
-    const timestamp = new Date().toISOString().slice(0, 19);
-
     try {
       const content = createChecksumFileContent(selectedFiles, checksumType);
-      downloadTextFile(content, `checksums.${timestamp}.${checksumType}`);
+      downloadTextFile(content, `${datasetId}-selected-files.${checksumType}`);
     } catch (error) {
       const message =
         error instanceof Error ? error.message : "Could not export checksums.";

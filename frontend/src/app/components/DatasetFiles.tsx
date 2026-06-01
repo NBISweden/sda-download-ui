@@ -13,12 +13,14 @@ type DatasetFilesProps = {
   files: DatasetFile[];
   defaultItemsPerPage: number;
   canDownload?: boolean;
+  datasetId: string;
 };
 
 export default function DatasetFiles({
   files,
   defaultItemsPerPage = 15,
   canDownload = true,
+  datasetId,
 }: DatasetFilesProps) {
   const { itemsPerPage, setItemsPerPage, itemsPerPageOptions } =
     useItemsPerPage(defaultItemsPerPage);
@@ -181,6 +183,7 @@ export default function DatasetFiles({
         <ChecksumExportActions
           files={files}
           selectedFileIds={selectedFileIds}
+          datasetId={datasetId}
         />
       </div>
       {currentFiles.length > 0 && (
