@@ -55,29 +55,29 @@ export function ChecksumExportActions({
       <form autoComplete="off">
         <div className="dropdown">
           <button
-              className="btn btn-outline-primary dropdown-toggle"
-              type="button"
-              data-bs-toggle="dropdown"
-              aria-expanded="false"
-              disabled={selectedFiles.length === 0}
+            className="btn btn-outline-primary dropdown-toggle"
+            type="button"
+            data-bs-toggle="dropdown"
+            aria-expanded="false"
+            disabled={selectedFiles.length === 0}
           >
             Export options
           </button>
           <ul className="dropdown-menu">
             <li>
               <button
-                  className="dropdown-item"
-                  onClick={() => handleChecksumExport("sha256")}
-                  disabled={!canExportSha256}
+                className="dropdown-item"
+                onClick={() => handleChecksumExport("sha256")}
+                disabled={!canExportSha256}
               >
                 Export SHA256 checksums
               </button>
             </li>
             <li>
               <button
-                  className="dropdown-item"
-                  onClick={() => handleChecksumExport("md5")}
-                  disabled={!canExportMd5}
+                className="dropdown-item"
+                onClick={() => handleChecksumExport("md5")}
+                disabled={!canExportMd5}
               >
                 Export md5 checksums
               </button>
