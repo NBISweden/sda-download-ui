@@ -1,42 +1,33 @@
-import { useCallback, useState } from "react";
+import { useCallback, useState, type ReactNode } from "react";
 import InfoTooltip from "./InfoTooltip";
 
 export function ClipboardValue({
   value,
   icon,
   copiedIcon,
-  label,
-  truncate = false,
+  ariaLabel,
+  children,
 }: {
   value: string;
   icon?: string;
   copiedIcon?: string;
-  label?: string;
-  truncate?: boolean;
+  ariaLabel?: string;
+  children?: ReactNode;
 }) {
   const [isCopied, setIsCopied] = useState(false);
   const copyToClipboard = useCallback(async () => {
     await navigator.clipboard.writeText(value);
     setIsCopied(true);
   }, [value]);
-  copiedIcon = copiedIcon || "clipboard-check";
-  icon = icon || "clipboard";
-  const currentIcon = isCopied ? copiedIcon : icon;
-  const copyAriaLabel = `Copy ${label ?? "value"} to clipboard`;
+
+  const currentIcon = isCopied
+    ? (copiedIcon ?? "clipboard-check")
+    : (icon ?? "clipboard");
+  const copyAriaLabel = ariaLabel ?? "Copy value to clipboard";
+
   return (
     <span className="mx-1">
-      {label &&
-        (truncate ? (
-          <InfoTooltip content={value} monospace>
-            <span className="clipboard-value-truncate" tabIndex={0}>
-              {label}
-            </span>
-          </InfoTooltip>
-        ) : (
-          <InfoTooltip content={value} monospace>
-            <em tabIndex={0}>{label}</em>
-          </InfoTooltip>
-        ))}
+      {children}
       <InfoTooltip content={isCopied ? "Copied!" : "Copy"}>
         <span
           onClick={copyToClipboard}

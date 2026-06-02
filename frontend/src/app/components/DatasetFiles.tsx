@@ -6,6 +6,7 @@ import Pagination from "./Pagination";
 import { Table } from "./Table";
 import { filesize } from "filesize";
 import { ClipboardValue } from "./ClipboardValue";
+import InfoTooltip from "./InfoTooltip";
 import { ItemSelector, useItemsPerPage } from "./ItemsPerPage";
 import { ChecksumExportActions } from "./ChecksumExportActions";
 
@@ -34,11 +35,28 @@ export default function DatasetFiles({
     fileId: file.fileId,
     rawFilePath: file.filePath,
     filePath: (
-      <ClipboardValue value={file.filePath} label={file.filePath} truncate />
+      <ClipboardValue
+        value={file.filePath}
+        ariaLabel={`Copy ${file.filePath} to clipboard`}
+      >
+        <InfoTooltip content={file.filePath} monospace>
+          <span className="clipboard-value-truncate" tabIndex={0}>
+            {file.filePath}
+          </span>
+        </InfoTooltip>
+      </ClipboardValue>
     ),
     decryptedSize: filesize(file.decryptedSize),
     checksums: file.checksums.map((c) => (
-      <ClipboardValue key={c.checksum} value={c.checksum} label={c.type} />
+      <ClipboardValue
+        key={c.checksum}
+        value={c.checksum}
+        ariaLabel={`Copy ${c.type} to clipboard`}
+      >
+        <InfoTooltip content={c.checksum} monospace>
+          <em tabIndex={0}>{c.type}</em>
+        </InfoTooltip>
+      </ClipboardValue>
     )),
 
     downloadUrl: canDownload ? (
