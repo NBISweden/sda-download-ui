@@ -77,7 +77,7 @@ export default async function DatasetDetailsView({
             />
           ) : (
             <>
-              <DatasetDetails dataset={dataset} />
+              <DatasetDetails dataset={dataset} files={files} />
               <div className="container mt-5 px-0">
                 <h3>Files</h3>
                 {!hasPublicKey && (
