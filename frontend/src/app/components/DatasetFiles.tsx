@@ -6,6 +6,7 @@ import Pagination from "./Pagination";
 import { Table } from "./Table";
 import { filesize } from "filesize";
 import { ClipboardValue } from "./ClipboardValue";
+import InfoTooltip from "./InfoTooltip";
 import { ItemSelector, useItemsPerPage } from "./ItemsPerPage";
 import { ChecksumExportActions } from "./ChecksumExportActions";
 
@@ -32,10 +33,30 @@ export default function DatasetFiles({
 
   const formattedFiles = files.map((file) => ({
     fileId: file.fileId,
-    filePath: file.filePath,
+    rawFilePath: file.filePath,
+    filePath: (
+      <ClipboardValue
+        value={file.filePath}
+        ariaLabel={`Copy ${file.filePath} to clipboard`}
+      >
+        <InfoTooltip content={file.filePath} monospace>
+          <span className="clipboard-value-truncate" tabIndex={0}>
+            {file.filePath}
+          </span>
+        </InfoTooltip>
+      </ClipboardValue>
+    ),
     decryptedSize: filesize(file.decryptedSize),
     checksums: file.checksums.map((c) => (
-      <ClipboardValue key={c.checksum} value={c.checksum} label={c.type} />
+      <ClipboardValue
+        key={c.checksum}
+        value={c.checksum}
+        ariaLabel={`Copy ${c.type} to clipboard`}
+      >
+        <InfoTooltip content={c.checksum} monospace>
+          <em tabIndex={0}>{c.type}</em>
+        </InfoTooltip>
+      </ClipboardValue>
     )),
 
     downloadUrl: canDownload ? (
@@ -67,7 +88,7 @@ export default function DatasetFiles({
     return formattedFiles.filter((file) => {
       const searchableMetadata = [
         file.fileId,
-        file.filePath,
+        file.rawFilePath,
         file.decryptedSize,
         file.checksums,
       ]
@@ -189,6 +210,13 @@ export default function DatasetFiles({
       {currentFiles.length > 0 && (
         <Table
           data={currentFiles}
+          columns={[
+            "fileId",
+            "filePath",
+            "decryptedSize",
+            "checksums",
+            "downloadUrl",
+          ]}
           getRowId={(file) => file.fileId}
           selectedIds={selectedFileIds}
           onToggleRow={toggleFileSelection}
