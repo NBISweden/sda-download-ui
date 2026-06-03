@@ -1,6 +1,7 @@
 "use client";
 
 import { useMemo, useState } from "react";
+import Link from "next/link";
 import Pagination from "@/app/components/Pagination";
 import type { DatasetMetadata } from "../actions/datasets";
 import Alert from "@/app/components/Alert";
@@ -134,12 +135,12 @@ export default function DatasetsList({
                   </InfoTooltip>
                 </div>
                 <div className="text-left">
-                  <a
+                  <Link
                     className="btn btn-secondary"
                     href={`/datasets/${dataset.datasetId}`}
                   >
                     View dataset
-                  </a>
+                  </Link>
                 </div>
               </div>
             </div>
