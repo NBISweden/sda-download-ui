@@ -11,7 +11,7 @@ vi.mock(import("server-only"), () => {
   return {};
 });
 
-const completeConfig: Config = {
+const completeConfig: Omit<Config, "allowHttp"> = {
   sdaBaseUrl: "https://test.local",
   sessionSecretPath: "/session-secret",
   nextAuthSecretPath: "/auth-secret",
@@ -32,7 +32,7 @@ describe("config loading functions", () => {
 
   test("parse config string to config object", () => {
     const result = parseConfig(JSON.stringify(completeConfig));
-    expect(result).toStrictEqual(completeConfig);
+    expect(result).toStrictEqual({ ...completeConfig, allowHttp: false });
   });
 
   test("fail to parse config string when missing options", () => {

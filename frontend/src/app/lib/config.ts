@@ -13,6 +13,7 @@ const Config = z.strictObject({
   oidcClientSecretPath: z.string(),
   oidcClientIdPath: z.string(),
   oidcRoot: relaxedUrl,
+  allowHttp: z.boolean().default(false),
 });
 
 export type Config = z.infer<typeof Config>;
@@ -20,6 +21,12 @@ export type Config = z.infer<typeof Config>;
 export function parseConfig(data: string): Config {
   const obj = JSON.parse(data);
   return Config.parse(obj);
+}
+
+function requireHttps(value: string) {
+  if (!value.startsWith("https://")) {
+    throw new Error(`URL is not using HTTPS: '${value}'`);
+  }
 }
 
 export const getConfig: () => Promise<Config> = (() => {
@@ -31,6 +38,11 @@ export const getConfig: () => Promise<Config> = (() => {
       const configPath = process.env.SDAD_CONFIG_PATH || "./sdad-config.json";
       const configData = fs.readFileSync(configPath, "utf-8");
       config = parseConfig(configData);
+    }
+    if (!config.allowHttp) {
+      requireHttps(config.sdaBaseUrl);
+      requireHttps(config.nextAuthUrl);
+      requireHttps(config.oidcRoot);
     }
     return config;
   };
