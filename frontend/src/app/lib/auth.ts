@@ -9,7 +9,6 @@ type Profile = {
   sub: string;
   name?: string;
   email?: string;
-  picture?: string;
 };
 
 export function LsaaiOidcProvider(
@@ -49,16 +48,18 @@ function getAuthConfig(
 ): Record<"nextAuthSecret" | "oidcClientSecret" | "oidcClientId", string> {
   let nextAuthSecret: string | null = null;
   if (nextAuthSecret === null) {
-    nextAuthSecret = fs.readFileSync(config.nextAuthSecretPath, "utf-8");
+    nextAuthSecret = fs.readFileSync(config.nextAuthSecretPath, "utf-8").trim();
   }
 
   let oidcClientSecret: string | null = null;
   if (oidcClientSecret === null) {
-    oidcClientSecret = fs.readFileSync(config.oidcClientSecretPath, "utf-8");
+    oidcClientSecret = fs
+      .readFileSync(config.oidcClientSecretPath, "utf-8")
+      .trim();
   }
   let oidcClientId: string | null = null;
   if (oidcClientId === null) {
-    oidcClientId = fs.readFileSync(config.oidcClientIdPath, "utf-8");
+    oidcClientId = fs.readFileSync(config.oidcClientIdPath, "utf-8").trim();
   }
   return {
     nextAuthSecret,
