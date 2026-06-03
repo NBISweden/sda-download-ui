@@ -33,9 +33,7 @@ export function LsaaiOidcProvider(
     },
     idToken: true,
     checks: ["pkce", "state", "nonce"],
-    profile(profile) {
-      return { id: profile.sub };
-    },
+    profile: extractProfile,
   };
   return {
     ...defaults,
@@ -43,30 +41,37 @@ export function LsaaiOidcProvider(
   };
 }
 
-function getAuthConfig(
-  config: Config,
-): Record<"nextAuthSecret" | "oidcClientSecret" | "oidcClientId", string> {
+export const getAuthConfig = (() => {
   let nextAuthSecret: string | null = null;
-  if (nextAuthSecret === null) {
-    nextAuthSecret = fs.readFileSync(config.nextAuthSecretPath, "utf-8").trim();
-  }
-
   let oidcClientSecret: string | null = null;
-  if (oidcClientSecret === null) {
-    oidcClientSecret = fs
-      .readFileSync(config.oidcClientSecretPath, "utf-8")
-      .trim();
-  }
   let oidcClientId: string | null = null;
-  if (oidcClientId === null) {
-    oidcClientId = fs.readFileSync(config.oidcClientIdPath, "utf-8").trim();
-  }
-  return {
-    nextAuthSecret,
-    oidcClientSecret,
-    oidcClientId,
+
+  return (
+    config: Pick<
+      Config,
+      "nextAuthSecretPath" | "oidcClientSecretPath" | "oidcClientIdPath"
+    >,
+  ): Record<"nextAuthSecret" | "oidcClientSecret" | "oidcClientId", string> => {
+    if (nextAuthSecret === null) {
+      nextAuthSecret = fs
+        .readFileSync(config.nextAuthSecretPath, "utf-8")
+        .trim();
+    }
+    if (oidcClientSecret === null) {
+      oidcClientSecret = fs
+        .readFileSync(config.oidcClientSecretPath, "utf-8")
+        .trim();
+    }
+    if (oidcClientId === null) {
+      oidcClientId = fs.readFileSync(config.oidcClientIdPath, "utf-8").trim();
+    }
+    return {
+      nextAuthSecret,
+      oidcClientSecret,
+      oidcClientId,
+    };
   };
-}
+})();
 
 export async function getAuthOptions(): Promise<NextAuthOptions> {
   const config = await getConfig();
@@ -91,28 +96,33 @@ export async function getAuthOptions(): Promise<NextAuthOptions> {
     ],
     session: { strategy: "jwt" },
     callbacks: {
-      jwt: async (input) => {
-        const { token, account, profile } = input;
-        if (profile?.sub && profile?.email) {
-          if (account) {
-            await createOrUpdateSession({ token: account.access_token });
-          }
-          return {
-            sub: profile.sub,
-            name: profile.name,
-            email: profile.email,
-            picture: profile.image,
-          };
-        }
-
-        return token;
-      },
-      session: async (input) => {
-        const { session } = input;
-        return {
-          ...session,
-        };
-      },
+      jwt: extractJWT,
+      session: extractSession,
     },
   };
 }
+
+export const extractJWT: NonNullable<
+  NonNullable<NextAuthOptions["callbacks"]>["jwt"]
+> = async (input) => {
+  const { token, account, profile } = input;
+  if (profile?.sub && profile?.email) {
+    if (account) {
+      await createOrUpdateSession({ token: account.access_token });
+    }
+  }
+  return token;
+};
+
+export const extractSession: NonNullable<
+  NonNullable<NextAuthOptions["callbacks"]>["session"]
+> = async (input) => {
+  const { session } = input;
+  return {
+    ...session,
+  };
+};
+
+export const extractProfile: OAuthConfig<Profile>["profile"] = (profile) => {
+  return { id: profile.sub };
+};
