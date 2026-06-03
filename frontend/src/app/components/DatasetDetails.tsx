@@ -1,13 +1,16 @@
-import { DatasetMetadata } from "../actions/datasets";
+import { DatasetMetadata, DatasetFile } from "../actions/datasets";
 import { filesize } from "filesize";
 import InfoTooltip from "./InfoTooltip";
+import DownloadChecksumsButton from "./DownloadChecksumsButton";
 
 type DatasetDetailsProps = {
   dataset: DatasetMetadata;
+  files: DatasetFile[];
 };
 
 export default function DatasetDetails({
   dataset: dataset,
+  files: files,
 }: DatasetDetailsProps) {
   return (
     <>
@@ -43,9 +46,10 @@ export default function DatasetDetails({
             <button className="btn btn-primary align-self-start me-3">
               Download dataset
             </button>
-            <button className="btn btn-primary align-self-start">
-              Download checksums
-            </button>
+            <DownloadChecksumsButton
+              files={files}
+              datasetId={dataset.datasetId}
+            />
           </div>
         </div>
       </div>
