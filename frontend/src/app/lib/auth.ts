@@ -2,7 +2,7 @@ import "server-only";
 import type { NextAuthOptions } from "next-auth";
 import type { OAuthConfig, Provider } from "next-auth/providers/index";
 import { createOrUpdateSession } from "./session";
-import { getConfig } from "./config";
+import { Config, getConfig } from "./config";
 import fs from "fs";
 
 type Profile = {
@@ -33,7 +33,7 @@ export function LsaaiOidcProvider(
       },
     },
     idToken: true,
-    checks: ["pkce", "state"],
+    checks: ["pkce", "state", "nonce"],
     profile(profile) {
       return { id: profile.sub };
     },
@@ -44,12 +44,38 @@ export function LsaaiOidcProvider(
   };
 }
 
+function getAuthConfig(
+  config: Config,
+): Record<"nextAuthSecret" | "oidcClientSecret" | "oidcClientId", string> {
+  let nextAuthSecret: string | null = null;
+  if (nextAuthSecret === null) {
+    nextAuthSecret = fs.readFileSync(config.nextAuthSecretPath, "utf-8");
+  }
+
+  let oidcClientSecret: string | null = null;
+  if (oidcClientSecret === null) {
+    oidcClientSecret = fs.readFileSync(config.oidcClientSecretPath, "utf-8");
+  }
+  let oidcClientId: string | null = null;
+  if (oidcClientId === null) {
+    oidcClientId = fs.readFileSync(config.oidcClientIdPath, "utf-8");
+  }
+  return {
+    nextAuthSecret,
+    oidcClientSecret,
+    oidcClientId,
+  };
+}
+
 export async function getAuthOptions(): Promise<NextAuthOptions> {
   const config = await getConfig();
+  const {
+    nextAuthSecret,
+    oidcClientSecret: clientSecret,
+    oidcClientId: clientId,
+  } = getAuthConfig(config);
   const url = config.nextAuthUrl;
-  const nextAuthSecret = fs.readFileSync(config.nextAuthSecretPath, "utf-8");
-  const clientSecret = fs.readFileSync(config.oidcClientSecretPath, "utf-8");
-  const clientId = fs.readFileSync(config.oidcClientIdPath, "utf-8");
+
   const root = config.oidcRoot;
   if (!process.env.NEXTAUTH_URL && url) {
     process.env.NEXTAUTH_URL = url;
