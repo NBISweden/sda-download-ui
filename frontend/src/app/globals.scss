@@ -142,3 +142,13 @@ body {
 .info-tooltip-arrow {
   fill: $violet;
 }
+
+.clipboard-value-truncate {
+  display: inline-block;
+  max-width: 18ch;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  vertical-align: bottom;
+  cursor: help;
+}
