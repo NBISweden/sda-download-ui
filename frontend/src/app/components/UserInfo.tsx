@@ -53,7 +53,7 @@ export default function UserInfo({
             <section>
               <h4 className="h5 mb-3">Crypt4gh public encryption key</h4>
 
-              <form method="POST" action={formAction}>
+              <form action={formAction}>
                 {pemChecksum ? (
                   <Alert
                     type="success"
