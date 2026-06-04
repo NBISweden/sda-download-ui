@@ -1,4 +1,10 @@
 {
     "sdaBaseUrl": "http://host.docker.internal:8085",
-    "sessionSecretPath": "/run/secrets/frontend-token-secret"
+    "sessionSecretPath": "/run/secrets/frontend-token-secret",
+    "nextAuthSecretPath": "/run/secrets/frontend-next-auth-secret",
+    "nextAuthUrl": "http://localhost:3002",
+    "oidcClientSecretPath": "/run/secrets/frontend-oidc-client-secret",
+    "oidcClientIdPath": "/run/secrets/frontend-oidc-client-id",
+    "oidcRoot": "http://host.docker.internal:8800/oidc"
+    "allowHttp": true
 }

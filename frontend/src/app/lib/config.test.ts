@@ -1,5 +1,5 @@
 import { describe, expect, test, vi, beforeEach, afterEach } from "vitest";
-import { parseConfig } from "./config";
+import { Config, parseConfig } from "./config";
 
 vi.mock(import("next/server"), () => {
   return {
@@ -11,6 +11,16 @@ vi.mock(import("server-only"), () => {
   return {};
 });
 
+const completeConfig: Omit<Config, "allowHttp"> = {
+  sdaBaseUrl: "https://test.local",
+  sessionSecretPath: "/session-secret",
+  nextAuthSecretPath: "/auth-secret",
+  nextAuthUrl: "http://localhost:3002",
+  oidcClientSecretPath: "/client-secret",
+  oidcClientIdPath: "/client-id",
+  oidcRoot: "http://localhost:3002",
+};
+
 describe("config loading functions", () => {
   beforeEach(() => {
     vi.restoreAllMocks();
@@ -21,24 +31,23 @@ describe("config loading functions", () => {
   });
 
   test("parse config string to config object", () => {
-    const result = parseConfig(
-      '{"sdaBaseUrl": "https://test.local", "sessionSecretPath": "/secrets"}',
-    );
-    expect(result).toStrictEqual({
-      sdaBaseUrl: "https://test.local",
-      sessionSecretPath: "/secrets",
-    });
+    const result = parseConfig(JSON.stringify(completeConfig));
+    expect(result).toStrictEqual({ ...completeConfig, allowHttp: false });
   });
 
   test("fail to parse config string when missing options", () => {
-    expect(() => parseConfig('{"sessionSecretPath": "/secrets"}')).toThrow();
+    const configWithMissingData: Partial<Config> = { ...completeConfig };
+    delete configWithMissingData.sessionSecretPath;
+    expect(() => parseConfig(JSON.stringify(configWithMissingData))).toThrow();
   });
 
   test("fail to parse config string when including extra options", () => {
-    expect(() =>
-      parseConfig(
-        '{"sdaBaseUrl": "https://test.local", "sessionSecretPath": "/secrets", "extra": "yes"}',
-      ),
-    ).toThrow();
+    expect(() => {
+      const configWithExtra = {
+        ...completeConfig,
+        extra: "yes",
+      };
+      parseConfig(JSON.stringify(configWithExtra));
+    }).toThrow();
   });
 });

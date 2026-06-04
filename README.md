@@ -39,6 +39,17 @@ This can be done by using the following command:
 openssl rand -base64 32 > secrets/frontend-token-secret.txt
 ```
 
+The options available in the config file can be described as follows:
+| Option | Type | Description |
+| :----- | :--- | :---------- |
+| `sessionSecretPath` | File path | Path to session secret file. |
+| `oidcClientSecretPath` | File path | Path to OIDC client secret file. |
+| `oidcClientIdPath` | File path | Path to OIDC client id file. |
+| `sdaBaseUrl` | HTTP url | The base url to the SDA Download API. |
+| `nextAuthUrl` | HTTP url | The url to use for authenticatin in the app. |
+| `oidcRoot` | HTTP url | Url to the OIDC provider. |
+| `allowHttp` | boolean | (Optional) Default is `false`. Recommendation for development setup is `true` and in production this option should be `false` or unset. |
+
 #### Startup
 
 ``` sh

@@ -6,3 +6,5 @@ services:
     read_only: false
     volumes:
       - ./frontend:/app
+    extra_hosts:
+      - "localhost:host-gateway"
