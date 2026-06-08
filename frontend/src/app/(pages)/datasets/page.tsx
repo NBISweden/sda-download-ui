@@ -7,6 +7,9 @@ import {
 import { getSession } from "@/app/lib/session";
 import DatasetsList from "../../components/DatasetsList";
 import Alert from "@/app/components/Alert";
+import { PageWrapper } from "@/app/components/PageWrapper";
+import Link from "next/link";
+import { LoginButton } from "@/app/components/LoginButton";
 
 export default async function DataSetsViewPage() {
   const sessionData = await getSession();
@@ -16,7 +19,7 @@ export default async function DataSetsViewPage() {
   let datasetMetadataList: DatasetMetadata[] = [];
 
   if (!token) {
-    return <p>No token found in session.</p>;
+    errorMessage = "No token found in session";
   } else {
     try {
       const datasetIds = await fetchAll(async (pageToken) => {
@@ -42,13 +45,18 @@ export default async function DataSetsViewPage() {
         <h2 className="my-3">Datasets</h2>
         <div className="row">
           {errorMessage ? (
-            <div className="col-12 col-lg-6">
-              <Alert
-                type="warning"
-                alertMessage={errorMessage}
-                iconClass="bi bi-exclamation-triangle-fill"
-              />
-            </div>
+            <>
+              <div className="col-12 col-lg-6">
+                <Alert
+                  type="warning"
+                  alertMessage={errorMessage}
+                  iconClass="bi bi-exclamation-triangle-fill"
+                />
+              </div>
+              <div className="mt-3">
+                <LoginButton buttonText="Sign in again" />
+              </div>
+            </>
           ) : datasetMetadataList.length === 0 ? (
             <div className="col-12 col-lg-6">
               <Alert
