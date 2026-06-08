@@ -7,8 +7,6 @@ import {
 import { getSession } from "@/app/lib/session";
 import DatasetsList from "../../components/DatasetsList";
 import Alert from "@/app/components/Alert";
-import { PageWrapper } from "@/app/components/PageWrapper";
-import Link from "next/link";
 import { LoginButton } from "@/app/components/LoginButton";
 
 export default async function DataSetsViewPage() {

@@ -31,32 +31,32 @@ export default async function DatasetDetailsView({
   let files: DatasetFile[] = [];
 
   if (!token) {
-    return <p>No token found in session.</p>;
-  }
+    errorMessage = "No token found in session.";
+  } else {
+    try {
+      dataset = await fetchDatasetMetadata(token, datasetId);
+    } catch (error) {
+      const message =
+        error instanceof Error ? error.message : "Unknown error occurred";
 
-  try {
-    dataset = await fetchDatasetMetadata(token, datasetId);
-  } catch (error) {
-    const message =
-      error instanceof Error ? error.message : "Unknown error occurred";
+      errorMessage = message.includes("fetch failed")
+        ? "Could not connect to backend. Is it running?"
+        : `Could not load dataset metadata: ${message}`;
+    }
 
-    errorMessage = message.includes("fetch failed")
-      ? "Could not connect to backend. Is it running?"
-      : `Could not load dataset metadata: ${message}`;
-  }
+    try {
+      files = await fetchAll(async (pageToken) => {
+        const page = await fetchDatasetFiles(token, datasetId, pageToken);
+        return { items: page.files, nextPageToken: page.nextPageToken };
+      });
+    } catch (error) {
+      const message =
+        error instanceof Error ? error.message : "unknown error occurred";
 
-  try {
-    files = await fetchAll(async (pageToken) => {
-      const page = await fetchDatasetFiles(token, datasetId, pageToken);
-      return { items: page.files, nextPageToken: page.nextPageToken };
-    });
-  } catch (error) {
-    const message =
-      error instanceof Error ? error.message : "unknown error occurred";
-
-    errorMessage = message.includes("fetch failed")
-      ? "Could not connect to backend. Is it running?"
-      : `Could not load dataset files: ${message}`;
+      errorMessage = message.includes("fetch failed")
+        ? "Could not connect to backend. Is it running?"
+        : `Could not load dataset files: ${message}`;
+    }
   }
 
   return (

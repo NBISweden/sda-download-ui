@@ -3,6 +3,7 @@ import * as jose from "jose";
 import UserInfo from "@/app/components/UserInfo";
 import Alert from "@/app/components/Alert";
 import { postCrypt4GHPublicKey } from "@/app/actions/crypt4ghKey";
+import { LoginButton } from "@/app/components/LoginButton";
 
 export type TokenInfoRow = {
   label: string;
@@ -89,13 +90,18 @@ export default async function UserPage() {
         <h2 className="my-3">User info</h2>
         <div className="row">
           {errorMessage ? (
-            <div className="col-12 col-lg-6">
-              <Alert
-                type="warning"
-                alertMessage={errorMessage}
-                iconClass="bi bi-exclamation-triangle-fill"
-              />
-            </div>
+            <>
+              <div className="col-12 col-lg-6">
+                <Alert
+                  type="warning"
+                  alertMessage={errorMessage}
+                  iconClass="bi bi-exclamation-triangle-fill"
+                />
+              </div>
+              <div className="mt-3">
+                <LoginButton buttonText="Sign in again" />
+              </div>
+            </>
           ) : (
             <UserInfo
               tokenInfoRows={tokenInfoRows}

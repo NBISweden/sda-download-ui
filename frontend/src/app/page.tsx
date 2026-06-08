@@ -1,7 +1,6 @@
-import Link from "next/link";
 import { getSession } from "./lib/session";
 import { PageWrapper } from "./components/PageWrapper";
-import {LoginButton} from "@/app/components/LoginButton";
+import { LoginButton } from "@/app/components/LoginButton";
 
 export default async function Home() {
   const sessionData = await getSession();
@@ -14,7 +13,7 @@ export default async function Home() {
           <p className="mt-4">
             Sign in to explore datasets and download files.
           </p>
-          <LoginButton/>
+          <LoginButton />
         </>
       ) : (
         <>
