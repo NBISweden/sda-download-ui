@@ -51,7 +51,9 @@ export function Header() {
           >
             <ul className="navbar-nav text-center text-md-start mt-3 mt-md-0">
               {navLinks.map((link) => {
-                const isActive = pathname === link.href;
+                const isActive =
+                  pathname === link.href ||
+                  (link.href !== "/" && pathname.startsWith(link.href + "/"));
                 return (
                   <li className="nav-item" key={link.href}>
                     <Link
