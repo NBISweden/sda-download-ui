@@ -5,7 +5,7 @@ type LoginRequiredAlertProps = {
   message: string;
 };
 
-export function LoginRequiredAlert({message}: LoginRequiredAlertProps) {
+export function LoginRequiredAlert({ message }: LoginRequiredAlertProps) {
   return (
     <>
       <div className="col-12 col-lg-6">
