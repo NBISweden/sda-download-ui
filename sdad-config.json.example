@@ -5,6 +5,6 @@
     "nextAuthUrl": "http://localhost:3002",
     "oidcClientSecretPath": "/run/secrets/frontend-oidc-client-secret",
     "oidcClientIdPath": "/run/secrets/frontend-oidc-client-id",
-    "oidcRoot": "http://host.docker.internal:8800/oidc"
+    "oidcRoot": "http://host.docker.internal:8800/oidc",
     "allowHttp": true
 }
