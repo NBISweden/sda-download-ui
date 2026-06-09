@@ -4,6 +4,7 @@ import UserInfo from "@/app/components/UserInfo";
 import Alert from "@/app/components/Alert";
 import { postCrypt4GHPublicKey } from "@/app/actions/crypt4ghKey";
 import { LoginButton } from "@/app/components/LoginButton";
+import { LoginRequiredAlert } from "@/app/components/LoginRequiredAlert";
 
 export type TokenInfoRow = {
   label: string;
@@ -68,10 +69,11 @@ export default async function UserPage() {
   const token = sessionData?.token;
 
   let errorMessage: string | null = null;
+  let noTokenMessage: string | null = null;
   let tokenInfoRows: TokenInfoRow[] = [];
 
   if (!token) {
-    errorMessage = "No token found in session.";
+    noTokenMessage = "No token found in session.";
   } else {
     try {
       const payload = jose.decodeJwt(token);
@@ -89,7 +91,9 @@ export default async function UserPage() {
       <div className="container">
         <h2 className="my-3">User info</h2>
         <div className="row">
-          {errorMessage ? (
+          {noTokenMessage ? (
+            <LoginRequiredAlert message={noTokenMessage} />
+          ) : errorMessage ? (
             <>
               <div className="col-12 col-lg-6">
                 <Alert

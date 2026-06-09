@@ -10,6 +10,8 @@ import DatasetDetails from "../../../components/DatasetDetails";
 import DatasetFiles from "@/app/components/DatasetFiles";
 import Alert from "@/app/components/Alert";
 import Link from "next/link";
+import { LoginButton } from "@/app/components/LoginButton";
+import { LoginRequiredAlert } from "@/app/components/LoginRequiredAlert";
 
 interface DatasetDetailsViewProps {
   params: Promise<{
@@ -27,11 +29,12 @@ export default async function DatasetDetailsView({
   const hasPublicKey = !!sessionData?.publicKey?.key;
 
   let errorMessage: string | null = null;
+  let noTokenMessage: string | null = null;
   let dataset: DatasetMetadata | null = null;
   let files: DatasetFile[] = [];
 
   if (!token) {
-    errorMessage = "No token found in session.";
+    noTokenMessage = "No token found in session.";
   } else {
     try {
       dataset = await fetchDatasetMetadata(token, datasetId);
@@ -63,7 +66,9 @@ export default async function DatasetDetailsView({
     <main>
       <div className="container">
         <div className="row mt-5">
-          {errorMessage ? (
+          {noTokenMessage ? (
+            <LoginRequiredAlert message={noTokenMessage} />
+          ) : errorMessage ? (
             <Alert
               type="warning"
               alertMessage={errorMessage}
