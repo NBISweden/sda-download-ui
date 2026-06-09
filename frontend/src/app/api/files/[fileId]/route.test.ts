@@ -225,6 +225,28 @@ describe("GET /api/files/[fileId]", () => {
     expect(fetchSpy).not.toHaveBeenCalled();
   });
 
+  test("returns 401 when resuming a download without a session token", async () => {
+    setSession(null);
+    const fetchSpy = vi.spyOn(globalThis, "fetch");
+
+    const { request, params } = makeRequest("file-1", {
+      range: "bytes=100-",
+    });
+
+    const response = await GET(request, { params });
+
+    expect(response.status).toBe(401);
+    expect(response.headers.get("cache-control")).toBe("no-store");
+    expect(response.headers.get("content-disposition")).toBeNull();
+
+    await expect(response.json()).resolves.toMatchObject({
+      error: "Not authenticated.",
+      status: 401,
+    });
+
+    expect(fetchSpy).not.toHaveBeenCalled();
+  });
+
   test("returns 400 when session has no public key", async () => {
     setSession({ token: "my-token", publicKey: null });
     const fetchSpy = vi.spyOn(globalThis, "fetch");
