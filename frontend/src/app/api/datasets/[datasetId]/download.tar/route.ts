@@ -15,7 +15,12 @@ import {
   translateUpstreamError,
   buildContentDisposition,
 } from "@/app/lib/proxy";
-import { planEntry, TAR_BLOCK_SIZE, TAR_TRAILER_LEN, type PlannedEntry } from "@/app/lib/tar";
+import {
+  planEntry,
+  TAR_BLOCK_SIZE,
+  TAR_TRAILER_LEN,
+  type PlannedEntry,
+} from "@/app/lib/tar";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -113,7 +118,7 @@ export async function GET(
   // total TAR length so we can advertise Content-Length to the browser.
   let resolved: ResolvedEntry[];
   try {
-    resolved = await probeAll({files, token, publicKey, sdaBaseUrl, mtime});
+    resolved = await probeAll({ files, token, publicKey, sdaBaseUrl, mtime });
   } catch (e) {
     if (e instanceof Response) return e;
 
@@ -121,7 +126,8 @@ export async function GET(
     return errorResponse(502, `Could not reach the download backend: ${msg}`);
   }
 
-  const totalLen = resolved.reduce((sum, r) => sum + r.plan.entryLen, 0) + TAR_TRAILER_LEN;
+  const totalLen =
+    resolved.reduce((sum, r) => sum + r.plan.entryLen, 0) + TAR_TRAILER_LEN;
 
   async function* emitTar(): AsyncGenerator<Buffer> {
     for (const r of resolved) {

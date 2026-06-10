@@ -35,7 +35,9 @@ describe("planEntry", () => {
     const path = "dir/sub/file.bin";
     const p = planEntry(path, 1, 0);
     // Decode a window wider than the path so we can also see the trailing NUL.
-    const nameWindow = DECODER.decode(p.ustarBlock.subarray(0, path.length + 1));
+    const nameWindow = DECODER.decode(
+      p.ustarBlock.subarray(0, path.length + 1),
+    );
     expect(nameWindow.startsWith(`${path}\0`)).toBe(true);
     expect(DECODER.decode(p.ustarBlock.subarray(257, 263))).toBe("ustar\0");
     expect(p.ustarBlock[263]).toBe(0x30);
@@ -57,10 +59,7 @@ describe("planEntry", () => {
     for (let i = 0; i < TAR_BLOCK_SIZE; i++) {
       expected += i >= 148 && i < 156 ? 0x20 : p.ustarBlock[i];
     }
-    const stored = parseInt(
-      DECODER.decode(p.ustarBlock.subarray(148, 154)),
-      8,
-    );
+    const stored = parseInt(DECODER.decode(p.ustarBlock.subarray(148, 154)), 8);
     expect(stored).toBe(expected);
     expect(p.ustarBlock[154]).toBe(0);
     expect(p.ustarBlock[155]).toBe(0x20);
@@ -104,7 +103,9 @@ describe("planEntry", () => {
     const at = planEntry("a".repeat(100), 1, 0);
     expect(at.paxBlock).toBeNull();
     // The full 100-byte path fills the name field, no trailing NUL.
-    expect(DECODER.decode(at.ustarBlock.subarray(0, 100))).toBe("a".repeat(100));
+    expect(DECODER.decode(at.ustarBlock.subarray(0, 100))).toBe(
+      "a".repeat(100),
+    );
 
     const over = planEntry("a".repeat(101), 1, 0);
     expect(over.paxBlock).not.toBeNull();

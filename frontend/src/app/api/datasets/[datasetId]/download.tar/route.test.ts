@@ -303,7 +303,9 @@ describe("GET /api/datasets/[datasetId]/download.tar", () => {
     const resp = await GET(req, { params });
     const body = await readAll(resp.body);
 
-    const f1Name = new TextDecoder().decode(body.subarray(0, F1.filePath.length));
+    const f1Name = new TextDecoder().decode(
+      body.subarray(0, F1.filePath.length),
+    );
     expect(f1Name).toBe(F1.filePath);
     expect(readOctal(body, 124, 12)).toBe(F1_HEADER.length + F1_CONTENT.length);
 
@@ -510,7 +512,9 @@ describe("GET /api/datasets/[datasetId]/download.tar", () => {
 
   test("aborts the stream when /content delivers fewer bytes than HEAD advertised", async () => {
     sessionState.current = validSession;
-    const consoleError = vi.spyOn(console, "error").mockImplementation(() => {});
+    const consoleError = vi
+      .spyOn(console, "error")
+      .mockImplementation(() => {});
     vi.spyOn(globalThis, "fetch").mockImplementation((input, init) => {
       const url =
         typeof input === "string"
@@ -540,8 +544,8 @@ describe("GET /api/datasets/[datasetId]/download.tar", () => {
     await expect(readAll(resp.body)).rejects.toThrow();
 
     expect(consoleError).toHaveBeenCalledWith(
-    expect.stringContaining("tar:ds1:stream error"),
-    expect.any(Error),
-  );
+      expect.stringContaining("tar:ds1:stream error"),
+      expect.any(Error),
+    );
   });
 });
