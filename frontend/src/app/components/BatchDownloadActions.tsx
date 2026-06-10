@@ -1,12 +1,12 @@
 "use client";
 
+import { MAX_TAR_SELECTION } from "@/app/lib/constants";
+
 type BatchDownloadActionsProps = {
   selectedFileIds: Set<string>;
   datasetId: string;
   canDownload?: boolean;
 };
-
-const MAX_TAR_SELECTION = 1000;
 
 export function BatchDownloadActions({
   selectedFileIds,
@@ -24,13 +24,13 @@ export function BatchDownloadActions({
   const reason = !canDownload
     ? "Upload your Crypt4GH public key on the profile page to enable downloads."
     : selectedCount === 0
-      ? "Select one or more files to enable TAR download."
+      ? null // not really an error — don't nag the user
       : tooMany
-        ? `Too many files selected (${selectedCount}). The per-selection TAR is capped at ${MAX_TAR_SELECTION}; use “Download dataset” instead.`
-        : "";
+        ? `Selection exceeds the ${MAX_TAR_SELECTION}-file cap.`
+        : null;
 
   return (
-    <div className="d-flex align-items-center gap-2">
+    <div className="d-flex flex-column align-items-start gap-1">
       {enabled ? (
         <a
           className="btn btn-outline-primary"
@@ -45,10 +45,18 @@ export function BatchDownloadActions({
           type="button"
           className="btn btn-outline-primary"
           disabled
-          title={reason}
+          aria-describedby={reason ? "batch-tar-reason" : undefined}
         >
           Download selected as TAR
         </button>
+      )}
+      {reason && (
+        <small
+          id="batch-tar-reason"
+          className={`text-${tooMany ? "warning" : "muted"}`}
+        >
+          {reason}
+        </small>
       )}
     </div>
   );

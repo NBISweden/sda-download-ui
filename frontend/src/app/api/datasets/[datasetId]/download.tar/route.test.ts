@@ -2,6 +2,7 @@ import { describe, expect, test, vi, beforeEach, afterEach } from "vitest";
 import { GET } from "./route";
 import { NextRequest } from "next/server";
 import type { SessionData } from "@/app/lib/SessionManager";
+import { MAX_TAR_SELECTION } from "@/app/lib/constants";
 
 const sdaBaseUrl = "http://test.local";
 
@@ -214,10 +215,36 @@ describe("GET /api/datasets/[datasetId]/download.tar", () => {
 
   test("400 when fileIds exceeds the per-request maximum", async () => {
     sessionState.current = validSession;
-    const ids = Array.from({ length: 1001 }, (_, i) => `f${i}`).join(",");
+    const ids = Array.from(
+      { length: MAX_TAR_SELECTION + 1 },
+      (_, i) => `f${i}`,
+    ).join(",");
     const { req, params } = makeReq({ fileIds: ids });
     const resp = await GET(req, { params });
     expect(resp.status).toBe(400);
+  });
+
+  test("400 when the whole dataset exceeds the per-request maximum", async () => {
+    sessionState.current = validSession;
+    // No fileIds → archive every file. Make the dataset bigger than the cap.
+    datasetState.files = Array.from(
+      { length: MAX_TAR_SELECTION + 1 },
+      (_, i) => ({
+        fileId: `f${i}`,
+        filePath: `path/${i}.c4gh`,
+        size: 1,
+        decryptedSize: 1,
+        checksums: [],
+        downloadUrl: "",
+      }),
+    );
+    const { req, params } = makeReq();
+    const resp = await GET(req, { params });
+    expect(resp.status).toBe(400);
+    await expect(resp.json()).resolves.toMatchObject({
+      error: expect.stringContaining(`capped at ${MAX_TAR_SELECTION}`),
+      status: 400,
+    });
   });
 
   test("400 when fileIds selection matches no files in dataset", async () => {

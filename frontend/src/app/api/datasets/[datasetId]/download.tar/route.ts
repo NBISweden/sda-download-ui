@@ -21,12 +21,12 @@ import {
   TAR_TRAILER_LEN,
   type PlannedEntry,
 } from "@/app/lib/tar";
+import { MAX_TAR_SELECTION } from "@/app/lib/constants";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
 
 const HEADER_FETCH_CONCURRENCY = 32;
-const MAX_SELECTED_FILE_IDS = 1000;
 const TRAILER = new Uint8Array(TAR_TRAILER_LEN);
 
 type ResolvedEntry = {
@@ -63,10 +63,10 @@ export async function GET(
     if (ids.length === 0) {
       return errorResponse(400, "fileIds query parameter is empty.");
     }
-    if (ids.length > MAX_SELECTED_FILE_IDS) {
+    if (ids.length > MAX_TAR_SELECTION) {
       return errorResponse(
         400,
-        `Too many fileIds; maximum is ${MAX_SELECTED_FILE_IDS}.`,
+        `Too many fileIds; maximum is ${MAX_TAR_SELECTION}.`,
       );
     }
     selectedFileIds = new Set(ids);
@@ -106,6 +106,16 @@ export async function GET(
       selectedFileIds
         ? "No files match the requested fileIds."
         : "Dataset has no files to download.",
+    );
+  }
+
+  // Guard the whole-dataset path. The selection path is already capped by
+  // the fileIds check above; this catches a request with no fileIds against
+  // a dataset that happens to have more files than we can handle in one go.
+  if (files.length > MAX_TAR_SELECTION) {
+    return errorResponse(
+      400,
+      `Dataset has ${files.length} files; per-request TAR is capped at ${MAX_TAR_SELECTION}. Select a subset of files instead.`,
     );
   }
 
