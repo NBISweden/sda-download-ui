@@ -94,6 +94,34 @@ const F2_CONTENT = new Uint8Array(20).map((_, i) => 50 + i);
 const TRAILER_START = 2048;
 const TOTAL = 3072;
 
+function defaultUpstream(url: string, method: string): Response {
+  if (url.endsWith("/files/f1/header") && method === "GET")
+    return new Response(F1_HEADER, {
+      status: 200,
+      headers: { "content-length": String(F1_HEADER.length) },
+    });
+  if (url.endsWith("/files/f2/header") && method === "GET")
+    return new Response(F2_HEADER, {
+      status: 200,
+      headers: { "content-length": String(F2_HEADER.length) },
+    });
+  if (url.endsWith("/files/f1/content") && method === "HEAD")
+    return new Response(null, {
+      status: 200,
+      headers: { "content-length": String(F1_CONTENT.length) },
+    });
+  if (url.endsWith("/files/f2/content") && method === "HEAD")
+    return new Response(null, {
+      status: 200,
+      headers: { "content-length": String(F2_CONTENT.length) },
+    });
+  if (url.endsWith("/files/f1/content") && method === "GET")
+    return new Response(F1_CONTENT, { status: 200 });
+  if (url.endsWith("/files/f2/content") && method === "GET")
+    return new Response(F2_CONTENT, { status: 200 });
+  return new Response("unmocked " + url, { status: 500 });
+}
+
 function installDefaultFetch() {
   return vi.spyOn(globalThis, "fetch").mockImplementation((input, init) => {
     const url =
@@ -103,41 +131,7 @@ function installDefaultFetch() {
           ? input.toString()
           : (input as Request).url;
     const method = (init?.method || "GET").toUpperCase();
-
-    if (url.endsWith("/files/f1/header") && method === "GET")
-      return Promise.resolve(
-        new Response(F1_HEADER, {
-          status: 200,
-          headers: { "content-length": String(F1_HEADER.length) },
-        }),
-      );
-    if (url.endsWith("/files/f2/header") && method === "GET")
-      return Promise.resolve(
-        new Response(F2_HEADER, {
-          status: 200,
-          headers: { "content-length": String(F2_HEADER.length) },
-        }),
-      );
-    if (url.endsWith("/files/f1/content") && method === "HEAD")
-      return Promise.resolve(
-        new Response(null, {
-          status: 200,
-          headers: { "content-length": String(F1_CONTENT.length) },
-        }),
-      );
-    if (url.endsWith("/files/f2/content") && method === "HEAD")
-      return Promise.resolve(
-        new Response(null, {
-          status: 200,
-          headers: { "content-length": String(F2_CONTENT.length) },
-        }),
-      );
-    if (url.endsWith("/files/f1/content") && method === "GET")
-      return Promise.resolve(new Response(F1_CONTENT, { status: 200 }));
-    if (url.endsWith("/files/f2/content") && method === "GET")
-      return Promise.resolve(new Response(F2_CONTENT, { status: 200 }));
-
-    return Promise.resolve(new Response("unmocked " + url, { status: 500 }));
+    return Promise.resolve(defaultUpstream(url, method));
   });
 }
 
@@ -183,7 +177,7 @@ function readOctal(buf: Uint8Array, offset: number, len: number): number {
   );
 }
 
-describe("GET /api/datasets/[datasetId]/download.tar (step 1: no resume)", () => {
+describe("GET /api/datasets/[datasetId]/download.tar", () => {
   beforeEach(() => {
     vi.restoreAllMocks();
     sessionState.current = null;
@@ -411,5 +405,143 @@ describe("GET /api/datasets/[datasetId]/download.tar (step 1: no resume)", () =>
       expect(c.headers.get("authorization")).toBe("Bearer tok");
       expect(c.headers.get("x-c4gh-public-key")).toBeNull();
     }
+  });
+
+  // --- Content-Length (advertised total) -----------------------------------
+
+  test("advertises Content-Length equal to the full archive size", async () => {
+    sessionState.current = validSession;
+    installDefaultFetch();
+    const { req, params } = makeReq();
+    const resp = await GET(req, { params });
+    expect(resp.headers.get("content-length")).toBe(String(TOTAL));
+
+    // And the body actually delivers that many bytes.
+    const body = await readAll(resp.body);
+    expect(body.byteLength).toBe(TOTAL);
+  });
+
+  test("Content-Length adjusts to the selection", async () => {
+    sessionState.current = validSession;
+    installDefaultFetch();
+    const { req, params } = makeReq({ fileIds: "f2" });
+    const resp = await GET(req, { params });
+    // single entry (1024) + trailer (1024) = 2048
+    expect(resp.headers.get("content-length")).toBe("2048");
+  });
+
+  // --- Preflight surfaces real upstream status, not a blanket 502 ----------
+
+  test("forwards the upstream status when /header GET fails during preflight", async () => {
+    sessionState.current = validSession;
+    vi.spyOn(globalThis, "fetch").mockImplementation((input, init) => {
+      const url =
+        typeof input === "string"
+          ? input
+          : input instanceof URL
+            ? input.toString()
+            : (input as Request).url;
+      const method = (init?.method || "GET").toUpperCase();
+
+      if (url.endsWith("/files/f1/header") && method === "GET") {
+        return Promise.resolve(
+          new Response(
+            JSON.stringify({
+              title: "Forbidden",
+              status: 403,
+              detail: "No access to this file.",
+            }),
+            {
+              status: 403,
+              headers: { "content-type": "application/problem+json" },
+            },
+          ),
+        );
+      }
+      // everything else: default behaviour
+      return Promise.resolve(defaultUpstream(url, method));
+    });
+
+    const { req, params } = makeReq();
+    const resp = await GET(req, { params });
+    expect(resp.status).toBe(403);
+    await expect(resp.json()).resolves.toMatchObject({
+      error: "No access to this file.",
+      status: 403,
+    });
+  });
+
+  test("forwards the upstream status when /content HEAD fails during preflight", async () => {
+    sessionState.current = validSession;
+    vi.spyOn(globalThis, "fetch").mockImplementation((input, init) => {
+      const url =
+        typeof input === "string"
+          ? input
+          : input instanceof URL
+            ? input.toString()
+            : (input as Request).url;
+      const method = (init?.method || "GET").toUpperCase();
+
+      if (url.endsWith("/files/f2/content") && method === "HEAD") {
+        return Promise.resolve(new Response("nope", { status: 500 }));
+      }
+      return Promise.resolve(defaultUpstream(url, method));
+    });
+
+    const { req, params } = makeReq();
+    const resp = await GET(req, { params });
+    expect(resp.status).toBe(500);
+    await expect(resp.json()).resolves.toMatchObject({ status: 500 });
+  });
+
+  test("502 when the preflight fetch itself rejects (network failure)", async () => {
+    sessionState.current = validSession;
+    vi.spyOn(globalThis, "fetch").mockRejectedValue(new Error("ECONNREFUSED"));
+    const { req, params } = makeReq();
+    const resp = await GET(req, { params });
+    expect(resp.status).toBe(502);
+    await expect(resp.json()).resolves.toMatchObject({
+      error: expect.stringContaining("ECONNREFUSED"),
+      status: 502,
+    });
+  });
+
+  // --- Mid-stream content shortfall is treated as a failure ----------------
+
+  test("aborts the stream when /content delivers fewer bytes than HEAD advertised", async () => {
+    sessionState.current = validSession;
+    const consoleError = vi.spyOn(console, "error").mockImplementation(() => {});
+    vi.spyOn(globalThis, "fetch").mockImplementation((input, init) => {
+      const url =
+        typeof input === "string"
+          ? input
+          : input instanceof URL
+            ? input.toString()
+            : (input as Request).url;
+      const method = (init?.method || "GET").toUpperCase();
+
+      // /content HEAD claims F1_CONTENT.length, but the GET delivers half.
+      if (url.endsWith("/files/f1/content") && method === "GET") {
+        return Promise.resolve(
+          new Response(F1_CONTENT.subarray(0, F1_CONTENT.length / 2), {
+            status: 200,
+          }),
+        );
+      }
+      return Promise.resolve(defaultUpstream(url, method));
+    });
+
+    const { req, params } = makeReq();
+    const resp = await GET(req, { params });
+    // Status/headers already flushed when the mismatch was detected.
+    expect(resp.status).toBe(200);
+    expect(resp.headers.get("content-length")).toBe(String(TOTAL));
+    // …but the stream is torn down, so the consumer sees an error.
+    await expect(readAll(resp.body)).rejects.toThrow();
+
+    expect(consoleError).toHaveBeenCalledWith(
+    expect.stringContaining("tar:ds1:stream error"),
+    expect.any(Error),
+  );
   });
 });

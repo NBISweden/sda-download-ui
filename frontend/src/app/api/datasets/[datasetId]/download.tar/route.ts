@@ -15,16 +15,21 @@ import {
   translateUpstreamError,
   buildContentDisposition,
 } from "@/app/lib/proxy";
-import { planEntry, TAR_BLOCK_SIZE, TAR_TRAILER_LEN } from "@/app/lib/tar";
+import { planEntry, TAR_BLOCK_SIZE, TAR_TRAILER_LEN, type PlannedEntry } from "@/app/lib/tar";
 
-// Node runtime gives us a real Node Readable, which Next.js streams to the
-// socket without coalescing. The Web ReadableStream path is fine here too,
-// but using Node lets us share the same plumbing with step 2.
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
 
+const HEADER_FETCH_CONCURRENCY = 32;
 const MAX_SELECTED_FILE_IDS = 1000;
 const TRAILER = new Uint8Array(TAR_TRAILER_LEN);
+
+type ResolvedEntry = {
+  file: DatasetFile;
+  headerBytes: Uint8Array;
+  contentLen: number;
+  plan: PlannedEntry;
+};
 
 export async function GET(
   request: NextRequest,
@@ -103,59 +108,38 @@ export async function GET(
       ? Math.floor(datasetEpoch / 1000)
       : 0;
 
+  // Preparation before opening the stream. GET each header (small) + HEAD each /content
+  // with bounded concurrency. This gives us per-entry headerBytes (reused later) and the
+  // total TAR length so we can advertise Content-Length to the browser.
+  let resolved: ResolvedEntry[];
+  try {
+    resolved = await probeAll({files, token, publicKey, sdaBaseUrl, mtime});
+  } catch (e) {
+    if (e instanceof Response) return e;
+
+    const msg = e instanceof Error ? e.message : "Unknown error occurred";
+    return errorResponse(502, `Could not reach the download backend: ${msg}`);
+  }
+
+  const totalLen = resolved.reduce((sum, r) => sum + r.plan.entryLen, 0) + TAR_TRAILER_LEN;
+
   async function* emitTar(): AsyncGenerator<Buffer> {
-    for (const file of files) {
-      const headerUrl = `${sdaBaseUrl}/files/${encodeURIComponent(file.fileId)}/header`;
-      const contentUrl = `${sdaBaseUrl}/files/${encodeURIComponent(file.fileId)}/content`;
+    for (const r of resolved) {
+      if (r.plan.paxBlock) yield Buffer.from(r.plan.paxBlock);
+      yield Buffer.from(r.plan.ustarBlock);
 
-      // re-encrypted header (small, fully buffered)
-      const headerResp = await fetch(headerUrl, {
-        headers: {
-          Authorization: `Bearer ${token}`,
-          "X-C4GH-Public-Key": publicKey,
-        },
-        cache: "no-store",
-      });
-      if (!headerResp.ok) {
-        throw new Error(
-          `Failed to fetch header for ${file.fileId}: ${headerResp.status}`,
-        );
-      }
-      const headerBytes = new Uint8Array(await headerResp.arrayBuffer());
+      // Use the c4gh header bytes we already have from preparatory phase.
+      if (r.headerBytes.byteLength > 0) yield Buffer.from(r.headerBytes);
 
-      // 2) HEAD content for size
-      const contentHead = await fetch(contentUrl, {
-        method: "HEAD",
-        headers: { Authorization: `Bearer ${token}` },
-        cache: "no-store",
-      });
-      if (!contentHead.ok) {
-        throw new Error(
-          `Failed to HEAD content for ${file.fileId}: ${contentHead.status}`,
-        );
-      }
-      const contentLen = parseInt(
-        contentHead.headers.get("content-length") || "0",
-        10,
-      );
-
-      // Plan + emit TAR header block(s)
-      const fileDataLen = headerBytes.byteLength + contentLen;
-      const plan = planEntry(file.filePath, fileDataLen, mtime);
-      if (plan.paxBlock) yield Buffer.from(plan.paxBlock);
-      yield Buffer.from(plan.ustarBlock);
-
-      // Emit the c4gh header bytes
-      if (headerBytes.byteLength > 0) yield Buffer.from(headerBytes);
-
-      // Stream the c4gh content body straight through
+      // Stream the content, verify the content length here to ensure data integrity.
+      const contentUrl = `${sdaBaseUrl}/files/${encodeURIComponent(r.file.fileId)}/content`;
       const contentResp = await fetch(contentUrl, {
         headers: { Authorization: `Bearer ${token}` },
         cache: "no-store",
       });
       if (!contentResp.ok || !contentResp.body) {
         throw new Error(
-          `Failed to GET content for ${file.fileId}: ${contentResp.status}`,
+          `Failed to GET content for ${r.file.fileId}: ${contentResp.status}`,
         );
       }
       const reader = contentResp.body.getReader();
@@ -176,16 +160,16 @@ export async function GET(
           // best-effort
         }
       }
-      if (streamed !== contentLen) {
+      if (streamed !== r.contentLen) {
         throw new Error(
-          `Content length mismatch for ${file.fileId}: expected ${contentLen}, got ${streamed}`,
+          `Content length mismatch for ${r.file.fileId}: expected ${r.contentLen}, got ${streamed}`,
         );
       }
 
-      // Pad to a 512-byte boundary
-      if (plan.paddingLen > 0) yield Buffer.alloc(plan.paddingLen);
+      // Pad the entry to a 512-byte boundary so the next entry's header
+      // block starts on a clean offset (TAR requirement).
+      if (r.plan.paddingLen > 0) yield Buffer.alloc(r.plan.paddingLen);
     }
-
     // TAR trailer: two zero blocks
     yield Buffer.from(TRAILER);
   }
@@ -205,12 +189,6 @@ export async function GET(
     console.error(`tar:${datasetId}:stream error`, err);
   });
 
-  // These are placeholders for handling mid-stream errors more gracefully in the future.
-  // The idea is to leave this for the resuming functionality.
-  // Checks before the stream opens are in-place already.
-  void extractProblemDetail;
-  void translateUpstreamError;
-
   const webStream = Readable.toWeb(
     nodeReadable,
   ) as unknown as ReadableStream<Uint8Array>;
@@ -219,8 +197,88 @@ export async function GET(
     status: 200,
     headers: {
       "content-type": "application/x-tar",
+      "content-length": String(totalLen),
       "cache-control": "no-store",
       "content-disposition": buildContentDisposition(`${datasetId}.tar`),
     },
   });
+}
+
+// Run probeOne() over every file with bounded concurrency, preserving the
+// input order in the returned array.
+async function probeAll(opts: {
+  files: DatasetFile[];
+  token: string;
+  publicKey: string;
+  sdaBaseUrl: string;
+  mtime: number;
+}): Promise<ResolvedEntry[]> {
+  const { files, token, publicKey, sdaBaseUrl, mtime } = opts;
+  const out: ResolvedEntry[] = new Array(files.length);
+  let next = 0;
+  const workerCount = Math.min(HEADER_FETCH_CONCURRENCY, files.length);
+
+  const workers = Array.from({ length: workerCount }, async () => {
+    for (;;) {
+      const i = next++;
+      if (i >= files.length) return;
+      out[i] = await probeOne(files[i], token, publicKey, sdaBaseUrl, mtime);
+    }
+  });
+  await Promise.all(workers);
+  return out;
+}
+
+// Per file preparation before streaming: GET its re-encrypted Crypt4GH header and HEAD
+// its content. Combine the two into a ResolvedEntry that fully describes the file's TAR entry.
+async function probeOne(
+  file: DatasetFile,
+  token: string,
+  publicKey: string,
+  sdaBaseUrl: string,
+  mtime: number,
+): Promise<ResolvedEntry> {
+  const headerUrl = `${sdaBaseUrl}/files/${encodeURIComponent(file.fileId)}/header`;
+  const contentUrl = `${sdaBaseUrl}/files/${encodeURIComponent(file.fileId)}/content`;
+
+  const [headerResp, contentHead] = await Promise.all([
+    fetch(headerUrl, {
+      headers: {
+        Authorization: `Bearer ${token}`,
+        "X-C4GH-Public-Key": publicKey,
+      },
+      cache: "no-store",
+    }),
+    fetch(contentUrl, {
+      method: "HEAD",
+      headers: { Authorization: `Bearer ${token}` },
+      cache: "no-store",
+    }),
+  ]);
+
+  if (!headerResp.ok) {
+    throw translateUpstreamError(
+      headerResp,
+      await extractProblemDetail(headerResp),
+    );
+  }
+  if (!contentHead.ok) {
+    throw translateUpstreamError(
+      contentHead,
+      await extractProblemDetail(contentHead),
+    );
+  }
+
+  const headerBytes = new Uint8Array(await headerResp.arrayBuffer());
+  const contentLen = parseInt(
+    contentHead.headers.get("content-length") || "0",
+    10,
+  );
+  const plan = planEntry(
+    file.filePath,
+    headerBytes.byteLength + contentLen,
+    mtime,
+  );
+
+  return { file, headerBytes, contentLen, plan };
 }
