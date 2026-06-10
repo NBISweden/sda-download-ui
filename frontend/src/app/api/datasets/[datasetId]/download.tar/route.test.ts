@@ -548,4 +548,45 @@ describe("GET /api/datasets/[datasetId]/download.tar", () => {
       expect.any(Error),
     );
   });
+
+  test("aborts preflight upstream fetches when the client disconnects", async () => {
+    sessionState.current = validSession;
+
+    const ac = new AbortController();
+    const seenSignals: AbortSignal[] = [];
+
+    vi.spyOn(globalThis, "fetch").mockImplementation((input, init) => {
+      if (init?.signal) seenSignals.push(init.signal);
+
+      return new Promise<Response>((_, reject) => {
+        const signal = init?.signal;
+        if (!signal) return; // never resolves; we want this to fail loudly if it ever happens
+        const onAbort = () => {
+          const err = new Error("aborted") as Error & { name: string };
+          err.name = "AbortError";
+          reject(err);
+        };
+        if (signal.aborted) return onAbort();
+        signal.addEventListener("abort", onAbort, { once: true });
+      });
+    });
+
+    const url = new URL("http://localhost/api/datasets/ds1/download.tar");
+    const req = new NextRequest(url, { signal: ac.signal });
+    const params = Promise.resolve({ datasetId: "ds1" });
+
+    const pending = GET(req, { params });
+    ac.abort();
+
+    const resp = await pending;
+    expect(resp.status).toBe(400);
+
+    // At least one upstream fetch was made and every one of them
+    // received a signal that aborts when the client request aborts.
+    expect(seenSignals.length).toBeGreaterThan(0);
+    for (const s of seenSignals) {
+      expect(s).toBeInstanceOf(AbortSignal);
+      expect(s.aborted).toBe(true);
+    }
+  });
 });

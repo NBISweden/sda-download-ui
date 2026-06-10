@@ -41,6 +41,7 @@ export async function GET(
   { params }: { params: Promise<{ datasetId: string }> },
 ) {
   const { datasetId } = await params;
+  const signal = request.signal;
 
   const sessionData = await getSession();
   if (!sessionData?.token) return errorResponse(401, "Not authenticated.");
@@ -118,9 +119,20 @@ export async function GET(
   // total TAR length so we can advertise Content-Length to the browser.
   let resolved: ResolvedEntry[];
   try {
-    resolved = await probeAll({ files, token, publicKey, sdaBaseUrl, mtime });
+    resolved = await probeAll({
+      files,
+      token,
+      publicKey,
+      sdaBaseUrl,
+      mtime,
+      signal,
+    });
   } catch (e) {
     if (e instanceof Response) return e;
+
+    if (signal.aborted) {
+      return new Response(null, { status: 400 });
+    }
 
     const msg = e instanceof Error ? e.message : "Unknown error occurred";
     return errorResponse(502, `Could not reach the download backend: ${msg}`);
@@ -142,6 +154,7 @@ export async function GET(
       const contentResp = await fetch(contentUrl, {
         headers: { Authorization: `Bearer ${token}` },
         cache: "no-store",
+        signal,
       });
       if (!contentResp.ok || !contentResp.body) {
         throw new Error(
@@ -192,6 +205,10 @@ export async function GET(
   // We can't change the HTTP status by this point but at least the client
   // won't receive a truncated TAR that looks complete.
   nodeReadable.on("error", (err) => {
+    if ((err as { name?: string })?.name === "AbortError" || signal.aborted) {
+      // Client disconnected mid-stream; not actionable.
+      return;
+    }
     console.error(`tar:${datasetId}:stream error`, err);
   });
 
@@ -218,8 +235,9 @@ async function probeAll(opts: {
   publicKey: string;
   sdaBaseUrl: string;
   mtime: number;
+  signal: AbortSignal;
 }): Promise<ResolvedEntry[]> {
-  const { files, token, publicKey, sdaBaseUrl, mtime } = opts;
+  const { files, token, publicKey, sdaBaseUrl, mtime, signal } = opts;
   const out: ResolvedEntry[] = new Array(files.length);
   let next = 0;
   const workerCount = Math.min(HEADER_FETCH_CONCURRENCY, files.length);
@@ -228,7 +246,14 @@ async function probeAll(opts: {
     for (;;) {
       const i = next++;
       if (i >= files.length) return;
-      out[i] = await probeOne(files[i], token, publicKey, sdaBaseUrl, mtime);
+      out[i] = await probeOne(
+        files[i],
+        token,
+        publicKey,
+        sdaBaseUrl,
+        mtime,
+        signal,
+      );
     }
   });
   await Promise.all(workers);
@@ -243,6 +268,7 @@ async function probeOne(
   publicKey: string,
   sdaBaseUrl: string,
   mtime: number,
+  signal: AbortSignal,
 ): Promise<ResolvedEntry> {
   const headerUrl = `${sdaBaseUrl}/files/${encodeURIComponent(file.fileId)}/header`;
   const contentUrl = `${sdaBaseUrl}/files/${encodeURIComponent(file.fileId)}/content`;
@@ -254,11 +280,13 @@ async function probeOne(
         "X-C4GH-Public-Key": publicKey,
       },
       cache: "no-store",
+      signal,
     }),
     fetch(contentUrl, {
       method: "HEAD",
       headers: { Authorization: `Bearer ${token}` },
       cache: "no-store",
+      signal,
     }),
   ]);
 
