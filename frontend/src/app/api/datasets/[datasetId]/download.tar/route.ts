@@ -53,6 +53,7 @@ export async function GET(
   }
 
   const fileIdsParam = request.nextUrl.searchParams.get("fileIds");
+  // The selectedFileIds == null case is left here to wire a full dataset download later.
   let selectedFileIds: Set<string> | null = null;
   if (fileIdsParam !== null) {
     const ids = fileIdsParam
@@ -94,9 +95,10 @@ export async function GET(
     selectedFileIds
       ? allFiles.filter((f) => selectedFileIds!.has(f.fileId))
       : allFiles
-  ).sort((a, b) =>
-    a.filePath < b.filePath ? -1 : a.filePath > b.filePath ? 1 : 0,
-  );
+  ) // The selectedFileIds == null case is left here to wire a full dataset download later.
+    .sort((a, b) =>
+      a.filePath < b.filePath ? -1 : a.filePath > b.filePath ? 1 : 0,
+    );
 
   if (files.length === 0) {
     return errorResponse(
