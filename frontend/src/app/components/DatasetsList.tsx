@@ -5,12 +5,18 @@ import Link from "next/link";
 import Pagination from "@/app/components/Pagination";
 import type { DatasetMetadata } from "../actions/datasets";
 import Alert from "@/app/components/Alert";
-import { filesize } from "filesize";
 import { ItemSelector, useItemsPerPage } from "./ItemsPerPage";
-import InfoTooltip from "./InfoTooltip";
 import { Table } from "./Table";
+import DatasetCard from "./DatasetCard";
+import DatasetSize from "./DatasetSize";
+import { formatDatasetDate, formatFileCount } from "./datasetFormat";
 
 type ViewMode = "card" | "table";
+
+const viewOptions: { mode: ViewMode; icon: string; label: string }[] = [
+  { mode: "card", icon: "bi-grid-3x3-gap", label: "Cards" },
+  { mode: "table", icon: "bi-table", label: "Table" },
+];
 
 type DatasetsListProps = {
   datasets: DatasetMetadata[];
@@ -35,7 +41,7 @@ export default function DatasetsList({
     }
 
     return datasets.filter((dataset) => {
-      const formattedDate = new Date(dataset.date).toLocaleDateString("sv-SE");
+      const formattedDate = formatDatasetDate(dataset.date);
 
       const searchableMetadata = [
         dataset.datasetId,
@@ -63,17 +69,9 @@ export default function DatasetsList({
     () =>
       currentDatasets.map((dataset) => ({
         datasetId: dataset.datasetId,
-        date: new Date(dataset.date).toLocaleDateString("sv-SE"),
-        files: `${dataset.files} ${dataset.files === 1 ? "file" : "files"}`,
-        size: (
-          <InfoTooltip
-            content={`${dataset.size.toLocaleString("en-GB")} bytes`}
-          >
-            <span className="text-muted" tabIndex={0}>
-              {filesize(dataset.size)}
-            </span>
-          </InfoTooltip>
-        ),
+        date: formatDatasetDate(dataset.date),
+        files: formatFileCount(dataset.files),
+        size: <DatasetSize size={dataset.size} />,
         action: (
           <Link
             className="btn btn-secondary btn-sm"
@@ -90,6 +88,27 @@ export default function DatasetsList({
     setSearchTerm(event.target.value);
     setCurrentPage(1);
   }
+
+  const viewToggle = (
+    <div className="col-12 d-flex justify-content-end mb-3">
+      <div className="btn-group" role="group" aria-label="Toggle dataset view">
+        {viewOptions.map(({ mode, icon, label }) => (
+          <button
+            key={mode}
+            type="button"
+            className={`btn btn-outline-secondary ${
+              viewMode === mode ? "active" : ""
+            }`}
+            aria-pressed={viewMode === mode}
+            onClick={() => setViewMode(mode)}
+          >
+            <i className={`bi ${icon} pe-1`}></i>
+            {label}
+          </button>
+        ))}
+      </div>
+    </div>
+  );
 
   return (
     <>
@@ -119,34 +138,7 @@ export default function DatasetsList({
         items={itemsPerPageOptions}
         label="Items per page"
       />
-      <div className="col-12 d-flex justify-content-end mb-3">
-        <div
-          className="btn-group"
-          role="group"
-          aria-label="Toggle dataset view"
-        >
-          <button
-            type="button"
-            className={`btn btn-outline-secondary ${
-              viewMode === "card" ? "active" : ""
-            }`}
-            aria-pressed={viewMode === "card"}
-            onClick={() => setViewMode("card")}
-          >
-            <i className="bi bi-grid-3x3-gap pe-1"></i>Cards
-          </button>
-          <button
-            type="button"
-            className={`btn btn-outline-secondary ${
-              viewMode === "table" ? "active" : ""
-            }`}
-            aria-pressed={viewMode === "table"}
-            onClick={() => setViewMode("table")}
-          >
-            <i className="bi bi-table pe-1"></i>Table
-          </button>
-        </div>
-      </div>
+      {viewToggle}
       {totalPages > 1 && (
         <Pagination
           currentPage={currentPage}
@@ -181,43 +173,7 @@ export default function DatasetsList({
         </div>
       ) : (
         currentDatasets.map((dataset) => (
-          <div className="col col-lg-4 p-2" key={dataset.datasetId}>
-            <div className="card shadow-sm">
-              <div className="card-body d-flex flex-column">
-                <div className="d-flex justify-content-between">
-                  <h3 className="card-title h5">{dataset.datasetId} </h3>
-                  <span
-                    className="d-inline-flex mb-3 px-2 py-1 text-secondary-emphasis
-                bg-secondary-subtle border border-secondary-subtle rounded-1"
-                  >
-                    <i className="bi bi-files fs-6 pe-1"></i>
-                    {dataset.files} {dataset.files === 1 ? "file" : "files"}
-                  </span>
-                </div>
-                <div className="d-flex flex-wrap justify-content-between mb-3 text-muted">
-                  <span>
-                    <i className="bi bi-calendar pe-1"></i>Created{" "}
-                    {new Date(dataset.date).toLocaleDateString("sv-SE")}
-                  </span>
-                  <InfoTooltip
-                    content={`${dataset.size.toLocaleString("en-GB")} bytes`}
-                  >
-                    <span className="text-muted" tabIndex={0}>
-                      {filesize(dataset.size)}
-                    </span>
-                  </InfoTooltip>
-                </div>
-                <div className="text-left">
-                  <Link
-                    className="btn btn-secondary"
-                    href={`/datasets/${dataset.datasetId}`}
-                  >
-                    View dataset
-                  </Link>
-                </div>
-              </div>
-            </div>
-          </div>
+          <DatasetCard key={dataset.datasetId} dataset={dataset} />
         ))
       )}
       {totalPages > 1 && (
