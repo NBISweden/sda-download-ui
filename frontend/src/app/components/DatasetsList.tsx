@@ -14,8 +14,8 @@ import { formatDatasetDate, formatFileCount } from "./datasetFormat";
 type ViewMode = "card" | "table";
 
 const viewOptions: { mode: ViewMode; icon: string; label: string }[] = [
-  { mode: "card", icon: "bi-grid-3x3-gap", label: "Cards" },
-  { mode: "table", icon: "bi-table", label: "Table" },
+  { mode: "card", icon: "bi-grid", label: "Cards" },
+  { mode: "table", icon: "bi-list-ul", label: "List" },
 ];
 
 type DatasetsListProps = {
