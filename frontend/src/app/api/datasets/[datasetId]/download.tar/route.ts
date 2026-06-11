@@ -1,5 +1,6 @@
 import { NextRequest } from "next/server";
 import { Readable } from "node:stream";
+import * as crypto from "crypto";
 import { getSession } from "@/app/lib/session";
 import { getConfig } from "@/app/lib/config";
 import {
@@ -29,10 +30,15 @@ export const dynamic = "force-dynamic";
 const HEADER_FETCH_CONCURRENCY = 32;
 const TRAILER = new Uint8Array(TAR_TRAILER_LEN);
 
+// Bump if the encoded byte layout for the same inputs would change.
+// Invalidates all clients' If-Range validators.
+const TAR_LAYOUT_VERSION = "sda-tar-v1";
+
 type ResolvedEntry = {
   file: DatasetFile;
   headerBytes: Uint8Array;
   contentLen: number;
+  contentEtag: string;
   plan: PlannedEntry;
 };
 
@@ -152,6 +158,7 @@ export async function GET(
 
   const totalLen =
     resolved.reduce((sum, r) => sum + r.plan.entryLen, 0) + TAR_TRAILER_LEN;
+  const etag = computeTarEtag(resolved, sessionData.publicKey.pemChecksum);
 
   async function* emitTar(): AsyncGenerator<Buffer> {
     for (const r of resolved) {
@@ -234,6 +241,8 @@ export async function GET(
       "content-type": "application/x-tar",
       "content-length": String(totalLen),
       "cache-control": "no-store",
+      etag,
+      "accept-ranges": "bytes",
       "content-disposition": buildContentDisposition(`${datasetId}.tar`),
     },
   });
@@ -320,11 +329,23 @@ async function probeOne(
     contentHead.headers.get("content-length") || "0",
     10,
   );
+  // The /content ETag is recipient-independent and stable per fileId.
+  const contentEtag = contentHead.headers.get("etag") || `"${file.fileId}"`;
   const plan = planEntry(
     file.filePath,
     headerBytes.byteLength + contentLen,
     mtime,
   );
 
-  return { file, headerBytes, contentLen, plan };
+  return { file, headerBytes, contentLen, contentEtag, plan };
+}
+
+function computeTarEtag(entries: ResolvedEntry[], pemChecksum: string): string {
+  const h = crypto.createHash("sha256");
+  h.update(`${TAR_LAYOUT_VERSION}\n`);
+  h.update(`${pemChecksum}\n`);
+  for (const e of entries) {
+    h.update(`${e.file.fileId}\t${e.contentEtag}\t${e.file.filePath}\n`);
+  }
+  return `"${h.digest("hex").slice(0, 32)}"`;
 }
