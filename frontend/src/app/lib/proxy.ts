@@ -45,3 +45,23 @@ export function buildContentDisposition(filename: string): string {
   const encoded = encodeURIComponent(filename);
   return `attachment; filename="${filename}"; filename*=UTF-8''${encoded}`;
 }
+
+export type Range = { start: number; end: number };
+
+// Parse a single-range "bytes=<start>-<end?>" header in combined-stream space.
+// Returns null if not present/unparseable or "unsatisfiable" if start >= totalLen or start > end.
+export function parseRange(
+  header: string | null,
+  totalLen: number,
+): Range | "unsatisfiable" | null {
+  if (!header) return null;
+
+  const m = header.match(/^bytes=(\d+)-(\d*)$/);
+  if (!m) return null;
+
+  const start = parseInt(m[1], 10);
+  const end = m[2] ? parseInt(m[2], 10) : totalLen - 1;
+  if (start >= totalLen || start > end) return "unsatisfiable";
+
+  return { start, end: Math.min(end, totalLen - 1) };
+}
