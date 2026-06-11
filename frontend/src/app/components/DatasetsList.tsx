@@ -8,6 +8,9 @@ import Alert from "@/app/components/Alert";
 import { filesize } from "filesize";
 import { ItemSelector, useItemsPerPage } from "./ItemsPerPage";
 import InfoTooltip from "./InfoTooltip";
+import { Table } from "./Table";
+
+type ViewMode = "card" | "table";
 
 type DatasetsListProps = {
   datasets: DatasetMetadata[];
@@ -22,6 +25,7 @@ export default function DatasetsList({
     useItemsPerPage(defaultItemsPerPage);
   const [currentPage, setCurrentPage] = useState(1);
   const [searchTerm, setSearchTerm] = useState("");
+  const [viewMode, setViewMode] = useState<ViewMode>("card");
 
   const filteredDatasets = useMemo(() => {
     const normalizedSearchTerm = searchTerm.trim().toLowerCase();
@@ -54,6 +58,33 @@ export default function DatasetsList({
     const endIndex = startIndex + itemsPerPage;
     return filteredDatasets.slice(startIndex, endIndex);
   }, [filteredDatasets, currentPage, itemsPerPage]);
+
+  const tableRows = useMemo(
+    () =>
+      currentDatasets.map((dataset) => ({
+        datasetId: dataset.datasetId,
+        date: new Date(dataset.date).toLocaleDateString("sv-SE"),
+        files: `${dataset.files} ${dataset.files === 1 ? "file" : "files"}`,
+        size: (
+          <InfoTooltip
+            content={`${dataset.size.toLocaleString("en-GB")} bytes`}
+          >
+            <span className="text-muted" tabIndex={0}>
+              {filesize(dataset.size)}
+            </span>
+          </InfoTooltip>
+        ),
+        action: (
+          <Link
+            className="btn btn-secondary btn-sm"
+            href={`/datasets/${dataset.datasetId}`}
+          >
+            View dataset
+          </Link>
+        ),
+      })),
+    [currentDatasets],
+  );
 
   function handleSearchChange(event: React.ChangeEvent<HTMLInputElement>) {
     setSearchTerm(event.target.value);
@@ -88,6 +119,34 @@ export default function DatasetsList({
         items={itemsPerPageOptions}
         label="Items per page"
       />
+      <div className="col-12 d-flex justify-content-end mb-3">
+        <div
+          className="btn-group"
+          role="group"
+          aria-label="Toggle dataset view"
+        >
+          <button
+            type="button"
+            className={`btn btn-outline-secondary ${
+              viewMode === "card" ? "active" : ""
+            }`}
+            aria-pressed={viewMode === "card"}
+            onClick={() => setViewMode("card")}
+          >
+            <i className="bi bi-grid-3x3-gap pe-1"></i>Cards
+          </button>
+          <button
+            type="button"
+            className={`btn btn-outline-secondary ${
+              viewMode === "table" ? "active" : ""
+            }`}
+            aria-pressed={viewMode === "table"}
+            onClick={() => setViewMode("table")}
+          >
+            <i className="bi bi-table pe-1"></i>Table
+          </button>
+        </div>
+      </div>
       {totalPages > 1 && (
         <Pagination
           currentPage={currentPage}
@@ -104,6 +163,20 @@ export default function DatasetsList({
             type="warning"
             alertMessage="No datasets match your search."
             iconClass="bi bi-exclamation-triangle-fill"
+          />
+        </div>
+      ) : viewMode === "table" ? (
+        <div className="col-12">
+          <Table
+            data={tableRows}
+            columns={["datasetId", "date", "files", "size", "action"]}
+            headers={{
+              datasetId: "Dataset ID",
+              date: "Created",
+              files: "Files",
+              size: "Size",
+              action: " ",
+            }}
           />
         </div>
       ) : (
