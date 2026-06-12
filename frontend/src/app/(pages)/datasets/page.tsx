@@ -44,7 +44,7 @@ export default async function DataSetsViewPage() {
         <h2 className="my-3">Datasets</h2>
         <div className="row">
           {noTokenMessage ? (
-            <LoginRequiredAlert/>
+            <LoginRequiredAlert />
           ) : errorMessage ? (
             <div className="col-12 col-lg-6">
               <Alert

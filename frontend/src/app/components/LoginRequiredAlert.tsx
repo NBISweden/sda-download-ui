@@ -2,7 +2,7 @@ import Alert from "@/app/components/Alert";
 import { LoginButton } from "@/app/components/LoginButton";
 
 export function LoginRequiredAlert() {
-  const message ="Your session has expired or you are not signed in"
+  const message = "Your session has expired or you are not signed in";
 
   return (
     <>
