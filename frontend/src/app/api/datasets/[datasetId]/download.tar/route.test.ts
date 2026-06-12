@@ -1,5 +1,5 @@
 import { describe, expect, test, vi, beforeEach, afterEach } from "vitest";
-import { GET } from "./route";
+import { GET, HEAD } from "./route";
 import { NextRequest } from "next/server";
 import type { SessionData } from "@/app/lib/SessionManager";
 import { MAX_TAR_SELECTION } from "@/app/lib/constants";
@@ -11,8 +11,11 @@ vi.mock(import("next/server"), async (importOriginal) => {
   return { ...actual, connection: async () => {} };
 });
 vi.mock(import("server-only"), () => ({}));
-vi.mock(import("@/app/lib/config"), () => ({
-  getConfig: async () => ({ sdaBaseUrl, sessionSecretPath: "" }),
+vi.mock("@/app/lib/config", () => ({
+  getConfig: async () => ({
+    sdaBaseUrl,
+    sessionSecretPath: "",
+  }),
 }));
 
 const sessionState: { current: SessionData | null } = { current: null };
@@ -95,7 +98,33 @@ const F2_CONTENT = new Uint8Array(20).map((_, i) => 50 + i);
 const TRAILER_START = 2048;
 const TOTAL = 3072;
 
-function defaultUpstream(url: string, method: string): Response {
+async function readChunks(stream: ReadableStream<Uint8Array> | null) {
+  if (!stream) return [];
+  const reader = stream.getReader();
+  const chunks: Uint8Array[] = [];
+  for (;;) {
+    const { done, value } = await reader.read();
+    if (done) break;
+    if (value) chunks.push(value);
+  }
+  return chunks;
+}
+
+function defaultUpstream(
+  url: string,
+  method: string,
+  range: string | null = null,
+): Response {
+  function rangeSlice(buf: Uint8Array) {
+    if (!range) return new Response(new Uint8Array(buf), { status: 200 });
+    const m = range.match(/^bytes=(\d+)-(\d+)$/);
+    if (!m) return new Response("bad range", { status: 400 });
+    const s = parseInt(m[1], 10);
+    const e = parseInt(m[2], 10);
+    return new Response(new Uint8Array(buf.subarray(s, e + 1)), {
+      status: 206,
+    });
+  }
   if (url.endsWith("/files/f1/header") && method === "GET")
     return new Response(F1_HEADER, {
       status: 200,
@@ -117,9 +146,9 @@ function defaultUpstream(url: string, method: string): Response {
       headers: { "content-length": String(F2_CONTENT.length) },
     });
   if (url.endsWith("/files/f1/content") && method === "GET")
-    return new Response(F1_CONTENT, { status: 200 });
+    return rangeSlice(F1_CONTENT);
   if (url.endsWith("/files/f2/content") && method === "GET")
-    return new Response(F2_CONTENT, { status: 200 });
+    return rangeSlice(F2_CONTENT);
   return new Response("unmocked " + url, { status: 500 });
 }
 
@@ -132,7 +161,8 @@ function installDefaultFetch() {
           ? input.toString()
           : (input as Request).url;
     const method = (init?.method || "GET").toUpperCase();
-    return Promise.resolve(defaultUpstream(url, method));
+    const range = new Headers(init?.headers).get("range");
+    return Promise.resolve(defaultUpstream(url, method, range));
   });
 }
 
@@ -615,5 +645,335 @@ describe("GET /api/datasets/[datasetId]/download.tar", () => {
       expect(s).toBeInstanceOf(AbortSignal);
       expect(s.aborted).toBe(true);
     }
+  });
+
+  // new ETag behavior for resume support
+  test("returns an ETag bound to the recipient key", async () => {
+    sessionState.current = validSession;
+    installDefaultFetch();
+    const { req, params } = makeReq();
+    const resp = await GET(req, { params });
+    expect(resp.headers.get("etag")).toMatch(/^".+"$/);
+    expect(resp.headers.get("accept-ranges")).toBe("bytes");
+  });
+
+  test("ETag is stable across preflights for the same recipient + selection", async () => {
+    sessionState.current = validSession;
+    installDefaultFetch();
+    const r1 = await GET(makeReq().req, { params: makeReq().params });
+    const r2 = await GET(makeReq().req, { params: makeReq().params });
+    expect(r1.headers.get("etag")).toBe(r2.headers.get("etag"));
+  });
+
+  test("ETag changes when the recipient public key changes", async () => {
+    sessionState.current = validSession;
+    installDefaultFetch();
+    const r1 = await GET(makeReq().req, { params: makeReq().params });
+    sessionState.current = {
+      token: "tok",
+      publicKey: { key: "OTHER", pemChecksum: "different-pem" },
+    };
+    const r2 = await GET(makeReq().req, { params: makeReq().params });
+    expect(r1.headers.get("etag")).not.toBe(r2.headers.get("etag"));
+  });
+
+  // HEAD and Range tests for resume support
+  test("HEAD returns total size and tar headers, no body", async () => {
+    sessionState.current = validSession;
+    installDefaultFetch();
+    const url = new URL("http://localhost/api/datasets/ds1/download.tar");
+    const resp = await HEAD(new NextRequest(url), {
+      params: Promise.resolve({ datasetId: "ds1" }),
+    });
+    expect(resp.status).toBe(200);
+    expect(resp.headers.get("content-length")).toBe(String(TOTAL));
+    expect(resp.headers.get("accept-ranges")).toBe("bytes");
+    expect(resp.headers.get("etag")).toMatch(/^".+"$/);
+    expect(resp.headers.get("content-type")).toBe("application/x-tar");
+    expect((await readAll(resp.body)).byteLength).toBe(0);
+  });
+
+  test("Range strictly inside f2 content returns 206 with translated bytes", async () => {
+    sessionState.current = validSession;
+    installDefaultFetch();
+    const start = 1541 + 5;
+    const end = 1541 + 9;
+    const url = new URL("http://localhost/api/datasets/ds1/download.tar");
+    const req = new NextRequest(url, {
+      headers: { range: `bytes=${start}-${end}` },
+    });
+    const resp = await GET(req, {
+      params: Promise.resolve({ datasetId: "ds1" }),
+    });
+    expect(resp.status).toBe(206);
+    expect(resp.headers.get("content-range")).toBe(
+      `bytes ${start}-${end}/${TOTAL}`,
+    );
+    expect(await readAll(resp.body)).toEqual(F2_CONTENT.subarray(5, 10));
+  });
+
+  test("Range spanning f1 padding + f2 ustar header stitches static regions", async () => {
+    sessionState.current = validSession;
+    installDefaultFetch();
+    const url = new URL("http://localhost/api/datasets/ds1/download.tar");
+    const req = new NextRequest(url, { headers: { range: "bytes=1021-1027" } });
+    const resp = await GET(req, {
+      params: Promise.resolve({ datasetId: "ds1" }),
+    });
+    expect(resp.status).toBe(206);
+    const body = await readAll(resp.body);
+    expect(body.byteLength).toBe(7);
+    expect(body.subarray(0, 3)).toEqual(new Uint8Array(3));
+    expect(new TextDecoder().decode(body.subarray(3))).toBe("b/sa");
+  });
+
+  test("Open-ended range starting in the trailer returns trailer zeros", async () => {
+    sessionState.current = validSession;
+    installDefaultFetch();
+    const url = new URL("http://localhost/api/datasets/ds1/download.tar");
+    const req = new NextRequest(url, { headers: { range: "bytes=2048-" } });
+    const resp = await GET(req, {
+      params: Promise.resolve({ datasetId: "ds1" }),
+    });
+    expect(resp.status).toBe(206);
+    expect(await readAll(resp.body)).toEqual(new Uint8Array(1024));
+  });
+
+  test("Range past end → 416 with Content-Range total", async () => {
+    sessionState.current = validSession;
+    installDefaultFetch();
+    const url = new URL("http://localhost/api/datasets/ds1/download.tar");
+    const req = new NextRequest(url, {
+      headers: { range: `bytes=${TOTAL + 10}-` },
+    });
+    const resp = await GET(req, {
+      params: Promise.resolve({ datasetId: "ds1" }),
+    });
+    expect(resp.status).toBe(416);
+    expect(resp.headers.get("content-range")).toBe(`bytes */${TOTAL}`);
+  });
+
+  test("If-Range mismatch → ignore Range, return 200 full archive", async () => {
+    sessionState.current = validSession;
+    installDefaultFetch();
+    const url = new URL("http://localhost/api/datasets/ds1/download.tar");
+    const req = new NextRequest(url, {
+      headers: { range: "bytes=1024-1123", "if-range": '"stale-tar-etag"' },
+    });
+    const resp = await GET(req, {
+      params: Promise.resolve({ datasetId: "ds1" }),
+    });
+    expect(resp.status).toBe(200);
+    expect(resp.headers.get("content-length")).toBe(String(TOTAL));
+    expect(resp.headers.get("content-range")).toBeNull();
+  });
+
+  // Refuse ranges that start in the middle of a c4gh header
+  test("Range whose start lands inside entry 1's c4gh header → 200 full archive", async () => {
+    sessionState.current = validSession;
+    installDefaultFetch();
+    const url = new URL("http://localhost/api/datasets/ds1/download.tar");
+    const req = new NextRequest(url, { headers: { range: "bytes=513-700" } });
+    const resp = await GET(req, {
+      params: Promise.resolve({ datasetId: "ds1" }),
+    });
+    expect(resp.status).toBe(200);
+    expect(resp.headers.get("content-range")).toBeNull();
+    expect((await readAll(resp.body)).byteLength).toBe(TOTAL);
+  });
+
+  test("Range starting at the first byte of content (just past a c4gh header) → 206", async () => {
+    sessionState.current = validSession;
+    installDefaultFetch();
+    const url = new URL("http://localhost/api/datasets/ds1/download.tar");
+    const req = new NextRequest(url, { headers: { range: "bytes=1541-1560" } });
+    const resp = await GET(req, {
+      params: Promise.resolve({ datasetId: "ds1" }),
+    });
+    expect(resp.status).toBe(206);
+    expect(resp.headers.get("content-range")).toBe(`bytes 1541-1560/${TOTAL}`);
+    expect(await readAll(resp.body)).toEqual(F2_CONTENT);
+  });
+
+  // Always emit a c4gh header together with the following bytes, never terminate a chunk on header bytes alone.
+  test("emits each c4gh header together with following bytes (atomic)", async () => {
+    sessionState.current = validSession;
+    installDefaultFetch();
+    const { req, params } = makeReq();
+    const resp = await GET(req, { params });
+    const chunks = await readChunks(resp.body);
+
+    // Walk chunks and compute their absolute [start, end) ranges.
+    type Span = { start: number; end: number };
+    const spans: Span[] = [];
+    let offset = 0;
+    for (const c of chunks) {
+      spans.push({ start: offset, end: offset + c.byteLength });
+      offset += c.byteLength;
+    }
+
+    function chunkContaining(byte: number): Span {
+      const span = spans.find((s) => s.start <= byte && byte < s.end);
+      if (!span) throw new Error(`No chunk contains byte ${byte}`);
+      return span;
+    }
+
+    // Property: any chunk containing a c4gh-header byte must also contain
+    // the first byte of the following region. The body covers two c4gh
+    // header regions, each followed by a content region.
+    const c4ghHeaders = [
+      { start: 512, end: 516, firstByteAfter: 516 }, // f1: 4 bytes header, then content
+      { start: 1536, end: 1541, firstByteAfter: 1541 }, // f2: 5 bytes header, then content
+    ];
+
+    for (const h of c4ghHeaders) {
+      for (let b = h.start; b < h.end; b++) {
+        const span = chunkContaining(b);
+        expect(span.end).toBeGreaterThan(h.firstByteAfter);
+      }
+    }
+  });
+
+  // Good to have tests.
+
+  // Scenario where backend API misbehaves. But we can only defend against backend API
+  // returning more bytes than asked for, not fewer.
+  test("clamps upstream content when upstream returns more bytes than asked for", async () => {
+    sessionState.current = validSession;
+
+    // Override the default mock: upstream honours the Range's start position
+    // but returns trailing bytes beyond the requested end.
+    vi.spyOn(globalThis, "fetch").mockImplementation((input, init) => {
+      const url =
+        typeof input === "string"
+          ? input
+          : input instanceof URL
+            ? input.toString()
+            : (input as Request).url;
+      const method = (init?.method || "GET").toUpperCase();
+      const range = new Headers(init?.headers).get("range");
+
+      if (url.endsWith("/files/f2/content") && method === "GET" && range) {
+        const m = range.match(/^bytes=(\d+)-(\d+)$/);
+        if (m) {
+          const s = parseInt(m[1], 10);
+          // Return from `s` to the end of the content body, regardless of the
+          // requested end. This simulates an upstream that honours the start
+          // of the range but doesn't bother trimming the tail.
+          return Promise.resolve(
+            new Response(new Uint8Array(F2_CONTENT.subarray(s)), {
+              status: 206,
+              headers: {
+                "content-length": String(F2_CONTENT.length - s),
+                "content-range": `bytes ${s}-${F2_CONTENT.length - 1}/${F2_CONTENT.length}`,
+              },
+            }),
+          );
+        }
+      }
+      return Promise.resolve(defaultUpstream(url, method, range));
+    });
+
+    // Ask for a 5-byte slice strictly inside f2 content.
+    const start = 1541 + 5;
+    const end = 1541 + 9;
+    const url = new URL("http://localhost/api/datasets/ds1/download.tar");
+    const req = new NextRequest(url, {
+      headers: { range: `bytes=${start}-${end}` },
+    });
+    const resp = await GET(req, {
+      params: Promise.resolve({ datasetId: "ds1" }),
+    });
+
+    expect(resp.status).toBe(206);
+    expect(resp.headers.get("content-length")).toBe("5");
+    expect(resp.headers.get("content-range")).toBe(
+      `bytes ${start}-${end}/${TOTAL}`,
+    );
+
+    const body = await readAll(resp.body);
+    // The 5 bytes the client asked for.
+    expect(body).toEqual(F2_CONTENT.subarray(5, 10));
+    expect(body.byteLength).toBe(5);
+  });
+
+  test("Range ending inside a c4gh header flushes pending at end-of-loop", async () => {
+    sessionState.current = validSession;
+    installDefaultFetch();
+    // bytes=511-515: 1 byte from the tail of f1's ustar block + 4 bytes of
+    // f1's c4gh-header. The header bytes go into `pending` and the loop exits
+    // at pos=516 with no further region to coalesce with. The final
+    // `if (pending) yield pending;` is what delivers them.
+    const url = new URL("http://localhost/api/datasets/ds1/download.tar");
+    const req = new NextRequest(url, { headers: { range: "bytes=511-515" } });
+    const resp = await GET(req, {
+      params: Promise.resolve({ datasetId: "ds1" }),
+    });
+    expect(resp.status).toBe(206);
+    expect(resp.headers.get("content-length")).toBe("5");
+    expect(resp.headers.get("content-range")).toBe(`bytes 511-515/${TOTAL}`);
+
+    const body = await readAll(resp.body);
+    expect(body.byteLength).toBe(5);
+    // First byte: ustar tail (zero-padded field).
+    expect(body[0]).toBe(0);
+    // Remaining 4 bytes: f1's c4gh-header verbatim.
+    expect(body.subarray(1)).toEqual(F1_HEADER);
+  });
+
+  test("HEAD with Range returns 206 + Content-Range, no body", async () => {
+    sessionState.current = validSession;
+    installDefaultFetch();
+    const url = new URL("http://localhost/api/datasets/ds1/download.tar");
+    const start = 1541 + 5;
+    const end = 1541 + 9;
+    const resp = await HEAD(
+      new NextRequest(url, { headers: { range: `bytes=${start}-${end}` } }),
+      { params: Promise.resolve({ datasetId: "ds1" }) },
+    );
+    expect(resp.status).toBe(206);
+    expect(resp.headers.get("content-length")).toBe("5");
+    expect(resp.headers.get("content-range")).toBe(
+      `bytes ${start}-${end}/${TOTAL}`,
+    );
+    expect(resp.headers.get("etag")).toMatch(/^".+"$/);
+    expect(resp.headers.get("accept-ranges")).toBe("bytes");
+    // No body — same Content-Length but zero bytes delivered.
+    expect((await readAll(resp.body)).byteLength).toBe(0);
+  });
+
+  test("HEAD with unsatisfiable Range returns 416", async () => {
+    sessionState.current = validSession;
+    installDefaultFetch();
+    const url = new URL("http://localhost/api/datasets/ds1/download.tar");
+    const resp = await HEAD(
+      new NextRequest(url, { headers: { range: `bytes=${TOTAL + 10}-` } }),
+      { params: Promise.resolve({ datasetId: "ds1" }) },
+    );
+    expect(resp.status).toBe(416);
+    expect(resp.headers.get("content-range")).toBe(`bytes */${TOTAL}`);
+  });
+
+  test("If-Range with a weak validator falls back to 200 even if the body matches", async () => {
+    sessionState.current = validSession;
+    installDefaultFetch();
+    // Get the current strong ETag.
+    const r0 = await GET(makeReq().req, { params: makeReq().params });
+    const strongEtag = r0.headers.get("etag")!;
+    await readAll(r0.body);
+
+    // Replay the same ETag value but as a weak validator.
+    const weakEtag = `W/${strongEtag}`;
+    const url = new URL("http://localhost/api/datasets/ds1/download.tar");
+    const req = new NextRequest(url, {
+      headers: { range: "bytes=1541-1560", "if-range": weakEtag },
+    });
+    const resp = await GET(req, {
+      params: Promise.resolve({ datasetId: "ds1" }),
+    });
+    // Weak validator: per spec, refuse the Range. Fall back to a full 200.
+    expect(resp.status).toBe(200);
+    expect(resp.headers.get("content-length")).toBe(String(TOTAL));
+    expect(resp.headers.get("content-range")).toBeNull();
   });
 });
