@@ -66,7 +66,7 @@ export default async function DatasetDetailsView({
       <div className="container">
         <div className="row mt-5">
           {noTokenMessage ? (
-            <LoginRequiredAlert message={noTokenMessage} />
+            <LoginRequiredAlert />
           ) : errorMessage ? (
             <Alert
               type="warning"
