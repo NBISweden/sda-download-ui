@@ -243,6 +243,13 @@ async function handle(
     let idx = findRegionIndex(regions, pos);
     const endExclusive = end + 1;
 
+    // Only emit chunks that do not terminate at a c4gh-header boundary.
+    // When we'd yield a c4gh header region, we hold it back and concatenate
+    // with the next chunk. The consumer never observes a yield boundary mid-header,
+    // so the natural pause point can't land inside one. This just avoids ever offering
+    // the browser the chance to resume mid-header.
+    let pendingHeader: Buffer | null = null;
+
     while (pos < endExclusive && idx < regions.length) {
       const r = regions[idx];
       const within = pos - r.start;
@@ -252,7 +259,19 @@ async function handle(
         // Use the c4gh header bytes (or pax/ustar/padding/trailer) we already
         // have from the preparatory phase. Slice for partial regions.
         const view = r.bytes.subarray(within, within + want);
-        yield Buffer.from(view.buffer, view.byteOffset, view.byteLength);
+        const slice = Buffer.from(
+          view.buffer,
+          view.byteOffset,
+          view.byteLength,
+        );
+        if (r.tag === "c4gh-header") {
+          pendingHeader = pendingHeader
+            ? Buffer.concat([pendingHeader, slice])
+            : slice;
+        } else {
+          yield pendingHeader ? Buffer.concat([pendingHeader, slice]) : slice;
+          pendingHeader = null;
+        }
         pos += want;
         idx++;
         continue;
@@ -286,8 +305,14 @@ async function handle(
           if (done) break;
           if (value && value.byteLength > 0) {
             const useLen = Math.min(value.byteLength, want - streamed);
+            const slice = Buffer.from(value.buffer, value.byteOffset, useLen);
             streamed += useLen;
-            yield Buffer.from(value.buffer, value.byteOffset, useLen);
+            if (pendingHeader) {
+              yield Buffer.concat([pendingHeader, slice]);
+              pendingHeader = null;
+            } else {
+              yield slice;
+            }
             if (streamed >= want) break;
           }
         }
@@ -306,6 +331,10 @@ async function handle(
       pos += want;
       idx++;
     }
+
+    // Flush any pendingHeader bytes (only possible if a c4gh header sits at the very
+    // end of the requested range and there's nothing after it to coalesce with).
+    if (pendingHeader) yield pendingHeader;
   }
 
   // Readable.from pulls from the generator on demand. If the browser slows
