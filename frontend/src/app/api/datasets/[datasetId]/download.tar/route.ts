@@ -208,7 +208,11 @@ async function handle(
     );
   }
 
-  const effectiveRange = range;
+  // Refuse to resume from a position that falls inside a c4gh header
+  // to avoid corrupting the tar since header bytes are unstable.
+  // Same rule as the per-file download in the proxy.
+  const effectiveRange =
+    range && !isInsideC4ghHeader(regions, range.start) ? range : null;
 
   const isPartial = effectiveRange !== null;
   const start = effectiveRange ? effectiveRange.start : 0;
@@ -525,3 +529,11 @@ function findRegionIndex(regions: Region[], pos: number): number {
   return lo;
 }
 
+// Returns true if range position lies inside a re-encrypted c4gh header region.
+function isInsideC4ghHeader(regions: Region[], pos: number): boolean {
+  const idx = findRegionIndex(regions, pos);
+  const r = regions[idx];
+  if (!r) return false;
+  if (r.start > pos || pos >= r.start + r.len) return false;
+  return r.kind === "static" && r.tag === "c4gh-header";
+}
