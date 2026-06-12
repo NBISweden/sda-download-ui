@@ -1,7 +1,7 @@
 import { DatasetMetadata, DatasetFile } from "../actions/datasets";
 import DownloadChecksumsButton from "./DownloadChecksumsButton";
 import DatasetSize from "./DatasetSize";
-import { formatDatasetDate, formatFileCount } from "./datasetFormat";
+import { formatDatasetDate, formatFileCount } from "../lib/datasetFormat";
 
 type DatasetDetailsProps = {
   dataset: DatasetMetadata;

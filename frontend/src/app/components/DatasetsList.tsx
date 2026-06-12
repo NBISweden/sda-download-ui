@@ -9,7 +9,7 @@ import { ItemSelector, useItemsPerPage } from "./ItemsPerPage";
 import { Table } from "./Table";
 import DatasetCard from "./DatasetCard";
 import DatasetSize from "./DatasetSize";
-import { formatDatasetDate, formatFileCount } from "./datasetFormat";
+import { formatDatasetDate, formatFileCount } from "../lib/datasetFormat";
 
 type ViewMode = "card" | "table";
 

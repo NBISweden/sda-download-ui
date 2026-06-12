@@ -1,7 +1,7 @@
 import Link from "next/link";
 import type { DatasetMetadata } from "../actions/datasets";
 import DatasetSize from "./DatasetSize";
-import { formatDatasetDate, formatFileCount } from "./datasetFormat";
+import { formatDatasetDate, formatFileCount } from "../lib/datasetFormat";
 
 type DatasetCardProps = {
   dataset: DatasetMetadata;
