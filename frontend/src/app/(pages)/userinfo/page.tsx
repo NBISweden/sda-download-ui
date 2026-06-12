@@ -69,11 +69,11 @@ export default async function UserPage() {
   const token = sessionData?.token;
 
   let errorMessage: string | null = null;
-  let noTokenMessage: string | null = null;
+  let noTokenMessage: boolean = false;
   let tokenInfoRows: TokenInfoRow[] = [];
 
   if (!token) {
-    noTokenMessage = "No token found in session.";
+    noTokenMessage = true;
   } else {
     try {
       const payload = jose.decodeJwt(token);
@@ -92,7 +92,7 @@ export default async function UserPage() {
         <h2 className="my-3">User info</h2>
         <div className="row">
           {noTokenMessage ? (
-            <LoginRequiredAlert message={noTokenMessage} />
+            <LoginRequiredAlert />
           ) : errorMessage ? (
             <>
               <div className="col-12 col-lg-6">
@@ -103,7 +103,7 @@ export default async function UserPage() {
                 />
               </div>
               <div className="mt-3">
-                <LoginButton buttonText="Sign in again" />
+                <LoginButton buttonText="Sign in" />
               </div>
             </>
           ) : (

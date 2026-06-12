@@ -1,11 +1,9 @@
 import Alert from "@/app/components/Alert";
 import { LoginButton } from "@/app/components/LoginButton";
 
-type LoginRequiredAlertProps = {
-  message: string;
-};
+export function LoginRequiredAlert() {
+  const message ="Your session has expired or you are not signed in"
 
-export function LoginRequiredAlert({ message }: LoginRequiredAlertProps) {
   return (
     <>
       <div className="col-12 col-lg-6">
@@ -16,7 +14,7 @@ export function LoginRequiredAlert({ message }: LoginRequiredAlertProps) {
         />
       </div>
       <div className="mt-3">
-        <LoginButton buttonText="Sign in again" />
+        <LoginButton buttonText="Sign in" />
       </div>
     </>
   );
