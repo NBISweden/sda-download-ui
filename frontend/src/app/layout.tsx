@@ -4,23 +4,28 @@ import "bootstrap-icons/font/bootstrap-icons.css";
 import BootstrapClient from "@/app/components/BootstrapClient";
 import "./globals.scss";
 import { Header } from "./components/Header";
+import { SessionExpiryWatcher } from "./components/SessionExpiryWatcher";
+import { getSession } from "./lib/session";
+import { decodeJwt } from "jose";
 
 export const metadata: Metadata = {
   title: "SDA Download UI",
   description: "An UI for the SDA download",
 };
 
-export default function RootLayout({
+export default async function RootLayout({
   children,
-}: Readonly<{
-  children: React.ReactNode;
-}>) {
+}: Readonly<{ children: React.ReactNode }>) {
+  const session = await getSession();
+  const exp = session?.token ? decodeJwt(session.token).exp : undefined;
+
   return (
     <html lang="en">
       <body>
         <Header />
         <BootstrapClient />
         {children}
+        {exp && <SessionExpiryWatcher expiresAt={exp * 1000} />}
       </body>
     </html>
   );
