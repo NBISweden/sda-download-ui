@@ -7,16 +7,18 @@ import {
 import { getSession } from "@/app/lib/session";
 import DatasetsList from "../../components/DatasetsList";
 import Alert from "@/app/components/Alert";
+import { LoginRequiredAlert } from "@/app/components/LoginRequiredAlert";
 
 export default async function DataSetsViewPage() {
   const sessionData = await getSession();
   const token = sessionData?.token;
 
   let errorMessage: string | null = null;
+  let noTokenMessage: boolean = false;
   let datasetMetadataList: DatasetMetadata[] = [];
 
   if (!token) {
-    return <p>No token found in session.</p>;
+    noTokenMessage = true;
   } else {
     try {
       const datasetIds = await fetchAll(async (pageToken) => {
@@ -41,7 +43,9 @@ export default async function DataSetsViewPage() {
       <div className="container">
         <h2 className="my-3">Datasets</h2>
         <div className="row">
-          {errorMessage ? (
+          {noTokenMessage ? (
+            <LoginRequiredAlert />
+          ) : errorMessage ? (
             <div className="col-12 col-lg-6">
               <Alert
                 type="warning"
