@@ -208,24 +208,19 @@ describe("GET /api/files/[fileId]", () => {
     vi.restoreAllMocks();
   });
 
-  test("returns 401 when no session token is present", async () => {
+  test("redirects to /userinfo when no session token is present", async () => {
     setSession(null);
     const fetchSpy = vi.spyOn(globalThis, "fetch");
 
     const { request, params } = makeRequest("file-1");
     const response = await GET(request, { params });
 
-    expect(response.status).toBe(401);
-    expect(response.headers.get("cache-control")).toBe("no-store");
-    expect(response.headers.get("content-disposition")).toBeNull();
-    await expect(response.json()).resolves.toMatchObject({
-      error: "Not authenticated.",
-      status: 401,
-    });
+    expect(response.status).toBe(307);
+    expect(response.headers.get("location")).toMatch(/\/userinfo$/);
     expect(fetchSpy).not.toHaveBeenCalled();
   });
 
-  test("returns 401 when resuming a download without a session token", async () => {
+  test("redirects to /userinfo when resuming a download without a session token", async () => {
     setSession(null);
     const fetchSpy = vi.spyOn(globalThis, "fetch");
 
@@ -235,15 +230,8 @@ describe("GET /api/files/[fileId]", () => {
 
     const response = await GET(request, { params });
 
-    expect(response.status).toBe(401);
-    expect(response.headers.get("cache-control")).toBe("no-store");
-    expect(response.headers.get("content-disposition")).toBeNull();
-
-    await expect(response.json()).resolves.toMatchObject({
-      error: "Not authenticated.",
-      status: 401,
-    });
-
+    expect(response.status).toBe(307);
+    expect(response.headers.get("location")).toMatch(/\/userinfo$/);
     expect(fetchSpy).not.toHaveBeenCalled();
   });
 

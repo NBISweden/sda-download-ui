@@ -45,7 +45,10 @@ export async function GET(
   const filePath = request.nextUrl.searchParams.get("name");
 
   if (!sessionData?.token) {
-    return errorResponse(401, "Not authenticated.");
+    return new NextResponse(null, {
+      status: 307,
+      headers: { location: "/userinfo" },
+    });
   }
 
   if (!sessionData.publicKey?.key) {
