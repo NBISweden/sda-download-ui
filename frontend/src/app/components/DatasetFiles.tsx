@@ -9,6 +9,7 @@ import { ClipboardValue } from "./ClipboardValue";
 import InfoTooltip from "./InfoTooltip";
 import { ItemSelector, useItemsPerPage } from "./ItemsPerPage";
 import { ChecksumExportActions } from "./ChecksumExportActions";
+import { BatchDownloadActions } from "./BatchDownloadActions";
 
 type DatasetFilesProps = {
   files: DatasetFile[];
@@ -201,6 +202,11 @@ export default function DatasetFiles({
           <strong>{selectedFileIds.size}</strong>{" "}
           {selectedFileIds.size === 1 ? "file selected" : "files selected"}
         </div>
+        <BatchDownloadActions
+          selectedFileIds={selectedFileIds}
+          datasetId={datasetId}
+          canDownload={canDownload}
+        />
         <ChecksumExportActions
           files={files}
           selectedFileIds={selectedFileIds}
