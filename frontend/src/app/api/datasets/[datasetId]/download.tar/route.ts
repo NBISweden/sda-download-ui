@@ -1,5 +1,6 @@
-import { NextRequest } from "next/server";
+import { NextRequest, NextResponse } from "next/server";
 import { Readable } from "node:stream";
+import * as crypto from "crypto";
 import { getSession } from "@/app/lib/session";
 import { getConfig } from "@/app/lib/config";
 import {
@@ -14,6 +15,7 @@ import {
   extractProblemDetail,
   translateUpstreamError,
   buildContentDisposition,
+  parseRange,
 } from "@/app/lib/proxy";
 import {
   planEntry,
@@ -28,19 +30,51 @@ export const dynamic = "force-dynamic";
 
 const HEADER_FETCH_CONCURRENCY = 32;
 const TRAILER = new Uint8Array(TAR_TRAILER_LEN);
+const ZEROS_512 = new Uint8Array(TAR_BLOCK_SIZE);
+
+// Bump if the encoded byte layout for the same inputs would change.
+// Invalidates all clients' If-Range validators.
+const TAR_LAYOUT_VERSION = "sda-tar-v1";
 
 type ResolvedEntry = {
   file: DatasetFile;
   headerBytes: Uint8Array;
   contentLen: number;
+  contentEtag: string;
   plan: PlannedEntry;
 };
+
+type StaticTag = "pax" | "ustar" | "c4gh-header" | "padding" | "trailer";
+
+type Region =
+  | {
+      kind: "static";
+      tag: StaticTag;
+      bytes: Uint8Array;
+      start: number;
+      len: number;
+    }
+  | { kind: "content"; entryIndex: number; start: number; len: number };
 
 export async function GET(
   request: NextRequest,
   { params }: { params: Promise<{ datasetId: string }> },
 ) {
-  const { datasetId } = await params;
+  return handle(request, await params, "GET");
+}
+
+export async function HEAD(
+  request: NextRequest,
+  { params }: { params: Promise<{ datasetId: string }> },
+) {
+  return handle(request, await params, "HEAD");
+}
+
+async function handle(
+  request: NextRequest,
+  { datasetId }: { datasetId: string },
+  method: "GET" | "HEAD",
+): Promise<Response> {
   const signal = request.signal;
 
   const sessionData = await getSession();
@@ -152,25 +186,115 @@ export async function GET(
 
   const totalLen =
     resolved.reduce((sum, r) => sum + r.plan.entryLen, 0) + TAR_TRAILER_LEN;
+  const regions = buildRegions(resolved, totalLen);
+  const etag = computeTarEtag(resolved, sessionData.publicKey.pemChecksum);
+
+  // If-Range only honors the Range when the validator still matches.
+  const ifRange = request.headers.get("if-range");
+  const honorRange = !ifRange || ifRange === etag;
+  const rangeHeader = honorRange ? request.headers.get("range") : null;
+  const range = parseRange(rangeHeader, totalLen);
+
+  if (range === "unsatisfiable") {
+    return NextResponse.json(
+      { error: "The requested byte range is not satisfiable.", status: 416 },
+      {
+        status: 416,
+        headers: {
+          "cache-control": "no-store",
+          "content-range": `bytes */${totalLen}`,
+        },
+      },
+    );
+  }
+
+  // Refuse to resume from a position that falls inside a c4gh header
+  // to avoid corrupting the tar since header bytes are unstable.
+  // Same rule as the per-file download in the proxy.
+  const effectiveRange =
+    range && !isInsideC4ghHeader(regions, range.start) ? range : null;
+
+  const isPartial = effectiveRange !== null;
+  const start = effectiveRange ? effectiveRange.start : 0;
+  const end = effectiveRange ? effectiveRange.end : totalLen - 1;
+  const length = end - start + 1;
+
+  const responseHeaders = new Headers({
+    "content-type": "application/x-tar",
+    "accept-ranges": "bytes",
+    "cache-control": "no-store",
+    etag,
+    "content-disposition": buildContentDisposition(`${datasetId}.tar`),
+    "content-length": String(length),
+  });
+  if (isPartial) {
+    responseHeaders.set("content-range", `bytes ${start}-${end}/${totalLen}`);
+  }
+
+  if (method === "HEAD") {
+    return new Response(null, {
+      status: isPartial ? 206 : 200,
+      headers: responseHeaders,
+    });
+  }
 
   async function* emitTar(): AsyncGenerator<Buffer> {
-    for (const r of resolved) {
-      if (r.plan.paxBlock) yield Buffer.from(r.plan.paxBlock);
-      yield Buffer.from(r.plan.ustarBlock);
+    let pos = start;
+    let idx = findRegionIndex(regions, pos);
+    const endExclusive = end + 1;
 
-      // Use the c4gh header bytes we already have from preparatory phase.
-      if (r.headerBytes.byteLength > 0) yield Buffer.from(r.headerBytes);
+    // Only emit chunks that do not terminate at a c4gh-header boundary.
+    // When we'd yield a c4gh header region, we hold it back and concatenate
+    // with the next chunk. The consumer never observes a yield boundary mid-header,
+    // so the natural pause point can't land inside one. This just avoids ever offering
+    // the browser the chance to resume mid-header.
+    let pendingHeader: Buffer | null = null;
+
+    while (pos < endExclusive && idx < regions.length) {
+      const r = regions[idx];
+      const within = pos - r.start;
+      const want = Math.min(r.len - within, endExclusive - pos);
+
+      if (r.kind === "static") {
+        // Use the c4gh header bytes (or pax/ustar/padding/trailer) we already
+        // have from the preparatory phase. Slice for partial regions.
+        const view = r.bytes.subarray(within, within + want);
+        const slice = Buffer.from(
+          view.buffer,
+          view.byteOffset,
+          view.byteLength,
+        );
+        if (r.tag === "c4gh-header") {
+          pendingHeader = pendingHeader
+            ? Buffer.concat([pendingHeader, slice])
+            : slice;
+        } else {
+          yield pendingHeader ? Buffer.concat([pendingHeader, slice]) : slice;
+          pendingHeader = null;
+        }
+        pos += want;
+        idx++;
+        continue;
+      }
 
       // Stream the content, verify the content length here to ensure data integrity.
-      const contentUrl = `${sdaBaseUrl}/files/${encodeURIComponent(r.file.fileId)}/content`;
+      const e = resolved[r.entryIndex];
+      const contentUrl = `${sdaBaseUrl}/files/${encodeURIComponent(e.file.fileId)}/content`;
+      const reqHeaders: Record<string, string> = {
+        Authorization: `Bearer ${token}`,
+      };
+      const partial = within > 0 || want < r.len;
+      if (partial) {
+        reqHeaders["Range"] = `bytes=${within}-${within + want - 1}`;
+      }
       const contentResp = await fetch(contentUrl, {
-        headers: { Authorization: `Bearer ${token}` },
+        headers: reqHeaders,
         cache: "no-store",
         signal,
       });
       if (!contentResp.ok || !contentResp.body) {
         throw new Error(
-          `Failed to GET content for ${r.file.fileId}: ${contentResp.status}`,
+          `Failed to GET content for ${e.file.fileId}: ${contentResp.status}`,
         );
       }
       const reader = contentResp.body.getReader();
@@ -180,8 +304,16 @@ export async function GET(
           const { done, value } = await reader.read();
           if (done) break;
           if (value && value.byteLength > 0) {
-            streamed += value.byteLength;
-            yield Buffer.from(value.buffer, value.byteOffset, value.byteLength);
+            const useLen = Math.min(value.byteLength, want - streamed);
+            const slice = Buffer.from(value.buffer, value.byteOffset, useLen);
+            streamed += useLen;
+            if (pendingHeader) {
+              yield Buffer.concat([pendingHeader, slice]);
+              pendingHeader = null;
+            } else {
+              yield slice;
+            }
+            if (streamed >= want) break;
           }
         }
       } finally {
@@ -191,18 +323,18 @@ export async function GET(
           // best-effort
         }
       }
-      if (streamed !== r.contentLen) {
+      if (streamed !== want) {
         throw new Error(
-          `Content length mismatch for ${r.file.fileId}: expected ${r.contentLen}, got ${streamed}`,
+          `Content length mismatch for ${e.file.fileId}: expected ${want}, got ${streamed}`,
         );
       }
-
-      // Pad the entry to a 512-byte boundary so the next entry's header
-      // block starts on a clean offset (TAR requirement).
-      if (r.plan.paddingLen > 0) yield Buffer.alloc(r.plan.paddingLen);
+      pos += want;
+      idx++;
     }
-    // TAR trailer: two zero blocks
-    yield Buffer.from(TRAILER);
+
+    // Flush any pendingHeader bytes (only possible if a c4gh header sits at the very
+    // end of the requested range and there's nothing after it to coalesce with).
+    if (pendingHeader) yield pendingHeader;
   }
 
   // Readable.from pulls from the generator on demand. If the browser slows
@@ -229,13 +361,8 @@ export async function GET(
   ) as unknown as ReadableStream<Uint8Array>;
 
   return new Response(webStream, {
-    status: 200,
-    headers: {
-      "content-type": "application/x-tar",
-      "content-length": String(totalLen),
-      "cache-control": "no-store",
-      "content-disposition": buildContentDisposition(`${datasetId}.tar`),
-    },
+    status: isPartial ? 206 : 200,
+    headers: responseHeaders,
   });
 }
 
@@ -320,11 +447,122 @@ async function probeOne(
     contentHead.headers.get("content-length") || "0",
     10,
   );
+  // The /content ETag is recipient-independent and stable per backend api specification.
+  const contentEtag = contentHead.headers.get("etag") || `"${file.fileId}"`;
   const plan = planEntry(
     file.filePath,
     headerBytes.byteLength + contentLen,
     mtime,
   );
 
-  return { file, headerBytes, contentLen, plan };
+  return { file, headerBytes, contentLen, contentEtag, plan };
+}
+
+// ETag bound to encoder version, recipient key, and per-entry id + upstream content ETag
+// + path. We deliberately exclude c4gh header bytes since we disallow mid-header resumes
+// since these headers are unstable per spec.
+function computeTarEtag(entries: ResolvedEntry[], pemChecksum: string): string {
+  const h = crypto.createHash("sha256");
+  h.update(`${TAR_LAYOUT_VERSION}\n`);
+  h.update(`${pemChecksum}\n`);
+  for (const e of entries) {
+    h.update(`${e.file.fileId}\t${e.contentEtag}\t${e.file.filePath}\n`);
+  }
+  return `"${h.digest("hex").slice(0, 32)}"`;
+}
+
+// Build the byte layout map: each region is either an in-memory `static`
+// block (pax/ustar/c4gh-header/padding/trailer) or a `content` placeholder
+// that streams from /content.
+function buildRegions(entries: ResolvedEntry[], totalLen: number): Region[] {
+  const regions: Region[] = [];
+  let cursor = 0;
+  for (let i = 0; i < entries.length; i++) {
+    const e = entries[i];
+    if (e.plan.paxBlock) {
+      regions.push({
+        kind: "static",
+        tag: "pax",
+        bytes: e.plan.paxBlock,
+        start: cursor,
+        len: e.plan.paxBlock.length,
+      });
+      cursor += e.plan.paxBlock.length;
+    }
+    regions.push({
+      kind: "static",
+      tag: "ustar",
+      bytes: e.plan.ustarBlock,
+      start: cursor,
+      len: TAR_BLOCK_SIZE,
+    });
+    cursor += TAR_BLOCK_SIZE;
+    if (e.headerBytes.length > 0) {
+      regions.push({
+        kind: "static",
+        tag: "c4gh-header",
+        bytes: e.headerBytes,
+        start: cursor,
+        len: e.headerBytes.length,
+      });
+      cursor += e.headerBytes.length;
+    }
+    if (e.contentLen > 0) {
+      regions.push({
+        kind: "content",
+        entryIndex: i,
+        start: cursor,
+        len: e.contentLen,
+      });
+      cursor += e.contentLen;
+    }
+    if (e.plan.paddingLen > 0) {
+      // Pad the entry to a 512-byte boundary so the next entry's header
+      // block starts on a clean offset (TAR requirement).
+      regions.push({
+        kind: "static",
+        tag: "padding",
+        bytes: ZEROS_512.subarray(0, e.plan.paddingLen),
+        start: cursor,
+        len: e.plan.paddingLen,
+      });
+      cursor += e.plan.paddingLen;
+    }
+  }
+  // TAR trailer: two zero blocks
+  regions.push({
+    kind: "static",
+    tag: "trailer",
+    bytes: TRAILER,
+    start: cursor,
+    len: TAR_TRAILER_LEN,
+  });
+  cursor += TAR_TRAILER_LEN;
+  if (cursor !== totalLen) {
+    throw new Error(
+      `Internal error: region cursor ${cursor} !== totalLen ${totalLen}`,
+    );
+  }
+  return regions;
+}
+
+function findRegionIndex(regions: Region[], pos: number): number {
+  let lo = 0;
+  let hi = regions.length - 1;
+  while (lo < hi) {
+    const mid = (lo + hi) >>> 1;
+    const r = regions[mid];
+    if (r.start + r.len <= pos) lo = mid + 1;
+    else hi = mid;
+  }
+  return lo;
+}
+
+// Returns true if range position lies inside a re-encrypted c4gh header region.
+function isInsideC4ghHeader(regions: Region[], pos: number): boolean {
+  const idx = findRegionIndex(regions, pos);
+  const r = regions[idx];
+  if (!r) return false;
+  if (r.start > pos || pos >= r.start + r.len) return false;
+  return r.kind === "static" && r.tag === "c4gh-header";
 }
