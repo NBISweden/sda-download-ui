@@ -1,7 +1,9 @@
+"use client";
 import { DatasetMetadata, DatasetFile } from "../actions/datasets";
 import { filesize } from "filesize";
 import InfoTooltip from "./InfoTooltip";
 import DownloadChecksumsButton from "./DownloadChecksumsButton";
+import { DownloadActions } from "@/app/components/DownloadActions";
 
 type DatasetDetailsProps = {
   dataset: DatasetMetadata;
@@ -50,6 +52,7 @@ export default function DatasetDetails({
               files={files}
               datasetId={dataset.datasetId}
             />
+            <DownloadActions datasetId={dataset.datasetId} />
           </div>
         </div>
       </div>
