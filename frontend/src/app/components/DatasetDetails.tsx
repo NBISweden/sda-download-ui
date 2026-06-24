@@ -1,8 +1,9 @@
 import { DatasetMetadata, DatasetFile } from "../actions/datasets";
-import { filesize } from "filesize";
-import InfoTooltip from "./InfoTooltip";
 import DownloadChecksumsButton from "./DownloadChecksumsButton";
 import { DownloadActions } from "@/app/components/DownloadActions";
+import DatasetSize from "./DatasetSize";
+import { formatDatasetDate, formatFileCount } from "../lib/datasetFormat";
+
 
 type DatasetDetailsProps = {
   dataset: DatasetMetadata;
@@ -23,24 +24,16 @@ export default function DatasetDetails({
           <div className="d-flex">
             <div className="d-flex flex-column flex-grow-1 align-items-start mb-4 mb-sm-0">
               <div className="d-flex fs-1">
-                <p className="mb-1">
-                  {dataset.files} {dataset.files === 1 ? "file" : "files"}
-                </p>
+                <p className="mb-1">{formatFileCount(dataset.files)}</p>
               </div>
-              <InfoTooltip
-                content={`${dataset.size.toLocaleString("en-GB")} bytes`}
-              >
-                <span className="fs-5" tabIndex={0}>
-                  {filesize(dataset.size)}
-                </span>
-              </InfoTooltip>
+              <DatasetSize size={dataset.size} className="fs-5" />
             </div>
             <span
               className="d-inline-flex align-self-start mb-3 px-2 py-1 text-secondary-emphasis
             bg-secondary-subtle border border-secondary-subtle rounded-1"
             >
               <i className="bi bi-calendar fs-6 pe-1"></i>
-              Created {new Date(dataset.date).toLocaleDateString("sv-SE")}
+              Created {formatDatasetDate(dataset.date)}
             </span>
           </div>
           <div className="d-flex justify-content-start mt-3">
