@@ -2,12 +2,13 @@
 
 import { useState } from "react";
 import { ModalDialog } from "@/app/components/ModalDialog";
+import DropdownButton from "@/app/components/DropdownButton";
 
 type DownloadActionsProps = {
   datasetId: string;
 };
 
-export function DownloadActions({datasetId}: DownloadActionsProps) {
+export function DownloadActions({ datasetId }: DownloadActionsProps) {
   const [copied, setCopied] = useState(false);
   const command = [
     "sda-cli --config <configuration_file> download \\",
@@ -27,13 +28,13 @@ export function DownloadActions({datasetId}: DownloadActionsProps) {
       </p>
 
       <p>
-        Replace the values inside angle brackets, such as{" "}
+        After copying the command replace the values inside angle brackets,
+          such as{" "}
         <code>&lt;configuration_file&gt;</code>,{" "}
         <code>&lt;public-key-file&gt;</code>,{" "}
         <code>&lt;download-service-url&gt;</code>, and{" "}
         <code>&lt;outdir&gt;</code>, with paths or values for your local setup.
       </p>
-
       <pre className="p-3 mb-2 bg-light rounded">
         <code>{command}</code>
       </pre>
@@ -52,28 +53,16 @@ export function DownloadActions({datasetId}: DownloadActionsProps) {
 
   return (
     <>
-      <div className="dropdown">
-        <button
-          className="btn btn-outline-primary dropdown-toggle me-3"
-          type="button"
-          data-bs-toggle="dropdown"
-          aria-expanded="false"
-        >
-          Download options
-        </button>
-        <ul className="dropdown-menu">
-          <li>
-            <button
-              type="button"
-              className="dropdown-item"
-              data-bs-toggle="modal"
-              data-bs-target="#cliModal"
-            >
-              Download via sda-cli
-            </button>
-          </li>
-        </ul>
-      </div>
+      <DropdownButton
+        label="Download options"
+        className="btn btn-outline-primary dropdown-toggle me-3"
+        items={[
+          {
+            label: "Download via sda-cli",
+            modalTarget: "#cliModal",
+          },
+        ]}
+      />
       <ModalDialog
         id="cliModal"
         title="Download via sda-cli command"

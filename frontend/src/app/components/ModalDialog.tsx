@@ -8,6 +8,16 @@ type ModalProps = {
   iconClass: string;
   actionButtonLabel: string;
 };
+/**
+ * Reusable Bootstrap modal dialog.
+ *
+ * Use `id` as the modal target, for example `#cliModal` from a button's
+ * `data-bs-target`. The `title` is rendered in the modal header, `body`
+ * is rendered in the modal body.
+ *
+ * The modal contains a close button and for the action button use action property.
+ * The iconClass and actionButtonLabel add icon and label for the action button.
+ */
 export function ModalDialog({
   id,
   title,
