@@ -54,7 +54,6 @@ export function DownloadActions({ datasetId }: DownloadActionsProps) {
     <>
       <DropdownButton
         label="Download options"
-        className="btn btn-outline-primary dropdown-toggle me-3"
         items={[
           {
             label: "Download via sda-cli",

@@ -32,7 +32,7 @@ export function ModalDialog({
       <div
         className="modal fade"
         id={id}
-        tabIndex="-1"
+        tabIndex={-1}
         aria-labelledby={titleId}
         aria-hidden="true"
       >
