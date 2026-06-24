@@ -4,7 +4,6 @@ import { DownloadActions } from "@/app/components/DownloadActions";
 import DatasetSize from "./DatasetSize";
 import { formatDatasetDate, formatFileCount } from "../lib/datasetFormat";
 
-
 type DatasetDetailsProps = {
   dataset: DatasetMetadata;
   files: DatasetFile[];

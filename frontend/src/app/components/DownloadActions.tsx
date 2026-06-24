@@ -28,9 +28,8 @@ export function DownloadActions({ datasetId }: DownloadActionsProps) {
       </p>
 
       <p>
-        After copying the command replace the values inside angle brackets,
-          such as{" "}
-        <code>&lt;configuration_file&gt;</code>,{" "}
+        After copying the command replace the values inside angle brackets, such
+        as <code>&lt;configuration_file&gt;</code>,{" "}
         <code>&lt;public-key-file&gt;</code>,{" "}
         <code>&lt;download-service-url&gt;</code>, and{" "}
         <code>&lt;outdir&gt;</code>, with paths or values for your local setup.
