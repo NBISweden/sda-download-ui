@@ -1,12 +1,21 @@
+import { ReactNode } from "react";
+
 type ModalProps = {
   id: string;
   title: string;
-  body: string;
+  body: ReactNode;
   action: () => void;
   iconClass: string;
   actionButtonLabel: string;
 };
-export function ModalDialog({ id, title, body, action, iconClass, actionButtonLabel }: ModalProps) {
+export function ModalDialog({
+  id,
+  title,
+  body,
+  action,
+  iconClass,
+  actionButtonLabel,
+}: ModalProps) {
   const titleId = `${id}Label`;
   return (
     <>
@@ -44,7 +53,8 @@ export function ModalDialog({ id, title, body, action, iconClass, actionButtonLa
                 className="btn btn-primary"
                 onClick={action}
               >
-                <i className={`bi ${iconClass} me-1`}></i>{actionButtonLabel}
+                <i className={`bi ${iconClass} me-1`}></i>
+                {actionButtonLabel}
               </button>
             </div>
           </div>

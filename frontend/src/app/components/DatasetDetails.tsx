@@ -1,4 +1,3 @@
-"use client";
 import { DatasetMetadata, DatasetFile } from "../actions/datasets";
 import { filesize } from "filesize";
 import InfoTooltip from "./InfoTooltip";
@@ -45,14 +44,11 @@ export default function DatasetDetails({
             </span>
           </div>
           <div className="d-flex justify-content-start mt-3">
-            <button className="btn btn-primary align-self-start me-3">
-              Download dataset
-            </button>
+            <DownloadActions datasetId={dataset.datasetId} />
             <DownloadChecksumsButton
               files={files}
               datasetId={dataset.datasetId}
             />
-            <DownloadActions datasetId={dataset.datasetId} />
           </div>
         </div>
       </div>
