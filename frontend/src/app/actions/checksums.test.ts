@@ -9,7 +9,7 @@ import {
 const files: DatasetFile[] = [
   {
     fileId: "file-1",
-    filePath: "folder/file-1.cram",
+    filePath: "folder/file-1.c4gh",
     size: 100,
     decryptedSize: 90,
     checksums: [
@@ -26,7 +26,7 @@ const files: DatasetFile[] = [
   },
   {
     fileId: "file-2",
-    filePath: "folder/file-2.cram",
+    filePath: "folder/file-2.c4gh",
     size: 200,
     decryptedSize: 180,
     checksums: [
@@ -39,7 +39,7 @@ const files: DatasetFile[] = [
   },
   {
     fileId: "file-3",
-    filePath: "folder/file-3.cram",
+    filePath: "folder/file-3.c4gh",
     size: 150,
     decryptedSize: 120,
     checksums: [
@@ -92,9 +92,9 @@ describe("createChecksumFileContent", () => {
   it("creates checksum file content compatible with sha256sum and md5sum", () => {
     expect(createChecksumFileContent(files, "sha256")).toBe(
       [
-        "sha256-checksum-file-1  folder/file-1.cram",
-        "sha256-checksum-file-2  folder/file-2.cram",
-        "sha256-checksum-file-3  folder/file-3.cram",
+        "sha256-checksum-file-1  folder/file-1",
+        "sha256-checksum-file-2  folder/file-2",
+        "sha256-checksum-file-3  folder/file-3",
         "",
       ].join("\n"),
     );
@@ -102,7 +102,7 @@ describe("createChecksumFileContent", () => {
 
   it("throws an error when a file is missing the requested checksum type", () => {
     expect(() => createChecksumFileContent(files, "md5")).toThrow(
-      "Missing md5 checksum for file: folder/file-2.cram",
+      "Missing md5 checksum for file: folder/file-2.c4gh",
     );
   });
 });
