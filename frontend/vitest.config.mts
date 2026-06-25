@@ -6,9 +6,6 @@ export default defineConfig({
   },
   test: {
     environment: "node",
-    exclude: [
-      ...configDefaults.exclude,
-      "**/.next/**",
-    ],
+    exclude: [...configDefaults.exclude, "**/.next/**"],
   },
 });
