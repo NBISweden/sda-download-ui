@@ -4,8 +4,8 @@ import { useState, useMemo } from "react";
 import { type DatasetFile } from "../actions/datasets";
 import Pagination from "./Pagination";
 import { Table } from "./Table";
-import { filesize } from "filesize";
 import { ClipboardValue } from "./ClipboardValue";
+import DatasetSize from "./DatasetSize";
 import InfoTooltip from "./InfoTooltip";
 import { ItemSelector, useItemsPerPage } from "./ItemsPerPage";
 import { ChecksumExportActions } from "./ChecksumExportActions";
@@ -47,7 +47,7 @@ export default function DatasetFiles({
         </InfoTooltip>
       </ClipboardValue>
     ),
-    decryptedSize: filesize(file.decryptedSize),
+    decryptedSize: <DatasetSize size={file.decryptedSize} className="" />,
     checksums: file.checksums.map((c) => (
       <ClipboardValue
         key={c.checksum}
