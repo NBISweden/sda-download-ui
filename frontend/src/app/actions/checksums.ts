@@ -32,8 +32,11 @@ export function createChecksumFileContent(
             `Missing ${checksumType} checksum for file: ${file.filePath}`,
           );
         }
+        // Decrypted filenames, i.e. same names but without .c4gh extension
+        const fileExt = ".c4gh";
+        const decryptedFilename = file.filePath.replace(fileExt, "");
 
-        return `${checksum}  ${file.filePath}`;
+        return `${checksum}  ${decryptedFilename}`;
       })
       .join("\n") + "\n"
   );
