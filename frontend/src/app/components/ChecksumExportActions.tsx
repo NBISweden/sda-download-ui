@@ -8,6 +8,7 @@ import {
   downloadTextFile,
 } from "../actions/checksums";
 import Alert from "@/app/components/Alert";
+import DropdownButton from "@/app/components/DropdownButton";
 
 type ChecksumExportActionsProps = {
   files: DatasetFile[];
@@ -53,37 +54,22 @@ export function ChecksumExportActions({
         />
       )}
       <form autoComplete="off">
-        <div className="dropdown">
-          <button
-            className="btn btn-outline-primary dropdown-toggle"
-            type="button"
-            data-bs-toggle="dropdown"
-            aria-expanded="false"
-            disabled={selectedFiles.length === 0}
-          >
-            Export options
-          </button>
-          <ul className="dropdown-menu">
-            <li>
-              <button
-                className="dropdown-item"
-                onClick={() => handleChecksumExport("sha256")}
-                disabled={!canExportSha256}
-              >
-                Export SHA256 checksums
-              </button>
-            </li>
-            <li>
-              <button
-                className="dropdown-item"
-                onClick={() => handleChecksumExport("md5")}
-                disabled={!canExportMd5}
-              >
-                Export md5 checksums
-              </button>
-            </li>
-          </ul>
-        </div>
+        <DropdownButton
+          label="Export options"
+          disabled={selectedFiles.length === 0}
+          items={[
+            {
+              label: "Export SHA256 checksums",
+              onClick: () => handleChecksumExport("sha256"),
+              disabled: !canExportSha256,
+            },
+            {
+              label: "Export md5 checksums",
+              onClick: () => handleChecksumExport("md5"),
+              disabled: !canExportMd5,
+            },
+          ]}
+        />
       </form>
     </div>
   );

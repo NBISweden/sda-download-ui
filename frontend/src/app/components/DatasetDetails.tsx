@@ -1,5 +1,6 @@
 import { DatasetMetadata, DatasetFile } from "../actions/datasets";
 import DownloadChecksumsButton from "./DownloadChecksumsButton";
+import { DownloadActions } from "@/app/components/DownloadActions";
 import DatasetSize from "./DatasetSize";
 import { formatDatasetDate, formatFileCount } from "../lib/datasetFormat";
 
@@ -35,9 +36,7 @@ export default function DatasetDetails({
             </span>
           </div>
           <div className="d-flex justify-content-start mt-3">
-            <button className="btn btn-primary align-self-start me-3">
-              Download dataset
-            </button>
+            <DownloadActions datasetId={dataset.datasetId} />
             <DownloadChecksumsButton
               files={files}
               datasetId={dataset.datasetId}
