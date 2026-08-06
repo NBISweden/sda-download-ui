@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { usePathname } from "next/navigation";
 import Link from "next/link";
+import { logout } from "../actions/logout";
 
 export function Header() {
   const [isNavCollapsed, setIsNavCollapsed] = useState(true);
@@ -13,7 +14,6 @@ export function Header() {
   const navLinks = [
     { href: "/datasets", label: "Datasets" },
     { href: "/userinfo", label: "Your profile" },
-    { href: "/logout", label: "Logout" },
   ];
 
   const isHome = pathname === "/";
@@ -67,6 +67,18 @@ export function Header() {
                   </li>
                 );
               })}
+
+              <li className="nav-item">
+                <form action={logout}>
+                  <button
+                    type="submit"
+                    className="nav-link px-3 border-0 bg-transparent w-100 text-center text-md-start"
+                    onClick={() => setIsNavCollapsed(true)}
+                  >
+                    Logout
+                  </button>
+                </form>
+              </li>
             </ul>
           </div>
         </div>
