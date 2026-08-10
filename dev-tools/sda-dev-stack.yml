@@ -12,8 +12,6 @@
 
 services:
   postgres:
-    # build:
-    #   context: ../../postgresql
     image: ghcr.io/neicnordic/sensitive-data-archive:${TAG:-v3.1.55}-postgres
     environment:
       - POSTGRES_PASSWORD=rootpasswd
@@ -213,6 +211,28 @@ services:
         sh /seed-large-dataset.sh
     volumes:
       - ./seed-large-dataset.sh:/seed-large-dataset.sh:ro
+      - shared:/shared
+
+  seed-bp-mock-dataset:
+    extends:
+      service: seed
+    profiles: ["seed-bp-mock-dataset"]
+    depends_on:
+      seed:
+        condition: service_completed_successfully
+    command:
+      - /bin/sh
+      - -c
+      - |
+        apt-get -o DPkg::Lock::Timeout=60 update > /dev/null
+        apt-get -o DPkg::Lock::Timeout=60 install -y curl postgresql-client > /dev/null
+        pip install --upgrade pip > /dev/null
+        pip install crypt4gh > /dev/null
+        curl -sL https://dl.min.io/client/mc/release/linux-amd64/mc -o /usr/local/bin/mc
+        chmod +x /usr/local/bin/mc
+        sh /seed-bp-mock-dataset.sh
+    volumes:
+      - ./seed-bp-mock-dataset.sh:/seed-bp-mock-dataset.sh:ro
       - shared:/shared
 
   # Mock OIDC server with /tokens endpoint for easy token retrieval
