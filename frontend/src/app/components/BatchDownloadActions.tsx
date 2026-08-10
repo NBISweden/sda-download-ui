@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useMemo, useSyncExternalStore } from "react";
 import type { DatasetFile } from "@/app/actions/datasets";
 import { TarBatchDownloadActions } from "@/app/components/TarBatchDownloadActions";
 import { FileSystemAccessBatchDownloadActions } from "@/app/components/FileSystemAccessBatchDownloadActions";
@@ -12,17 +12,30 @@ type BatchDownloadActionsProps = {
   canDownload?: boolean;
 };
 
+type WindowWithDirectoryPicker = Window & {
+  showDirectoryPicker?: unknown;
+};
+
+function subscribe() {
+  return function unsubscribe() {
+    // No clean up needed.
+  };
+}
+
+function getSnapshot() {
+  return (
+    typeof window !== "undefined" &&
+    typeof (window as WindowWithDirectoryPicker).showDirectoryPicker ===
+      "function"
+  );
+}
+
+function getServerSnapshot() {
+  return false;
+}
+
 function useFileSystemAccessSupported() {
-  const [supported, setSupported] = useState(false);
-
-  useEffect(() => {
-    setSupported(
-      "showDirectoryPicker" in window &&
-        typeof window.showDirectoryPicker === "function",
-    );
-  }, []);
-
-  return supported;
+  return useSyncExternalStore(subscribe, getSnapshot, getServerSnapshot);
 }
 
 export function BatchDownloadActions({
