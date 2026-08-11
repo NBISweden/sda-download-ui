@@ -27,7 +27,7 @@ function jsonResponse(data: unknown, status = 200) {
   });
 }
 
-const sdaBaseUrl = "http://host.docker.internal:8085";
+const sdaBaseUrl = testConfig.sdaBaseUrl;
 
 vi.mock(import("next/server"), () => {
   return {

@@ -12,7 +12,7 @@ import { testConfig } from "@/test/testConfig";
  * so the tests run without a backend.
  */
 
-const sdaBaseUrl = "http://test.local";
+const sdaBaseUrl = testConfig.sdaBaseUrl;
 
 vi.mock(import("next/server"), async (importOriginal) => {
   const actual = await importOriginal();
