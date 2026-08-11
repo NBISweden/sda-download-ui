@@ -4,6 +4,7 @@ import {
   fetchDatasetMetadata,
   fetchDatasetFiles,
 } from "./datasets";
+import { testConfig } from "@/test/testConfig";
 
 /**
  * Unit tests for the dataset fetch functions in datasets.ts.
@@ -40,10 +41,7 @@ vi.mock(import("server-only"), () => {
 
 vi.mock(import("../lib/config"), () => {
   return {
-    getConfig: async () => ({
-      sdaBaseUrl: sdaBaseUrl,
-      sessionSecretPath: "",
-    }),
+    getConfig: async () => testConfig,
   };
 });
 

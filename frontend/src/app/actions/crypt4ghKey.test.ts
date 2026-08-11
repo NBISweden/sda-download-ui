@@ -4,6 +4,7 @@ import { ReadonlyRequestCookies } from "next/dist/server/web/spec-extension/adap
 import { getSessionManager } from "../lib/SessionManager";
 import { SignJWT } from "jose";
 import * as fs from "fs";
+import { testConfig } from "@/test/testConfig";
 
 vi.mock(import("next/server"), () => {
   return {
@@ -35,10 +36,7 @@ vi.mock("fs");
 
 vi.mock(import("@/app/lib/config"), () => {
   return {
-    getConfig: async () => ({
-      sessionSecretPath: "no-secrets-in-test",
-      sdaBaseUrl: "",
-    }),
+    getConfig: async () => testConfig,
   };
 });
 
