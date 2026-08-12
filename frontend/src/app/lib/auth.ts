@@ -1,7 +1,6 @@
 import "server-only";
 import type { NextAuthOptions } from "next-auth";
 import type { OAuthConfig, Provider } from "next-auth/providers/index";
-import { createOrUpdateSession } from "./session";
 import { Config, getConfig } from "./config";
 import fs from "fs";
 
@@ -108,7 +107,9 @@ export const extractJWT: NonNullable<
   const { token, account, profile } = input;
   if (profile?.sub && profile?.email) {
     if (account) {
-      await createOrUpdateSession({ token: account.access_token });
+      token.accessToken = account.access_token
+      token.refreshToken = account.refresh_token
+      token.expiresAt = account.expires_at
     }
   }
   return token;
@@ -117,9 +118,10 @@ export const extractJWT: NonNullable<
 export const extractSession: NonNullable<
   NonNullable<NextAuthOptions["callbacks"]>["session"]
 > = async (input) => {
-  const { session } = input;
+  const { session, token } = input;
   return {
     ...session,
+    ...(token?.expiresAt ? {expires: new Date(token.expiresAt).toISOString()} : {})
   };
 };
 

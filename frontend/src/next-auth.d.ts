@@ -1,0 +1,11 @@
+import "next-auth/jwt"
+
+declare module "next-auth/jwt" {
+  interface JWT {
+    role?: "admin" | "user"
+    accessToken?: string
+    refreshToken?: string
+    expiresAt?: number
+    userId?: string
+  }
+}

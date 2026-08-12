@@ -3,7 +3,7 @@
 import { useState } from "react";
 import { usePathname } from "next/navigation";
 import Link from "next/link";
-import { logout } from "../actions/logout";
+import { signOut } from "next-auth/react"
 
 export function Header() {
   const [isNavCollapsed, setIsNavCollapsed] = useState(true);
@@ -69,15 +69,13 @@ export function Header() {
               })}
 
               <li className="nav-item">
-                <form action={logout}>
-                  <button
-                    type="submit"
-                    className="nav-link px-3 border-0 bg-transparent w-100 text-center text-md-start"
-                    onClick={() => setIsNavCollapsed(true)}
-                  >
-                    Logout
-                  </button>
-                </form>
+                <button
+                  type="button"
+                  className="nav-link px-3 border-0 bg-transparent w-100 text-center text-md-start"
+                  onClick={() => signOut()}
+                >
+                  Logout
+                </button>
               </li>
             </ul>
           </div>

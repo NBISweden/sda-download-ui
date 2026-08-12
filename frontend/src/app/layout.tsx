@@ -6,7 +6,6 @@ import "./globals.scss";
 import { Header } from "./components/Header";
 import { SessionExpiryWatcher } from "./components/SessionExpiryWatcher";
 import { getSession } from "./lib/session";
-import { decodeJwt } from "jose";
 
 export const metadata: Metadata = {
   title: "SDA Download UI",
@@ -17,7 +16,7 @@ export default async function RootLayout({
   children,
 }: Readonly<{ children: React.ReactNode }>) {
   const session = await getSession();
-  const exp = session?.token ? decodeJwt(session.token).exp : undefined;
+  const exp = session?.expires ? new Date(session?.expires).getTime() : undefined;
 
   return (
     <html lang="en">
