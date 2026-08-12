@@ -208,6 +208,17 @@ docker compose -f sda-dev-stack.yml --profile seed-large-file --profile seed-lar
 
 This will include a 40k file dataset `EGAD00000040000`.
 
+### Optional: seed mock BP dataset
+
+This will seed a Big picture dummy dataset (only 57 files, ~842 MB) with a realistic folder structure which can be useful as mock data in case we deploy a test site or when we want to test the folder structure in downloaded datasets, e.g. when using the FileSystemAccess feature for chromium based browsers.
+To achive this include the `seed-bp-mock-dataset` profile in the docker compose command. For example:
+
+```bash
+docker compose -f sda-dev-stack.yml --profile seed-bp-mock-dataset up -d
+```
+
+This will include the dataset `bp-Dataset-d6ummy-m3oc2k`.
+
 ## Cleanup
 
 ``` bash
