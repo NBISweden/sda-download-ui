@@ -2,6 +2,12 @@
 
 import { useRef, useState } from "react";
 import type { DatasetFile } from "@/app/actions/datasets";
+import {
+  cloneDownloadMetadata,
+  readDownloadMetadata,
+  writeDownloadMetadata,
+  type DownloadMetadata,
+} from "@/app/components/fileSystemDownloadMetadata";
 
 // Controls the number of active concurrent downloads.
 const FILE_SYSTEM_BATCH_CONCURRENCY = 2;
@@ -12,6 +18,8 @@ type FileSystemAccessBatchDownloadActionsProps = {
   selectedFiles: Pick<DatasetFile, "fileId" | "filePath">[];
   canDownload: boolean;
 };
+
+type SaveMetadata = () => Promise<void>;
 
 export function FileSystemAccessBatchDownloadActions({
   selectedFiles,
@@ -58,6 +66,23 @@ export function FileSystemAccessBatchDownloadActions({
         mode: "readwrite",
       })) as FileSystemDirectoryHandle;
 
+      const metadata = await readDownloadMetadata(directoryHandle);
+
+      // Metadata writes are serialized to avoid concurrent workers overwriting
+      // each other's updates.
+      // Note: may create a bottleneck, needs to be checked.
+      let metadataWriteQueue: Promise<void> = Promise.resolve();
+
+      const saveMetadata: SaveMetadata = () => {
+        const snapshot = cloneDownloadMetadata(metadata);
+
+        metadataWriteQueue = metadataWriteQueue.then(() =>
+          writeDownloadMetadata(directoryHandle, snapshot),
+        );
+
+        return metadataWriteQueue;
+      };
+
       await runWithConcurrency(
         selectedFiles,
         FILE_SYSTEM_BATCH_CONCURRENCY,
@@ -70,6 +95,8 @@ export function FileSystemAccessBatchDownloadActions({
               file,
               directoryHandle,
               abortController.signal,
+              metadata,
+              saveMetadata,
             );
 
             setCompletedCount((count) => count + 1);
@@ -186,6 +213,8 @@ async function downloadFileToDirectory(
   file: Pick<DatasetFile, "fileId" | "filePath">,
   rootDirectoryHandle: FileSystemDirectoryHandle,
   signal: AbortSignal,
+  metadata: DownloadMetadata,
+  saveMetadata: SaveMetadata,
 ) {
   const url =
     `/api/files/${encodeURIComponent(file.fileId)}` +
@@ -224,6 +253,20 @@ async function downloadFileToDirectory(
     throw new Error(`No response body for ${file.filePath}.`);
   }
 
+  const etag = response.headers.get("etag") || undefined;
+  const totalBytes = parseContentLength(response, file.filePath);
+
+  metadata.files[file.fileId] = {
+    fileId: file.fileId,
+    filePath: file.filePath,
+    etag,
+    totalBytes,
+    status: "partial",
+    updatedAt: Date.now(),
+  };
+
+  await saveMetadata();
+
   const fileHandle = await getFileHandleForDatasetPath(
     rootDirectoryHandle,
     file.filePath,
@@ -245,6 +288,36 @@ async function downloadFileToDirectory(
     }
 
     await writable.close();
+
+    const finalFile = await fileHandle.getFile();
+
+    if (finalFile.size !== totalBytes) {
+      metadata.files[file.fileId] = {
+        fileId: file.fileId,
+        filePath: file.filePath,
+        etag,
+        totalBytes,
+        status: "partial",
+        updatedAt: Date.now(),
+      };
+
+      await saveMetadata();
+
+      throw new Error(
+        `Downloaded size mismatch for ${file.filePath}: expected ${totalBytes}, got ${finalFile.size}.`,
+      );
+    }
+
+    metadata.files[file.fileId] = {
+      fileId: file.fileId,
+      filePath: file.filePath,
+      etag,
+      totalBytes,
+      status: "complete",
+      updatedAt: Date.now(),
+    };
+
+    await saveMetadata();
   } catch (error) {
     try {
       await reader.cancel();
@@ -288,6 +361,17 @@ async function getFileHandleForDatasetPath(
   return currentDirectory.getFileHandle(filename, {
     create: true,
   });
+}
+
+function parseContentLength(response: Response, filePath: string): number {
+  const value = response.headers.get("content-length");
+  const contentLength = value ? Number(value) : NaN;
+
+  if (!Number.isFinite(contentLength) || contentLength < 0) {
+    throw new Error(`Missing or invalid Content-Length for ${filePath}.`);
+  }
+
+  return contentLength;
 }
 
 function sanitizePathSegment(segment: string): string {
