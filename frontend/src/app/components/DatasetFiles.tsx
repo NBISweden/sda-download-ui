@@ -203,6 +203,7 @@ export default function DatasetFiles({
           {selectedFileIds.size === 1 ? "file selected" : "files selected"}
         </div>
         <BatchDownloadActions
+          files={files}
           selectedFileIds={selectedFileIds}
           datasetId={datasetId}
           canDownload={canDownload}

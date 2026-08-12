@@ -79,6 +79,11 @@ class SessionManager<ST extends Record<string, unknown>> {
       return null;
     }
   }
+
+  async clearSession(): Promise<void> {
+    const cookieStore = await cookies();
+    cookieStore.delete(this._sessionId);
+  }
 }
 
 export const getSessionManager: () => Promise<SessionManager<SessionData>> =

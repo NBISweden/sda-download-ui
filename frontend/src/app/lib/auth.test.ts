@@ -1,5 +1,4 @@
 import { describe, expect, test, vi, beforeEach, afterEach } from "vitest";
-import type { Config } from "./config";
 import {
   extractJWT,
   extractSession,
@@ -9,17 +8,7 @@ import {
 } from "./auth";
 import { Account, User } from "next-auth";
 import * as fs from "fs";
-
-const completeConfig: Config = {
-  sdaBaseUrl: "https://test.local",
-  sessionSecretPath: "session-secret-path",
-  nextAuthSecretPath: "auth-secret-path",
-  nextAuthUrl: "http://localhost:3002",
-  oidcClientSecretPath: "client-secret-path",
-  oidcClientIdPath: "client-id-path",
-  oidcRoot: "http://localhost:3002",
-  allowHttp: false,
-};
+import { testConfig } from "@/test/testConfig";
 
 const accessToken: string = "access_token";
 
@@ -43,7 +32,7 @@ vi.mock(import("server-only"), () => {
 
 vi.mock(import("@/app/lib/config"), () => {
   return {
-    getConfig: async () => completeConfig,
+    getConfig: async () => testConfig,
   };
 });
 
@@ -156,11 +145,11 @@ describe("auth oidc", () => {
     const options = await getAuthOptions();
     vi.spyOn(fs, "readFileSync").mockImplementation((path) => String(path));
     expect(options).toStrictEqual({
-      secret: completeConfig.nextAuthSecretPath,
+      secret: testConfig.nextAuthSecretPath,
       providers: [
-        LsaaiOidcProvider(completeConfig.oidcRoot, {
-          clientId: completeConfig.oidcClientIdPath,
-          clientSecret: completeConfig.oidcClientSecretPath,
+        LsaaiOidcProvider(testConfig.oidcRoot, {
+          clientId: testConfig.oidcClientIdPath,
+          clientSecret: testConfig.oidcClientSecretPath,
         }),
       ],
       session: { strategy: "jwt" },

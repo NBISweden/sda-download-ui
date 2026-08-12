@@ -4,6 +4,7 @@ import {
   fetchDatasetMetadata,
   fetchDatasetFiles,
 } from "./datasets";
+import { testConfig } from "@/test/testConfig";
 
 /**
  * Unit tests for the dataset fetch functions in datasets.ts.
@@ -26,7 +27,7 @@ function jsonResponse(data: unknown, status = 200) {
   });
 }
 
-const sdaBaseUrl = "http://host.docker.internal:8085";
+const sdaBaseUrl = testConfig.sdaBaseUrl;
 
 vi.mock(import("next/server"), () => {
   return {
@@ -40,10 +41,7 @@ vi.mock(import("server-only"), () => {
 
 vi.mock(import("../lib/config"), () => {
   return {
-    getConfig: async () => ({
-      sdaBaseUrl: sdaBaseUrl,
-      sessionSecretPath: "",
-    }),
+    getConfig: async () => testConfig,
   };
 });
 

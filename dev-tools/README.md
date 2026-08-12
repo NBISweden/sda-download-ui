@@ -76,6 +76,22 @@ to
 userinfo-url: "http://localhost:8800/oidc/userinfo"
 ```
 
+In the folder `aai-mock/clients` add a file `sdad.yml` containing the following configurations:
+
+```
+client-name: "sdad"
+client-id: "<your-client-id>"
+client-secret: "<your-client-secret>"
+redirect-uris: ["http://localhost:3002/api/auth/callback/lsaai-oidc"]
+token-endpoint-auth-method: "client_secret_basic"
+scope: ["openid", "profile", "email", "ga4gh_passport_v1", "eduperson_entitlement"]
+grant-types: ["authorization_code"]
+post-logout-redirect-uris: ["http://localhost:3002/api/auth/login"]
+access-token-validity-seconds: 2592000
+```
+
+When running the frontend the values for `client-id` and `client-secret` need to correspond with the values in your files `../secrets/frontend-oicd-client-id.txt` and `../secrets/frontend-oicd-client-secret.txt`.
+
 Finally run:
 
 ``` bash
@@ -191,6 +207,17 @@ docker compose -f sda-dev-stack.yml --profile seed-large-file --profile seed-lar
 ```
 
 This will include a 40k file dataset `EGAD00000040000`.
+
+### Optional: seed mock BP dataset
+
+This will seed a Big picture dummy dataset (only 57 files, ~842 MB) with a realistic folder structure which can be useful as mock data in case we deploy a test site or when we want to test the folder structure in downloaded datasets, e.g. when using the FileSystemAccess feature for chromium based browsers.
+To achive this include the `seed-bp-mock-dataset` profile in the docker compose command. For example:
+
+```bash
+docker compose -f sda-dev-stack.yml --profile seed-bp-mock-dataset up -d
+```
+
+This will include the dataset `bp-Dataset-d6ummy-m3oc2k`.
 
 ## Cleanup
 
