@@ -1,63 +1,69 @@
 "use client";
 
-import { MAX_TAR_SELECTION } from "@/app/lib/constants";
+import { useMemo, useSyncExternalStore } from "react";
+import type { DatasetFile } from "@/app/actions/datasets";
+import { TarBatchDownloadActions } from "@/app/components/TarBatchDownloadActions";
+import { FileSystemAccessBatchDownloadActions } from "@/app/components/FileSystemAccessBatchDownloadActions";
 
 type BatchDownloadActionsProps = {
+  files: Pick<DatasetFile, "fileId" | "filePath">[];
   selectedFileIds: Set<string>;
   datasetId: string;
   canDownload?: boolean;
 };
 
+type WindowWithDirectoryPicker = Window & {
+  showDirectoryPicker?: unknown;
+};
+
+function subscribe() {
+  return function unsubscribe() {
+    // No clean up needed.
+  };
+}
+
+function getSnapshot() {
+  return (
+    typeof window !== "undefined" &&
+    typeof (window as WindowWithDirectoryPicker).showDirectoryPicker ===
+      "function"
+  );
+}
+
+function getServerSnapshot() {
+  return false;
+}
+
+function useFileSystemAccessSupported() {
+  return useSyncExternalStore(subscribe, getSnapshot, getServerSnapshot);
+}
+
 export function BatchDownloadActions({
+  files,
   selectedFileIds,
   datasetId,
   canDownload = true,
 }: BatchDownloadActionsProps) {
-  const selectedCount = selectedFileIds.size;
-  const tooMany = selectedCount > MAX_TAR_SELECTION;
-  const enabled = canDownload && selectedCount > 0 && !tooMany;
+  const supportsFileSystemAccess = useFileSystemAccessSupported();
 
-  const tarUrl =
-    `/api/datasets/${encodeURIComponent(datasetId)}/download.tar` +
-    `?fileIds=${Array.from(selectedFileIds).map(encodeURIComponent).join(",")}`;
+  const selectedFiles = useMemo(() => {
+    return files.filter((file) => selectedFileIds.has(file.fileId));
+  }, [files, selectedFileIds]);
 
-  const reason = !canDownload
-    ? "Upload your Crypt4GH public key on the profile page to enable downloads."
-    : selectedCount === 0
-      ? null // not really an error — don't nag the user
-      : tooMany
-        ? `Selection exceeds the ${MAX_TAR_SELECTION}-file cap.`
-        : null;
+  if (supportsFileSystemAccess) {
+    return (
+      <FileSystemAccessBatchDownloadActions
+        selectedFiles={selectedFiles}
+        canDownload={canDownload}
+      />
+    );
+  }
 
   return (
-    <div className="d-flex flex-column align-items-start gap-1">
-      {enabled ? (
-        <a
-          className="btn btn-outline-primary"
-          href={tarUrl}
-          download
-          rel="noopener"
-        >
-          Download selected as TAR
-        </a>
-      ) : (
-        <button
-          type="button"
-          className="btn btn-outline-primary"
-          disabled
-          aria-describedby={reason ? "batch-tar-reason" : undefined}
-        >
-          Download selected as TAR
-        </button>
-      )}
-      {reason && (
-        <small
-          id="batch-tar-reason"
-          className={`text-${tooMany ? "warning" : "muted"}`}
-        >
-          {reason}
-        </small>
-      )}
-    </div>
+    <TarBatchDownloadActions
+      selectedFileIds={selectedFileIds}
+      datasetId={datasetId}
+      canDownload={canDownload}
+    />
   );
 }

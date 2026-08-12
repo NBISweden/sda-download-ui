@@ -35,7 +35,7 @@ export const getConfig: () => Promise<Config> = (() => {
   const _getConfig = async () => {
     await connection();
     if (!config) {
-      const configPath = process.env.SDAD_CONFIG_PATH || "./sdad-config.json";
+      const configPath = "./sdad-config.json";
       const configData = fs.readFileSync(configPath, "utf-8");
       config = parseConfig(configData);
     }

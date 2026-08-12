@@ -31,6 +31,11 @@ export async function getSession(): Promise<SessionData | null> {
   return await sessionManager.getSession();
 }
 
+export async function clearSession(): Promise<void> {
+  const sessionManager = await getSessionManager();
+  await sessionManager.clearSession();
+}
+
 export async function getClaims(token: string) {
   const claims = await jose.decodeJwt(token);
   return claims;
