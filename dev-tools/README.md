@@ -76,6 +76,22 @@ to
 userinfo-url: "http://localhost:8800/oidc/userinfo"
 ```
 
+In the folder `aai-mock/clients` add a file `sdad.yml` containing the following configurations:
+
+```
+client-name: "sdad"
+client-id: "<your-client-id>"
+client-secret: "<your-client-secret>"
+redirect-uris: ["http://localhost:3002/api/auth/callback/lsaai-oidc"]
+token-endpoint-auth-method: "client_secret_basic"
+scope: ["openid", "profile", "email", "ga4gh_passport_v1", "eduperson_entitlement"]
+grant-types: ["authorization_code"]
+post-logout-redirect-uris: ["http://localhost:3002/api/auth/login"]
+access-token-validity-seconds: 2592000
+```
+
+When running the frontend the values for `client-id` and `client-secret` need to correspond with the values in your files `../secrets/frontend-oicd-client-id.txt` and `../secrets/frontend-oicd-client-secret.txt`.
+
 Finally run:
 
 ``` bash
