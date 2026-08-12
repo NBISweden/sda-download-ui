@@ -2,6 +2,7 @@ import { describe, expect, test, vi, beforeEach, afterEach } from "vitest";
 import { GET } from "./route";
 import { NextRequest } from "next/server";
 import type { SessionData } from "@/app/lib/SessionManager";
+import { testConfig } from "@/test/testConfig";
 
 /**
  * Unit tests for the file download proxy route.
@@ -11,7 +12,7 @@ import type { SessionData } from "@/app/lib/SessionManager";
  * so the tests run without a backend.
  */
 
-const sdaBaseUrl = "http://test.local";
+const sdaBaseUrl = testConfig.sdaBaseUrl;
 
 vi.mock(import("next/server"), async (importOriginal) => {
   const actual = await importOriginal();
@@ -27,10 +28,7 @@ vi.mock(import("server-only"), () => {
 
 vi.mock(import("@/app/lib/config"), () => {
   return {
-    getConfig: async () => ({
-      sdaBaseUrl,
-      sessionSecretPath: "",
-    }),
+    getConfig: async () => testConfig,
   };
 });
 
