@@ -272,6 +272,21 @@ async function downloadFileToDirectory(
     file.filePath,
   );
 
+  const existingFile = await fileHandle.getFile();
+  const existingSize = existingFile.size;
+
+  const existingMetadata = metadata.files[file.fileId];
+  const matchingMetadata =
+    existingMetadata?.filePath === file.filePath ? existingMetadata : undefined;
+
+  if (
+    matchingMetadata?.status === "complete" &&
+    typeof matchingMetadata.totalBytes === "number" &&
+    existingSize === matchingMetadata.totalBytes
+  ) {
+    return;
+  }
+
   // Here we overwrite any existing file with the same path until resume support is implemented.
   const writable = await fileHandle.createWritable();
   const reader = response.body.getReader();
