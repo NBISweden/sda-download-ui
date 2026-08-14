@@ -44,7 +44,7 @@ tree = []
 
 # ANNOTATIONS
 for tag in ["COHgRAvaSh","FynRUsFMQg","GwyXFSqENy","oywigPjsrl","SICYJPKBvG","uAveaVJgGn","vLjSZDKbil"]:
-    tree.append((f"{ROOT}/ANNOTATIONS/annotation_{tag}.geojson", 140))
+    tree.append((f"{ROOT}/ANNOTATIONS/annotation_{tag}.geojson.c4gh", 140))
 
 # IMAGES
 image_sizes_a = [2259838, 9947106, 548012, 1665590, 628916, 121877050]
@@ -62,7 +62,7 @@ image_groups = [
 ]
 for tag, sizes in image_groups:
     for i, sz in enumerate(sizes, start=1):
-        tree.append((f"{ROOT}/IMAGES/IMAGE_{tag}/{tag}_{i}.dcm", sz))
+        tree.append((f"{ROOT}/IMAGES/IMAGE_{tag}/{tag}_{i}.dcm.c4gh", sz))
 
 # METADATA
 for name, sz in [
@@ -75,7 +75,7 @@ for name, sz in [
     ("sample.xml",     8490),
     ("staining.xml",   707),
 ]:
-    tree.append((f"{ROOT}/METADATA/{name}", sz))
+    tree.append((f"{ROOT}/METADATA/{name}.c4gh", sz))
 
 expected = 7 + (7 * 6) + 8  # 7 annotations + 42 dcm + 8 metadata = 57
 assert len(tree) == expected, f"Expected {expected} files, got {len(tree)}"
