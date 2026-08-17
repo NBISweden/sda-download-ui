@@ -153,6 +153,7 @@ describe("auth oidc", () => {
         }),
       ],
       session: { strategy: "jwt" },
+      pages: { signIn: "/login" },
       callbacks: {
         jwt: extractJWT,
         session: extractSession,
