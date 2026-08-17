@@ -4,6 +4,8 @@ import { useActionState } from "react";
 import type { Crypt4GHFormStateData } from "../actions/crypt4ghKey";
 import Alert from "./Alert";
 
+const CRYPT4GH_DOCS_URL = "https://crypt4gh.readthedocs.io/latest/";
+
 type UserInfoProps = {
   tokenInfoRows: TokenInfoRow[];
   keyFormAction?: SetKeyFormFunction;
@@ -52,6 +54,17 @@ export default function UserInfo({
           {keyFormAction ? (
             <section>
               <h4 className="h5 mb-3">Crypt4gh public encryption key</h4>
+
+              <p className="mb-3">
+                <a
+                  href={CRYPT4GH_DOCS_URL}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                >
+                  How to generate a crypt4gh key pair
+                  <i className="bi bi-box-arrow-up-right ms-1"></i>
+                </a>
+              </p>
 
               <form action={formAction}>
                 {pemChecksum ? (
