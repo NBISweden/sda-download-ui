@@ -40,6 +40,14 @@ vi.mock(import("@/app/lib/config"), () => {
   };
 });
 
+vi.mock(import("@/app/lib/oidc"), () => {
+  return {
+    verifyAccessToken: vi.fn(async () => ({
+      exp: Math.floor(Date.now() / 1000) + 60,
+    })),
+  };
+});
+
 vi.mock(import("server-only"), () => {
   return {};
 });

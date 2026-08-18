@@ -1,6 +1,6 @@
 import "server-only";
-import * as jose from "jose";
 import { getSessionManager, SessionData } from "./SessionManager";
+import { verifyAccessToken } from "./oidc";
 
 export async function createOrUpdateSession(data: Partial<SessionData>) {
   const sessionManager = await getSessionManager();
@@ -9,7 +9,7 @@ export async function createOrUpdateSession(data: Partial<SessionData>) {
   if (!token) {
     throw new Error("No token available for session.");
   }
-  const tokenInfo = await getClaims(token);
+  const tokenInfo = await verifyAccessToken(token);
   const now = new Date().getTime() / 1000;
   const sessionLength = Math.max(_getOrDefault(tokenInfo.exp, now) - now, 0);
   return await sessionManager.createOrUpdateSession(
@@ -34,9 +34,4 @@ export async function getSession(): Promise<SessionData | null> {
 export async function clearSession(): Promise<void> {
   const sessionManager = await getSessionManager();
   await sessionManager.clearSession();
-}
-
-export async function getClaims(token: string) {
-  const claims = await jose.decodeJwt(token);
-  return claims;
 }
