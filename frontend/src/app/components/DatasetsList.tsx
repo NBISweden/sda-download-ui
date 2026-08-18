@@ -116,7 +116,7 @@ export default function DatasetsList({
         <label
           htmlFor="dataset-filter"
           className="input-group-text text-success-emphasis
-                bg-success border border-success"
+                bg-success-subtle border "
         >
           Filter datasets
         </label>

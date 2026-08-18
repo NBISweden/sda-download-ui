@@ -156,7 +156,7 @@ export default function DatasetFiles({
         <label
           htmlFor="file-filter"
           className="input-group-text text-success-emphasis
-                bg-success border border-success"
+                bg-success-subtle border"
         >
           Filter files
         </label>
