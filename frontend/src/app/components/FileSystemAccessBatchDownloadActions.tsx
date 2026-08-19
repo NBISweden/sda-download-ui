@@ -219,10 +219,92 @@ async function downloadFileToDirectory(
   const url =
     `/api/files/${encodeURIComponent(file.fileId)}` +
     `?name=${encodeURIComponent(file.filePath)}`;
-  const response = await fetch(url, {
+
+  const fileHandle = await getFileHandleForDatasetPath(
+    rootDirectoryHandle,
+    file.filePath,
+  );
+
+  // Read the existing file size to determine if we can resume a partial download or if we need to restart from scratch.
+  const existingFile = await fileHandle.getFile();
+  const existingSize = existingFile.size;
+
+  // Check if metadata matches the existing file so to avoid any upstream mismatch.
+  const existingMetadata = metadata.files[file.fileId];
+  const matchingMetadata =
+    existingMetadata?.filePath === file.filePath ? existingMetadata : undefined;
+
+  // Skip the download if the existing file is already complete and matches the expected size.
+  if (
+    matchingMetadata?.status === "complete" &&
+    typeof matchingMetadata.totalBytes === "number" &&
+    existingSize === matchingMetadata.totalBytes
+  ) {
+    return;
+  }
+
+  // Detect if local files are unsafe to resume.
+  if (
+    matchingMetadata &&
+    typeof matchingMetadata.totalBytes === "number" &&
+    existingSize > matchingMetadata.totalBytes
+  ) {
+    throw new Error(
+      `Existing local file is larger than expected for ${file.filePath}. Delete or move the local file before retrying.`,
+    );
+  }
+
+  // A mismatching etag implies a changed c4gh pub key, unsafe to resume.
+  if (existingSize > 0 && !matchingMetadata?.etag) {
+    throw new Error(
+      `Existing local file ${file.filePath} cannot be safely resumed because download metadata is missing. Delete or move the local file before retrying.`,
+    );
+  }
+
+  // Append resume headers if all looks ok this far. The server will respond with 206 Partial Content
+  // if the resume is valid, or 416 Range Not Satisfiable if not.
+  const headers = new Headers();
+  let attemptedResume = false;
+
+  if (existingSize > 0 && matchingMetadata?.etag) {
+    headers.set("Range", `bytes=${existingSize}-`);
+    headers.set("If-Range", matchingMetadata.etag);
+    attemptedResume = true;
+  }
+
+  let response = await fetch(url, {
     credentials: "same-origin",
+    headers,
     signal,
   });
+
+// If the server returns 416 (Range Not Satisfiable) but the local file size matches the expected totalBytes,
+  if (
+    response.status === 416 &&
+    matchingMetadata &&
+    typeof matchingMetadata.totalBytes === "number" &&
+    existingSize === matchingMetadata.totalBytes
+  ) {
+    metadata.files[file.fileId] = {
+      ...matchingMetadata,
+      status: "complete",
+      updatedAt: Date.now(),
+    };
+
+    await saveMetadata();
+    return;
+  }
+
+  // If the local partial file is inconsistent with the server's/backend's view, restart
+  // from byte zero.
+  if (response.status === 416) {
+    response = await fetch(url, {
+      credentials: "same-origin",
+      signal,
+    });
+
+    attemptedResume = false;
+  }
 
   if (!response.ok) {
     let message = `Failed to download ${file.filePath}: ${response.status}`;
@@ -253,13 +335,54 @@ async function downloadFileToDirectory(
     throw new Error(`No response body for ${file.filePath}.`);
   }
 
-  const etag = response.headers.get("etag") || undefined;
-  const totalBytes = parseContentLength(response, file.filePath);
+  // Decide whether to resume or restart the download based on the response status and existing metadata.
+  const etag = response.headers.get("etag") || matchingMetadata?.etag;
 
+  let writeOffset = 0;
+  let keepExistingData = false;
+  let totalBytes: number;
+
+  if (response.status === 206) {
+    const contentRange = response.headers.get("content-range");
+    const parsedContentRange = parseContentRange(contentRange);
+
+    if (!parsedContentRange) {
+      throw new Error(
+        `Could not resume ${file.filePath}: missing or invalid Content-Range header.`,
+      );
+    }
+
+    if (parsedContentRange.start !== existingSize) {
+      throw new Error(
+        `Could not resume ${file.filePath}: resume offset mismatch.`,
+      );
+    }
+
+    writeOffset = existingSize;
+    keepExistingData = true;
+    totalBytes = parsedContentRange.total;
+  } else if (response.status === 200) {
+    totalBytes = parseContentLength(response, file.filePath);
+
+    // If attemptedResume was true and the server returned 200, the stored ETag
+    // did not match anymore. This covers changed content and changed c4gh public key.
+    // We intentionally restart from byte zero instead of appending.
+    if (attemptedResume) {
+      writeOffset = 0;
+      keepExistingData = false;
+    }
+  } else {
+    throw new Error(
+      `Unexpected download response for ${file.filePath}: ${response.status}`,
+    );
+  }
+
+  // Update local metadata file before starting the download. This ensures that if the download is interrupted,
+  // we can resume it later. The status is set to "partial" until the download completes successfully.
   metadata.files[file.fileId] = {
     fileId: file.fileId,
     filePath: file.filePath,
-    etag,
+    etag: etag || undefined,
     totalBytes,
     status: "partial",
     updatedAt: Date.now(),
@@ -267,31 +390,17 @@ async function downloadFileToDirectory(
 
   await saveMetadata();
 
-  const fileHandle = await getFileHandleForDatasetPath(
-    rootDirectoryHandle,
-    file.filePath,
-  );
-
-  const existingFile = await fileHandle.getFile();
-  const existingSize = existingFile.size;
-
-  const existingMetadata = metadata.files[file.fileId];
-  const matchingMetadata =
-    existingMetadata?.filePath === file.filePath ? existingMetadata : undefined;
-
-  if (
-    matchingMetadata?.status === "complete" &&
-    typeof matchingMetadata.totalBytes === "number" &&
-    existingSize === matchingMetadata.totalBytes
-  ) {
-    return;
-  }
-
-  // Here we overwrite any existing file with the same path until resume support is implemented.
-  const writable = await fileHandle.createWritable();
+  // When keepExistingData is false, createWritable overwrites the
+  // existing file. This is intentional for fresh downloads and stale resumes.
+  // When keepExistingData is true, we seek to writeOffset and append.
+  const writable = await fileHandle.createWritable({ keepExistingData });
   const reader = response.body.getReader();
 
   try {
+    if (writeOffset > 0) {
+      await writable.seek(writeOffset);
+    }
+
     for (;;) {
       const { done, value } = await reader.read();
 
@@ -303,36 +412,6 @@ async function downloadFileToDirectory(
     }
 
     await writable.close();
-
-    const finalFile = await fileHandle.getFile();
-
-    if (finalFile.size !== totalBytes) {
-      metadata.files[file.fileId] = {
-        fileId: file.fileId,
-        filePath: file.filePath,
-        etag,
-        totalBytes,
-        status: "partial",
-        updatedAt: Date.now(),
-      };
-
-      await saveMetadata();
-
-      throw new Error(
-        `Downloaded size mismatch for ${file.filePath}: expected ${totalBytes}, got ${finalFile.size}.`,
-      );
-    }
-
-    metadata.files[file.fileId] = {
-      fileId: file.fileId,
-      filePath: file.filePath,
-      etag,
-      totalBytes,
-      status: "complete",
-      updatedAt: Date.now(),
-    };
-
-    await saveMetadata();
   } catch (error) {
     try {
       await reader.cancel();
@@ -344,6 +423,37 @@ async function downloadFileToDirectory(
 
     throw error;
   }
+
+  // Check the final file size and update local metadata.
+  const finalFile = await fileHandle.getFile();
+
+  if (finalFile.size !== totalBytes) {
+    metadata.files[file.fileId] = {
+      fileId: file.fileId,
+      filePath: file.filePath,
+      etag: etag || undefined,
+      totalBytes,
+      status: "partial",
+      updatedAt: Date.now(),
+    };
+
+    await saveMetadata();
+
+    throw new Error(
+      `Downloaded size mismatch for ${file.filePath}: expected ${totalBytes}, got ${finalFile.size}.`,
+    );
+  }
+
+  metadata.files[file.fileId] = {
+    fileId: file.fileId,
+    filePath: file.filePath,
+    etag: etag || undefined,
+    totalBytes,
+    status: "complete",
+    updatedAt: Date.now(),
+  };
+
+  await saveMetadata();
 }
 
 // Resolve a dataset file path to a File System Access file handle.
@@ -387,6 +497,22 @@ function parseContentLength(response: Response, filePath: string): number {
   }
 
   return contentLength;
+}
+
+function parseContentRange(
+  value: string | null,
+): { start: number; end: number; total: number } | null {
+  if (!value) return null;
+
+  const match = value.match(/^bytes (\d+)-(\d+)\/(\d+)$/);
+
+  if (!match) return null;
+
+  return {
+    start: Number(match[1]),
+    end: Number(match[2]),
+    total: Number(match[3]),
+  };
 }
 
 function sanitizePathSegment(segment: string): string {
