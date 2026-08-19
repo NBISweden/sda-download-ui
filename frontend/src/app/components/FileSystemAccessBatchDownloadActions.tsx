@@ -377,18 +377,20 @@ async function downloadFileToDirectory(
     );
   }
 
-  // Update local metadata file before starting the download. This ensures that if the download is interrupted,
+  // Update local metadata file before resuming the download. This ensures that if the download is interrupted,
   // we can resume it later. The status is set to "partial" until the download completes successfully.
-  metadata.files[file.fileId] = {
-    fileId: file.fileId,
-    filePath: file.filePath,
-    etag: etag || undefined,
-    totalBytes,
-    status: "partial",
-    updatedAt: Date.now(),
-  };
+  if (keepExistingData) {
+    metadata.files[file.fileId] = {
+      fileId: file.fileId,
+      filePath: file.filePath,
+      etag: etag || undefined,
+      totalBytes,
+      status: "partial",
+      updatedAt: Date.now(),
+    };
 
-  await saveMetadata();
+    await saveMetadata();
+  }
 
   // When keepExistingData is false, createWritable overwrites the
   // existing file. This is intentional for fresh downloads and stale resumes.
