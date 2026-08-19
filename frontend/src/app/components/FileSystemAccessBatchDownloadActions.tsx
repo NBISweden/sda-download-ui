@@ -336,7 +336,14 @@ async function downloadFileToDirectory(
   }
 
   // Decide whether to resume or restart the download based on the response status and existing metadata.
-  const etag = response.headers.get("etag") || matchingMetadata?.etag;
+
+  const responseEtag = response.headers.get("etag");
+
+  // Do not reuse old eTag if the server returned 200 OK, as it indicates that the content has changed and the download should be restarted from scratch.
+  const etag =
+    response.status === 206
+      ? responseEtag || matchingMetadata?.etag
+      : responseEtag || undefined;
 
   let writeOffset = 0;
   let keepExistingData = false;
