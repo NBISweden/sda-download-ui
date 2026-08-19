@@ -278,7 +278,7 @@ async function downloadFileToDirectory(
     signal,
   });
 
-// If the server returns 416 (Range Not Satisfiable) but the local file size matches the expected totalBytes,
+  // If the server returns 416 (Range Not Satisfiable) but the local file size matches the expected totalBytes,
   if (
     response.status === 416 &&
     matchingMetadata &&
@@ -417,9 +417,33 @@ async function downloadFileToDirectory(
       await reader.cancel();
     } catch {}
 
-    try {
-      await writable.abort(error);
-    } catch {}
+    // In case the user hits Cancel, we close the file handle and update the metadata to reflect the partial download.
+    const isAbortError =
+      error instanceof DOMException && error.name === "AbortError";
+    if (isAbortError) {
+      try {
+        await writable.close();
+
+        metadata.files[file.fileId] = {
+          fileId: file.fileId,
+          filePath: file.filePath,
+          etag: etag || undefined,
+          totalBytes,
+          status: "partial",
+          updatedAt: Date.now(),
+        };
+
+        await saveMetadata();
+      } catch (closeError) {
+        try {
+          await writable.abort(closeError);
+        } catch {}
+      }
+    } else {
+      try {
+        await writable.abort(error);
+      } catch {}
+    }
 
     throw error;
   }
