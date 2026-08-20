@@ -3,40 +3,33 @@ import {
   fetchDatasetMetadata,
   type DatasetMetadata,
   fetchAll,
-} from "../../actions/datasets";
-import { getSession } from "@/app/lib/session";
+} from "@/app/actions/datasets";
 import DatasetsList from "../../components/DatasetsList";
 import Alert from "@/app/components/Alert";
 import { LoginRequiredAlert } from "@/app/components/LoginRequiredAlert";
 
-export default async function DataSetsViewPage() {
-  const sessionData = await getSession();
-  const token = sessionData?.token;
 
+export default async function DataSetsViewPage() {
   let errorMessage: string | null = null;
   let noTokenMessage: boolean = false;
   let datasetMetadataList: DatasetMetadata[] = [];
 
-  if (!token) {
-    noTokenMessage = true;
-  } else {
-    try {
-      const datasetIds = await fetchAll(async (pageToken) => {
-        const page = await fetchDatasets(token, pageToken);
-        return { items: page.datasets, nextPageToken: page.nextPageToken };
-      });
+  try {
+    const datasetIds = await fetchAll(async (pageToken) => {
+      const page = await fetchDatasets(pageToken);
+      return { items: page.datasets, nextPageToken: page.nextPageToken };
+    });
 
-      datasetMetadataList = await Promise.all(
-        datasetIds.map((datasetId) => fetchDatasetMetadata(token, datasetId)),
-      );
-    } catch (error) {
-      const message =
-        error instanceof Error ? error.message : "Unknown error occurred";
+    datasetMetadataList = await Promise.all(
+      datasetIds.map((datasetId) => fetchDatasetMetadata(datasetId)),
+    );
+  } catch (error) {
+    const message =
+      error instanceof Error ? error.message : "Unknown error occurred";
 
-      errorMessage = message.includes("fetch failed")
-        ? "Could not connect to backend. Is it running?"
-        : `Could not load datasets: ${message}`;
-    }
+    errorMessage = message.includes("fetch failed")
+      ? "Could not connect to backend. Is it running?"
+      : `Could not load datasets: ${message}`;
   }
   return (
     <main>

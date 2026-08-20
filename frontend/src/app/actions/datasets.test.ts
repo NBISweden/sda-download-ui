@@ -57,13 +57,13 @@ describe("datasets API functions", () => {
   test.each([
     {
       name: "fetchDatasets returns parsed JSON on success",
-      call: () => fetchDatasets("my-token"),
+      call: () => fetchDatasets(),
       mockData: { datasets: ["ds1", "ds2"] },
       expectedUrl: `${sdaBaseUrl}/datasets`,
     },
     {
       name: "fetchDatasetMetadata returns parsed JSON on success",
-      call: () => fetchDatasetMetadata("my-token", "ds1"),
+      call: () => fetchDatasetMetadata("ds1"),
       mockData: {
         datasetId: "ds1",
         date: "2026-04-23",
@@ -73,7 +73,7 @@ describe("datasets API functions", () => {
     },
     {
       name: "fetchDatasetFiles returns parsed JSON on success",
-      call: () => fetchDatasetFiles("my-token", "ds1"),
+      call: () => fetchDatasetFiles("ds1"),
       mockData: {
         files: [
           {
@@ -94,9 +94,7 @@ describe("datasets API functions", () => {
     const result = await call();
 
     expect(globalThis.fetch).toHaveBeenCalledWith(expectedUrl, {
-      headers: {
-        Authorization: "Bearer my-token",
-      },
+      credentials: "same-origin",
       cache: "no-store",
     });
 
@@ -106,21 +104,21 @@ describe("datasets API functions", () => {
   test.each([
     {
       name: "fetchDatasets throws on non-ok response",
-      call: () => fetchDatasets("my-token"),
+      call: () => fetchDatasets(),
       status: 500,
       body: "Internal Server Error",
       expectedMessage: "Failed to fetch datasets: 500",
     },
     {
       name: "fetchDatasetMetadata throws on non-ok response",
-      call: () => fetchDatasetMetadata("my-token", "ds1"),
+      call: () => fetchDatasetMetadata("ds1"),
       status: 404,
       body: "Not Found",
       expectedMessage: "Failed to fetch dataset metadata: 404",
     },
     {
       name: "fetchDatasetFiles throws on non-ok response",
-      call: () => fetchDatasetFiles("my-token", "ds1"),
+      call: () => fetchDatasetFiles("ds1"),
       status: 403,
       body: "Forbidden",
       expectedMessage: "Failed to fetch dataset files: 403",
@@ -136,17 +134,17 @@ describe("datasets API functions", () => {
   test.each([
     {
       name: "fetchDatasets rejects if fetch itself fails",
-      call: () => fetchDatasets("my-token"),
+      call: () => fetchDatasets(),
       expectedMessage: "Network error",
     },
     {
       name: "fetchDatasetMetadata rejects if fetch itself fails",
-      call: () => fetchDatasetMetadata("my-token", "ds1"),
+      call: () => fetchDatasetMetadata("ds1"),
       expectedMessage: "Network error",
     },
     {
       name: "fetchDatasetFiles rejects if fetch itself fails",
-      call: () => fetchDatasetFiles("my-token", "ds1"),
+      call: () => fetchDatasetFiles("ds1"),
       expectedMessage: "Network error",
     },
   ])("$name", async ({ call, expectedMessage }) => {
