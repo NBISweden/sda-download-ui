@@ -41,8 +41,8 @@ openssl rand -base64 32 > secrets/frontend-token-secret.txt
 
 In the `secrets` folder you also need to create the files
 - `frontend-next-auth-secret.txt`
-- `frontend-oicd-client-id`
-- `frontend-oicd-client-secret`
+- `frontend-oidc-client-id`
+- `frontend-oidc-client-secret`
 
 The options available in the config file can be described as follows:
 | Option | Type | Description |
