@@ -6,6 +6,7 @@ import {
   cloneDownloadMetadata,
   readDownloadMetadata,
   writeDownloadMetadata,
+  type DownloadFileStatus,
   type DownloadMetadata,
 } from "@/app/components/fileSystemDownloadMetadata";
 
@@ -285,11 +286,11 @@ async function downloadFileToDirectory(
     typeof matchingMetadata.totalBytes === "number" &&
     existingSize === matchingMetadata.totalBytes
   ) {
-    metadata.files[file.fileId] = {
-      ...matchingMetadata,
+    updateDownloadFileMetadata(metadata, file, {
+      etag: matchingMetadata.etag,
+      totalBytes: matchingMetadata.totalBytes,
       status: "complete",
-      updatedAt: Date.now(),
-    };
+    });
 
     await saveMetadata();
     return;
@@ -349,6 +350,16 @@ async function downloadFileToDirectory(
   let keepExistingData = false;
   let totalBytes: number;
 
+  const saveFileMetadata = async (status: DownloadFileStatus) => {
+    updateDownloadFileMetadata(metadata, file, {
+      etag: etag || undefined,
+      totalBytes,
+      status,
+    });
+
+    await saveMetadata();
+  };
+
   if (response.status === 206) {
     const contentRange = response.headers.get("content-range");
     const parsedContentRange = parseContentRange(contentRange);
@@ -387,16 +398,7 @@ async function downloadFileToDirectory(
   // Update local metadata file before resuming the download. This ensures that if the download is interrupted,
   // we can resume it later. The status is set to "partial" until the download completes successfully.
   if (keepExistingData) {
-    metadata.files[file.fileId] = {
-      fileId: file.fileId,
-      filePath: file.filePath,
-      etag: etag || undefined,
-      totalBytes,
-      status: "partial",
-      updatedAt: Date.now(),
-    };
-
-    await saveMetadata();
+    await saveFileMetadata("partial");
   }
 
   // When keepExistingData is false, createWritable overwrites the
@@ -432,17 +434,7 @@ async function downloadFileToDirectory(
     if (isAbortError) {
       try {
         await writable.close();
-
-        metadata.files[file.fileId] = {
-          fileId: file.fileId,
-          filePath: file.filePath,
-          etag: etag || undefined,
-          totalBytes,
-          status: "partial",
-          updatedAt: Date.now(),
-        };
-
-        await saveMetadata();
+        await saveFileMetadata("partial");
       } catch (closeError) {
         try {
           await writable.abort(closeError);
@@ -461,32 +453,14 @@ async function downloadFileToDirectory(
   const finalFile = await fileHandle.getFile();
 
   if (finalFile.size !== totalBytes) {
-    metadata.files[file.fileId] = {
-      fileId: file.fileId,
-      filePath: file.filePath,
-      etag: etag || undefined,
-      totalBytes,
-      status: "partial",
-      updatedAt: Date.now(),
-    };
-
-    await saveMetadata();
+    await saveFileMetadata("partial");
 
     throw new Error(
       `Downloaded size mismatch for ${file.filePath}: expected ${totalBytes}, got ${finalFile.size}.`,
     );
   }
 
-  metadata.files[file.fileId] = {
-    fileId: file.fileId,
-    filePath: file.filePath,
-    etag: etag || undefined,
-    totalBytes,
-    status: "complete",
-    updatedAt: Date.now(),
-  };
-
-  await saveMetadata();
+  await saveFileMetadata("complete");
 }
 
 // Resolve a dataset file path to a File System Access file handle.
@@ -555,4 +529,23 @@ function sanitizePathSegment(segment: string): string {
     .slice(0, 255);
 
   return sanitized || "_";
+}
+
+function updateDownloadFileMetadata(
+  metadata: DownloadMetadata,
+  file: Pick<DatasetFile, "fileId" | "filePath">,
+  data: {
+    etag?: string;
+    totalBytes: number;
+    status: DownloadFileStatus;
+  },
+) {
+  metadata.files[file.fileId] = {
+    fileId: file.fileId,
+    filePath: file.filePath,
+    etag: data.etag,
+    totalBytes: data.totalBytes,
+    status: data.status,
+    updatedAt: Date.now(),
+  };
 }
