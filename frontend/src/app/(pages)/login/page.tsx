@@ -1,3 +1,4 @@
+import Alert from "@/app/components/Alert";
 import { LsaaiSignInButton } from "@/app/components/LsaaiSignInButton";
 
 // Error types NextAuth passes to a custom sign-in page as ?error=, from its
@@ -32,9 +33,11 @@ export default async function LoginPage({ searchParams }: LoginPageProps) {
       <div className="signin-content text-center">
         <h1 className="visually-hidden">Sign in</h1>
         {errorMessage && (
-          <p className="text-danger small mb-3" role="alert">
-            {errorMessage}
-          </p>
+          <Alert
+            type="warning"
+            alertMessage={errorMessage}
+            iconClass="bi bi-exclamation-triangle-fill"
+          />
         )}
         <LsaaiSignInButton callbackUrl={callbackUrl} />
       </div>
