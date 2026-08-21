@@ -429,9 +429,7 @@ async function downloadFileToDirectory(
     } catch {}
 
     // In case the user hits Cancel, we close the file handle and update the metadata to reflect the partial download.
-    const isAbortError =
-      error instanceof DOMException && error.name === "AbortError";
-    if (isAbortError) {
+    if (isAbortError(error)) {
       try {
         await writable.close();
         await saveFileMetadata("partial");
@@ -548,4 +546,11 @@ function updateDownloadFileMetadata(
     status: data.status,
     updatedAt: Date.now(),
   };
+}
+
+function isAbortError(error: unknown): boolean {
+  return (
+    (error instanceof DOMException && error.name === "AbortError") ||
+    (error instanceof Error && error.name === "AbortError")
+  );
 }
