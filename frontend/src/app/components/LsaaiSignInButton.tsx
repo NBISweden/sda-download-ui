@@ -8,6 +8,19 @@ import { signIn } from "next-auth/react";
 const IMAGE_WIDTH = 260;
 const IMAGE_HEIGHT = 60;
 
+/**
+ * Restrict the callbackUrl from the query string to a relative in-app path,
+ * falling back to the site root for anything else. "//" is excluded so that
+ * protocol-relative URLs are not treated as in-app paths.
+ *
+ * Exported for unit testing.
+ */
+export function toCallbackUrl(callbackUrl: string | undefined): string {
+  return callbackUrl?.startsWith("/") && !callbackUrl.startsWith("//")
+    ? callbackUrl
+    : "/";
+}
+
 type LsaaiSignInButtonProps = {
   callbackUrl?: string;
 };
@@ -18,12 +31,7 @@ export function LsaaiSignInButton({ callbackUrl }: LsaaiSignInButtonProps) {
       type="button"
       className="btn btn-link p-0 border-0"
       onClick={() =>
-        signIn("lsaai-oidc", {
-          callbackUrl:
-            callbackUrl?.startsWith("/") && !callbackUrl.startsWith("//")
-              ? callbackUrl
-              : "/",
-        })
+        signIn("lsaai-oidc", { callbackUrl: toCallbackUrl(callbackUrl) })
       }
     >
       <Image
