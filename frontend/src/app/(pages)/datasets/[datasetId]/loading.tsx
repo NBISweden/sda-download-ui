@@ -59,7 +59,7 @@ export default function Loading() {
             </div>
 
             {/* Files table placeholder */}
-            <div className="table-container">
+            <div className="table-responsive">
               <table className="table" style={{ tableLayout: "fixed" }}>
                 <colgroup>
                   {fileColumns.map((column, index) => (
