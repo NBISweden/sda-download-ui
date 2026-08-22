@@ -13,6 +13,11 @@ import {
 // Controls the number of active concurrent downloads.
 const FILE_SYSTEM_BATCH_CONCURRENCY = 2;
 
+// Define a checkpoint interval for saving download progress.
+// Every X bytes, save stream to disk so that in the event of a browser/tab crash, we
+// need to re-download at most this many bytes upon resuming.
+const FILE_SYSTEM_DOWNLOAD_CHECKPOINT_BYTES = 512 * 1024 * 1024;
+
 // We need fileId for /api/files/:fileId and filePath to
 // preserve the dataset folder structure.
 type FileSystemAccessBatchDownloadActionsProps = {
@@ -404,12 +409,29 @@ async function downloadFileToDirectory(
   // When keepExistingData is false, createWritable overwrites the
   // existing file. This is intentional for fresh downloads and stale resumes.
   // When keepExistingData is true, we seek to writeOffset and append.
-  const writable = await fileHandle.createWritable({ keepExistingData });
+  let writable = await fileHandle.createWritable({ keepExistingData });
   const reader = response.body.getReader();
 
+  let nextWriteOffset = writeOffset;
+  let bytesSinceCheckpoint = 0;
+
+  // Every X bytes we close the file to commit bytes to disk and update metadata.
+  // Subsequent writes reopen with keepExistingData: true and seek to the next offset.
+  async function checkpointDownload() {
+    await writable.close();
+    await saveFileMetadata("partial");
+
+    writable = await fileHandle.createWritable({
+      keepExistingData: true,
+    });
+
+    await writable.seek(nextWriteOffset);
+    bytesSinceCheckpoint = 0;
+  }
+
   try {
-    if (writeOffset > 0) {
-      await writable.seek(writeOffset);
+    if (nextWriteOffset > 0) {
+      await writable.seek(nextWriteOffset);
     }
 
     for (;;) {
@@ -417,8 +439,28 @@ async function downloadFileToDirectory(
 
       if (done) break;
 
-      if (value) {
-        await writable.write(value);
+      if (!value || value.byteLength === 0) continue;
+
+      const remainingBytes = totalBytes - nextWriteOffset;
+
+      if (remainingBytes <= 0) {
+        await reader.cancel();
+        break;
+      }
+
+      // Avoid writing beyond the advertised total size even.
+      const chunk =
+        value.byteLength > remainingBytes
+          ? value.subarray(0, remainingBytes)
+          : value;
+
+      await writable.write(chunk);
+
+      nextWriteOffset += chunk.byteLength;
+      bytesSinceCheckpoint += chunk.byteLength;
+
+      if (bytesSinceCheckpoint >= FILE_SYSTEM_DOWNLOAD_CHECKPOINT_BYTES) {
+        await checkpointDownload();
       }
     }
 
