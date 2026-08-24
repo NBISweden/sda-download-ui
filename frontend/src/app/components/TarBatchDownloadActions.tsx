@@ -53,7 +53,7 @@ export function TarBatchDownloadActions({
           Download selected as TAR
         </a>
       ) : reason ? ( 
-        <InfoTooltip content={reason}>
+        <InfoTooltip content={reason} side="bottom">
           <span tabIndex={0} className="d-inline-block">
             {disabledButton}
           </span>
