@@ -1,6 +1,7 @@
 "use client";
 
 import { MAX_TAR_SELECTION } from "@/app/lib/constants";
+import InfoTooltip from "./InfoTooltip";
 
 type TarBatchDownloadActionsProps = {
   selectedFileIds: Set<string>;
@@ -29,6 +30,17 @@ export function TarBatchDownloadActions({
         ? `Selection exceeds the ${MAX_TAR_SELECTION}-file cap.`
         : null;
 
+  const disabledButton = (
+    <button
+      type="button"
+      className="btn btn-outline-primary"
+      disabled
+      aria-describedby={reason ? "batch-tar-reason" : undefined}
+    >
+      Download selected as TAR
+    </button>
+  );
+
   return (
     <div className="d-flex flex-column align-items-start gap-1">
       {enabled ? (
@@ -40,24 +52,16 @@ export function TarBatchDownloadActions({
         >
           Download selected as TAR
         </a>
-      ) : (
-        <button
-          type="button"
-          className="btn btn-outline-primary"
-          disabled
-          aria-describedby={reason ? "batch-tar-reason" : undefined}
-        >
-          Download selected as TAR
-        </button>
-      )}
-      {reason && (
-        <small
-          id="batch-tar-reason"
-          className={`text-${tooMany ? "warning" : "muted"}`}
-        >
-          {reason}
-        </small>
-      )}
+      ) : reason ? ( 
+        <InfoTooltip content={reason}>
+          <span tabIndex={0} className="d-inline-block">
+            {disabledButton}
+          </span>
+        </InfoTooltip>        
+      ) :  (
+        disabledButton
+      )
+    }
     </div>
   );
 }
