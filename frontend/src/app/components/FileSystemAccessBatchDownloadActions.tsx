@@ -27,7 +27,6 @@ type FileSystemAccessBatchDownloadActionsProps = {
 
 type SaveMetadata = () => Promise<void>;
 
-
 // For status reporting.
 type DownloadFileResult = {
   resumed: boolean;
@@ -47,6 +46,10 @@ export function FileSystemAccessBatchDownloadActions({
   const [completedCount, setCompletedCount] = useState(0);
   const [activeCount, setActiveCount] = useState(0);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
+  const [activeResumeCount, setActiveResumeCount] = useState(0);
+  const [resumedCount, setResumedCount] = useState(0);
+  const [skippedCount, setSkippedCount] = useState(0);
+  const [restartedCount, setRestartedCount] = useState(0);
 
   const abortControllerRef = useRef<AbortController | null>(null);
 
@@ -72,6 +75,10 @@ export function FileSystemAccessBatchDownloadActions({
     setCompletedCount(0);
     setActiveCount(0);
     setIsDownloading(true);
+    setActiveResumeCount(0);
+    setResumedCount(0);
+    setSkippedCount(0);
+    setRestartedCount(0);
 
     // An AbortController instance is shared by all active and future downloads in the
     // batch so that calling abort() cancels active fetches and prevents new workers
@@ -108,14 +115,35 @@ export function FileSystemAccessBatchDownloadActions({
         async (file) => {
           setActiveCount((count) => count + 1);
 
+          let resumingThisFile = false;
           try {
-            await downloadFileToDirectory(
+            const result = await downloadFileToDirectory(
               file,
               directoryHandle,
               abortController.signal,
               metadata,
               saveMetadata,
+              {
+                onResumeStart: () => {
+                  if (resumingThisFile) return;
+
+                  resumingThisFile = true;
+                  setActiveResumeCount((count) => count + 1);
+                },
+              },
             );
+
+            if (result.resumed) {
+              setResumedCount((count) => count + 1);
+            }
+
+            if (result.skipped) {
+              setSkippedCount((count) => count + 1);
+            }
+
+            if (result.restarted) {
+              setRestartedCount((count) => count + 1);
+            }
 
             setCompletedCount((count) => count + 1);
           } catch (error) {
@@ -123,6 +151,9 @@ export function FileSystemAccessBatchDownloadActions({
             abortController.abort();
             throw error;
           } finally {
+            if (resumingThisFile) {
+              setActiveResumeCount((count) => Math.max(count - 1, 0));
+            }
             // Avoid negative counts in case of race condition situations.
             setActiveCount((count) => Math.max(count - 1, 0));
           }
@@ -185,10 +216,41 @@ export function FileSystemAccessBatchDownloadActions({
       )}
 
       {isDownloading && (
-        <small className="text-muted">
+        <small className="text-muted" aria-live="polite">
           Completed <strong>{completedCount}</strong> of{" "}
           <strong>{selectedCount}</strong>. Active downloads:{" "}
           <strong>{activeCount}</strong>.
+          {activeResumeCount > 0 && (
+            <>
+              {" "}
+              Resuming <strong>{activeResumeCount}</strong>{" "}
+              {activeResumeCount === 1 ? "partial file" : "partial files"}.
+            </>
+          )}
+          {resumedCount > 0 && (
+            <>
+              {" "}
+              Resumed <strong>{resumedCount}</strong>{" "}
+              {resumedCount === 1 ? "file" : "files"}.
+            </>
+          )}
+          {skippedCount > 0 && (
+            <>
+              {" "}
+              Skipped <strong>{skippedCount}</strong> already-complete{" "}
+              {skippedCount === 1 ? "file" : "files"}.
+            </>
+          )}
+          {restartedCount > 0 && (
+            <span className="text-warning">
+              {" "}
+              Restarted <strong>{restartedCount}</strong>{" "}
+              {restartedCount === 1
+                ? "stale partial download"
+                : "stale partial downloads"}
+              .
+            </span>
+          )}
         </small>
       )}
 
@@ -479,7 +541,7 @@ async function downloadFileToDirectory(
         break;
       }
 
-      // Avoid writing beyond the advertised total size even.
+      // Avoid writing beyond the advertised total size.
       const chunk =
         value.byteLength > remainingBytes
           ? value.subarray(0, remainingBytes)
