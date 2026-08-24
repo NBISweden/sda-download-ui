@@ -49,7 +49,7 @@ export default function Loading() {
           </div>
 
           {/* Files section placeholder */}
-          <div className="container mt-5 placeholder-glow">
+          <div className="col-12 mt-5 placeholder-glow">
             <h3>Files</h3>
 
             {/* Filter input placeholder */}
