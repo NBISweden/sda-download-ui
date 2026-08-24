@@ -5,6 +5,6 @@ export const testConfig = {
   nextAuthUrl: "http://localhost:3002",
   oidcClientSecretPath: "client-secret-path",
   oidcClientIdPath: "client-id-path",
-  oidcRoot: "http://localhost:3002",
+  oidcRoot: "http://localhost:3002/oidc",
   allowHttp: false,
 };

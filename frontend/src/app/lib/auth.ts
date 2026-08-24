@@ -95,6 +95,7 @@ export async function getAuthOptions(): Promise<NextAuthOptions> {
       }),
     ],
     session: { strategy: "jwt" },
+    pages: { signIn: "/login" },
     callbacks: {
       jwt: extractJWT,
       session: extractSession,
