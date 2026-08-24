@@ -45,7 +45,7 @@ export function Table<T extends RowData>({
   };
 
   return (
-    <div className="table-container">
+    <div className="table-responsive">
       <table className="table">
         <thead>
           <tr>

@@ -185,7 +185,7 @@ export default function DatasetFiles({
         totalPages={totalPages}
         onPageChange={setCurrentPage}
       />
-      <div className="d-flex justify-content-start align-items-center mb-3 gap-3">
+      <div className="d-flex flex-column flex-md-row justify-content-start align-items-start align-items-md-center mb-3 gap-3">
         <div className="d-flex gap-2">
           <button
             type="button"

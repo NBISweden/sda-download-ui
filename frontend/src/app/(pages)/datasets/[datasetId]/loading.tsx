@@ -49,7 +49,7 @@ export default function Loading() {
           </div>
 
           {/* Files section placeholder */}
-          <div className="container mt-5 px-0 placeholder-glow">
+          <div className="col-12 mt-5 placeholder-glow">
             <h3>Files</h3>
 
             {/* Filter input placeholder */}
@@ -59,7 +59,7 @@ export default function Loading() {
             </div>
 
             {/* Files table placeholder */}
-            <div className="table-container">
+            <div className="table-responsive">
               <table className="table" style={{ tableLayout: "fixed" }}>
                 <colgroup>
                   {fileColumns.map((column, index) => (
