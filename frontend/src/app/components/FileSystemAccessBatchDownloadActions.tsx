@@ -27,6 +27,18 @@ type FileSystemAccessBatchDownloadActionsProps = {
 
 type SaveMetadata = () => Promise<void>;
 
+
+// For status reporting.
+type DownloadFileResult = {
+  resumed: boolean;
+  skipped: boolean;
+  restarted: boolean;
+};
+
+type DownloadFileCallbacks = {
+  onResumeStart?: () => void;
+};
+
 export function FileSystemAccessBatchDownloadActions({
   selectedFiles,
   canDownload,
@@ -221,7 +233,8 @@ async function downloadFileToDirectory(
   signal: AbortSignal,
   metadata: DownloadMetadata,
   saveMetadata: SaveMetadata,
-) {
+  callbacks: DownloadFileCallbacks = {},
+): Promise<DownloadFileResult> {
   const url =
     `/api/files/${encodeURIComponent(file.fileId)}` +
     `?name=${encodeURIComponent(file.filePath)}`;
@@ -246,7 +259,11 @@ async function downloadFileToDirectory(
     typeof matchingMetadata.totalBytes === "number" &&
     existingSize === matchingMetadata.totalBytes
   ) {
-    return;
+    return {
+      resumed: false,
+      skipped: true,
+      restarted: false,
+    };
   }
 
   // Detect if local files are unsafe to resume.
@@ -298,12 +315,20 @@ async function downloadFileToDirectory(
     });
 
     await saveMetadata();
-    return;
+
+    return {
+      resumed: false,
+      skipped: true,
+      restarted: false,
+    };
   }
+
+  let restarted = false;
 
   // If the local partial file is inconsistent with the server's/backend's view, restart
   // from byte zero.
   if (response.status === 416) {
+    restarted = attemptedResume;
     response = await fetch(url, {
       credentials: "same-origin",
       signal,
@@ -354,6 +379,7 @@ async function downloadFileToDirectory(
   let writeOffset = 0;
   let keepExistingData = false;
   let totalBytes: number;
+  let resumed = false;
 
   const saveFileMetadata = async (status: DownloadFileStatus) => {
     updateDownloadFileMetadata(metadata, file, {
@@ -384,6 +410,10 @@ async function downloadFileToDirectory(
     writeOffset = existingSize;
     keepExistingData = true;
     totalBytes = parsedContentRange.total;
+    resumed = existingSize > 0;
+    if (resumed) {
+      callbacks.onResumeStart?.();
+    }
   } else if (response.status === 200) {
     totalBytes = parseContentLength(response, file.filePath);
 
@@ -391,6 +421,7 @@ async function downloadFileToDirectory(
     // did not match anymore. This covers changed content and changed c4gh public key.
     // We intentionally restart from byte zero instead of appending.
     if (attemptedResume) {
+      restarted = true;
       writeOffset = 0;
       keepExistingData = false;
     }
@@ -501,6 +532,12 @@ async function downloadFileToDirectory(
   }
 
   await saveFileMetadata("complete");
+
+  return {
+    resumed,
+    skipped: false,
+    restarted,
+  };
 }
 
 // Resolve a dataset file path to a File System Access file handle.
