@@ -87,7 +87,7 @@ export default function DatasetFiles({
         </span>
       </InfoTooltip>
     ),
-  }));  
+  }));
 
   const filteredFiles = useMemo(() => {
     const normalizedSearchTerm = searchTerm.trim().toLowerCase();

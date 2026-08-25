@@ -31,12 +31,7 @@ export function TarBatchDownloadActions({
         : null;
 
   const disabledButton = (
-    <button
-      type="button"
-      className="btn btn-outline-primary"
-      disabled
-      aria-describedby={reason ? "batch-tar-reason" : undefined}
-    >
+    <button type="button" className="btn btn-outline-primary" disabled>
       Download selected as TAR
     </button>
   );
@@ -52,16 +47,15 @@ export function TarBatchDownloadActions({
         >
           Download selected as TAR
         </a>
-      ) : reason ? ( 
+      ) : reason ? (
         <InfoTooltip content={reason} side="bottom">
           <span tabIndex={0} className="d-inline-block">
             {disabledButton}
           </span>
-        </InfoTooltip>        
-      ) :  (
+        </InfoTooltip>
+      ) : (
         disabledButton
-      )
-    }
+      )}
     </div>
   );
 }
