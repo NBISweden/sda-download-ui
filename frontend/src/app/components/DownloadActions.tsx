@@ -2,7 +2,6 @@
 
 import { useState } from "react";
 import { ModalDialog } from "@/app/components/ModalDialog";
-import DropdownButton from "@/app/components/DropdownButton";
 
 type DownloadActionsProps = {
   datasetId: string;

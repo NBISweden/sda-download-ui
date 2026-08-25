@@ -66,18 +66,28 @@ export default function DatasetFiles({
         download
         target="_blank"
         rel="noopener noreferrer"
+        className="btn btn-sm btn-outline-primary"
       >
         Download file
       </a>
     ) : (
-      <span
-        className="text-muted"
-        title="Upload your Crypt4GH public key on the profile page to enable downloads."
+      <InfoTooltip
+        content="Upload your Crypt4GH public key on the profile page to enable downloads."
+        side="bottom"
       >
-        Download file
-      </span>
+        <span tabIndex={0} className="d-inline-block">
+          <button
+            type="button"
+            className="btn btn-sm btn-outline-secondary"
+            disabled
+            style={{ pointerEvents: "none" }}
+          >
+            Download file
+          </button>
+        </span>
+      </InfoTooltip>
     ),
-  }));
+  }));  
 
   const filteredFiles = useMemo(() => {
     const normalizedSearchTerm = searchTerm.trim().toLowerCase();
