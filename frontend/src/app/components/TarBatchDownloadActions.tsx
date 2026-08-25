@@ -31,7 +31,12 @@ export function TarBatchDownloadActions({
         : null;
 
   const disabledButton = (
-    <button type="button" className="btn btn-outline-primary" disabled>
+    <button
+      type="button"
+      className="btn btn-outline-primary"
+      disabled
+      style={{ pointerEvents: "none" }}
+    >
       Download selected as TAR
     </button>
   );
