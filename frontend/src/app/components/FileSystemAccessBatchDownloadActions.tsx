@@ -19,10 +19,14 @@ const FILE_SYSTEM_BATCH_CONCURRENCY = 2;
 // need to re-download at most this many bytes upon resuming.
 const FILE_SYSTEM_DOWNLOAD_CHECKPOINT_BYTES = 512 * 1024 * 1024;
 
+// Include size in DownloadableFile to allow for byte based progress.
+type DownloadableFile = Pick<DatasetFile, "fileId" | "filePath"> &
+  Partial<Pick<DatasetFile, "size">>;
+
 // We need fileId for /api/files/:fileId and filePath to
 // preserve the dataset folder structure.
 type FileSystemAccessBatchDownloadActionsProps = {
-  selectedFiles: Pick<DatasetFile, "fileId" | "filePath">[];
+  selectedFiles: DownloadableFile[];
   canDownload: boolean;
 };
 
@@ -37,6 +41,7 @@ type DownloadFileResult = {
 
 type DownloadFileCallbacks = {
   onResumeStart?: () => void;
+  onBytesDownloaded?: (bytes: number) => void;
 };
 
 export function FileSystemAccessBatchDownloadActions({
@@ -51,11 +56,22 @@ export function FileSystemAccessBatchDownloadActions({
   const [resumedCount, setResumedCount] = useState(0);
   const [skippedCount, setSkippedCount] = useState(0);
   const [restartedCount, setRestartedCount] = useState(0);
+  const [downloadedBytes, setDownloadedBytes] = useState(0);
 
   const abortControllerRef = useRef<AbortController | null>(null);
 
   const selectedCount = selectedFiles.length;
   const enabled = canDownload && selectedCount > 0 && !isDownloading;
+
+  // For progress reporting purposes.
+  const estimatedTotalBytes = selectedFiles.reduce(
+    (sum, file) => sum + getEstimatedFileSize(file),
+    0,
+  );
+  const estimatedProgressPercent =
+    estimatedTotalBytes > 0
+      ? Math.min(100, Math.round((downloadedBytes / estimatedTotalBytes) * 100))
+      : 0;
 
   async function startDownload() {
     if (!enabled) return;
@@ -80,6 +96,7 @@ export function FileSystemAccessBatchDownloadActions({
     setResumedCount(0);
     setSkippedCount(0);
     setRestartedCount(0);
+    setDownloadedBytes(0);
 
     // An AbortController instance is shared by all active and future downloads in the
     // batch so that calling abort() cancels active fetches and prevents new workers
@@ -130,6 +147,11 @@ export function FileSystemAccessBatchDownloadActions({
 
                   resumingThisFile = true;
                   setActiveResumeCount((count) => count + 1);
+                },
+                onBytesDownloaded: (bytes) => {
+                  setDownloadedBytes((current) =>
+                    Math.min(current + bytes, estimatedTotalBytes),
+                  );
                 },
               },
             );
@@ -221,6 +243,7 @@ export function FileSystemAccessBatchDownloadActions({
           resumedCount={resumedCount}
           skippedCount={skippedCount}
           restartedCount={restartedCount}
+          estimatedProgressPercent={estimatedProgressPercent}
           onCancel={cancelDownload}
         />
       )}
@@ -259,7 +282,7 @@ async function runWithConcurrency<T>(
 // Download one dataset file and write it into the selected folder. This reuses the
 // existing single-file proxy endpoint: /api/files/:fileId?name=:filePath.
 async function downloadFileToDirectory(
-  file: Pick<DatasetFile, "fileId" | "filePath">,
+  file: DownloadableFile,
   rootDirectoryHandle: FileSystemDirectoryHandle,
   signal: AbortSignal,
   metadata: DownloadMetadata,
@@ -290,6 +313,8 @@ async function downloadFileToDirectory(
     typeof matchingMetadata.totalBytes === "number" &&
     existingSize === matchingMetadata.totalBytes
   ) {
+    callbacks.onBytesDownloaded?.(getEstimatedFileSize(file));
+
     return {
       resumed: false,
       skipped: true,
@@ -346,6 +371,8 @@ async function downloadFileToDirectory(
     });
 
     await saveMetadata();
+
+    callbacks.onBytesDownloaded?.(getEstimatedFileSize(file));
 
     return {
       resumed: false,
@@ -442,6 +469,12 @@ async function downloadFileToDirectory(
     keepExistingData = true;
     totalBytes = parsedContentRange.total;
     resumed = existingSize > 0;
+
+    const estimatedFileSize = getEstimatedFileSize(file);
+    if (writeOffset > 0) {
+      callbacks.onBytesDownloaded?.(writeOffset);
+    }
+
     if (resumed) {
       callbacks.onResumeStart?.();
     }
@@ -520,6 +553,7 @@ async function downloadFileToDirectory(
 
       nextWriteOffset += chunk.byteLength;
       bytesSinceCheckpoint += chunk.byteLength;
+      callbacks.onBytesDownloaded?.(chunk.byteLength);
 
       if (bytesSinceCheckpoint >= FILE_SYSTEM_DOWNLOAD_CHECKPOINT_BYTES) {
         await checkpointDownload();
@@ -663,4 +697,10 @@ function isAbortError(error: unknown): boolean {
     (error instanceof DOMException && error.name === "AbortError") ||
     (error instanceof Error && error.name === "AbortError")
   );
+}
+
+function getEstimatedFileSize(file: DownloadableFile): number {
+  return typeof file.size === "number" && Number.isFinite(file.size)
+    ? file.size
+    : 0;
 }

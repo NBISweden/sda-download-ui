@@ -10,6 +10,7 @@ type FileSystemDownloadProgressModalProps = {
   resumedCount?: number;
   skippedCount?: number;
   restartedCount?: number;
+  estimatedProgressPercent?: number;
   onCancel: () => void;
 };
 
@@ -23,11 +24,9 @@ export function FileSystemDownloadProgressModal({
   resumedCount = 0,
   skippedCount = 0,
   restartedCount = 0,
+  estimatedProgressPercent = 0,
   onCancel,
 }: FileSystemDownloadProgressModalProps) {
-  const progress =
-    selectedCount > 0 ? Math.round((completedCount / selectedCount) * 100) : 0;
-
   return (
     <>
       <div
@@ -51,13 +50,16 @@ export function FileSystemDownloadProgressModal({
               <div
                 className="progress mb-3"
                 role="progressbar"
-                aria-valuenow={progress}
+                aria-valuenow={estimatedProgressPercent}
                 aria-valuemin={0}
                 aria-valuemax={100}
-                aria-label="Download progress"
+                aria-label="Estimated download progress"
               >
-                <div className="progress-bar" style={{ width: `${progress}%` }}>
-                  {progress}%
+                <div
+                  className="progress-bar"
+                  style={{ width: `${estimatedProgressPercent}%` }}
+                >
+                  {estimatedProgressPercent}%
                 </div>
               </div>
 
