@@ -9,6 +9,7 @@ import {
   type DownloadFileStatus,
   type DownloadMetadata,
 } from "@/app/components/fileSystemDownloadMetadata";
+import { FileSystemDownloadProgressModal } from "@/app/components/FileSystemDownloadProgressModal";
 
 // Controls the number of active concurrent downloads.
 const FILE_SYSTEM_BATCH_CONCURRENCY = 2;
@@ -184,78 +185,46 @@ export function FileSystemAccessBatchDownloadActions({
       : null;
 
   return (
-    <div className="d-flex flex-column align-items-start gap-1">
-      <div className="d-flex gap-2">
-        <button
-          type="button"
-          className="btn btn-outline-primary"
-          onClick={startDownload}
-          disabled={!enabled}
-          aria-describedby={reason ? "batch-folder-download-reason" : undefined}
-        >
-          {isDownloading
-            ? "Downloading selected files..."
-            : "Download selected files to folder"}
-        </button>
-
-        {isDownloading && (
+    <>
+      <div className="d-flex flex-column align-items-start gap-1">
+        <div className="d-flex gap-2">
           <button
             type="button"
-            className="btn btn-outline-danger"
-            onClick={cancelDownload}
+            className="btn btn-outline-primary"
+            onClick={startDownload}
+            disabled={!enabled}
+            aria-describedby={
+              reason ? "batch-folder-download-reason" : undefined
+            }
           >
-            Cancel
+            {isDownloading
+              ? "Downloading selected files..."
+              : "Download selected files to folder"}
           </button>
+        </div>
+
+        {reason && (
+          <small id="batch-folder-download-reason" className="text-muted">
+            {reason}
+          </small>
         )}
+
+        {errorMessage && <small className="text-danger">{errorMessage}</small>}
       </div>
 
-      {reason && (
-        <small id="batch-folder-download-reason" className="text-muted">
-          {reason}
-        </small>
-      )}
-
       {isDownloading && (
-        <small className="text-muted" aria-live="polite">
-          Completed <strong>{completedCount}</strong> of{" "}
-          <strong>{selectedCount}</strong>. Active downloads:{" "}
-          <strong>{activeCount}</strong>.
-          {activeResumeCount > 0 && (
-            <>
-              {" "}
-              Resuming <strong>{activeResumeCount}</strong>{" "}
-              {activeResumeCount === 1 ? "partial file" : "partial files"}.
-            </>
-          )}
-          {resumedCount > 0 && (
-            <>
-              {" "}
-              Resumed <strong>{resumedCount}</strong>{" "}
-              {resumedCount === 1 ? "file" : "files"}.
-            </>
-          )}
-          {skippedCount > 0 && (
-            <>
-              {" "}
-              Skipped <strong>{skippedCount}</strong> already-complete{" "}
-              {skippedCount === 1 ? "file" : "files"}.
-            </>
-          )}
-          {restartedCount > 0 && (
-            <span className="text-warning">
-              {" "}
-              Restarted <strong>{restartedCount}</strong>{" "}
-              {restartedCount === 1
-                ? "stale partial download"
-                : "stale partial downloads"}
-              .
-            </span>
-          )}
-        </small>
+        <FileSystemDownloadProgressModal
+          selectedCount={selectedCount}
+          completedCount={completedCount}
+          activeCount={activeCount}
+          activeResumeCount={activeResumeCount}
+          resumedCount={resumedCount}
+          skippedCount={skippedCount}
+          restartedCount={restartedCount}
+          onCancel={cancelDownload}
+        />
       )}
-
-      {errorMessage && <small className="text-danger">{errorMessage}</small>}
-    </div>
+    </>
   );
 }
 
