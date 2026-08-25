@@ -54,7 +54,7 @@ export function TarBatchDownloadActions({
         </a>
       ) : reason ? (
         <InfoTooltip content={reason} side="bottom">
-          <span tabIndex={0} className="d-inline-block">
+          <span tabIndex={0} className="d-inline-block" aria-label={reason}>
             {disabledButton}
           </span>
         </InfoTooltip>

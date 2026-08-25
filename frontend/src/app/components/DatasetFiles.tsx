@@ -32,6 +32,9 @@ export default function DatasetFiles({
     new Set(),
   );
 
+  const reason =
+    "Upload your Crypt4GH public key on the profile page to enable downloads.";
+
   const formattedFiles = files.map((file) => ({
     fileId: file.fileId,
     rawFilePath: file.filePath,
@@ -71,11 +74,12 @@ export default function DatasetFiles({
         Download file
       </a>
     ) : (
-      <InfoTooltip
-        content="Upload your Crypt4GH public key on the profile page to enable downloads."
-        side="bottom"
-      >
-        <span tabIndex={0} className="d-inline-block">
+      <InfoTooltip content={reason} side="bottom">
+        <span
+          tabIndex={0}
+          className="d-inline-block"
+          aria-label={`Download file is disabled. ${reason}`}
+        >
           <button
             type="button"
             className="btn btn-sm btn-outline-secondary"
