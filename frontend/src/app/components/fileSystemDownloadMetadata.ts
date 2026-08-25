@@ -67,7 +67,7 @@ export async function writeDownloadMetadata(
   const writable = await metadataFileHandle.createWritable();
 
   try {
-    await writable.write(JSON.stringify(metadata, null, 2));
+    await writable.write(JSON.stringify(metadata));
     await writable.close();
   } catch (error) {
     try {
