@@ -165,8 +165,8 @@ export default function DatasetsList({
             headers={{
               datasetId: "Dataset ID",
               date: "Created",
-              files: "Files",
-              size: "Size",
+              files: "Number of files",
+              size: "Dataset size",
               action: " ",
             }}
           />
