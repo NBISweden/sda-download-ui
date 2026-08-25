@@ -1,0 +1,15 @@
+// Use this file to customize your color scheme.
+// Change the colors by changing the rgb-codes.
+// Make sure to provide one code for each of the eight color variables.
+// If you remove a line or color variable entirely, the code won't work correctly. 
+// (There will be a failure during the build step of the project.)
+// Make sure that your colors fulfill web accessibility standards-
+
+$primary: rgb(22 0 124);
+$secondary: rgb(102 112 133);
+$success: rgb(101 122 50);
+$warning: rgb(177 95 24);
+$info: rgb(36 116 178);
+$danger: rgb(206 44 3);
+$light: rgb(248 249 250);   
+$dark: rgb(27 29 27);
