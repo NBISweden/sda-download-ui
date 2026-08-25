@@ -52,15 +52,14 @@ export function DownloadActions({ datasetId }: DownloadActionsProps) {
 
   return (
     <>
-      <DropdownButton
-        label="Download options"
-        items={[
-          {
-            label: "Download via sda-cli",
-            modalTarget: "#cliModal",
-          },
-        ]}
-      />
+      <button
+        type="button"
+        className="btn btn-outline-primary me-3"
+        data-bs-toggle="modal"
+        data-bs-target="#cliModal"
+      >
+        Download dataset
+      </button>
       <ModalDialog
         id="cliModal"
         title="Download via sda-cli command"
