@@ -1,11 +1,11 @@
 # Deployment
 
-This project can be deployed using either the default design or version with customized colors.
+This project can be deployed using either the default color scheme or with a customized color scheme.
 
-## Deploying a version with default design
+## Deploying a version with the default color scheme
 
 ### Initial configuration
-In order to deploy the project you will need to create a configuration
+In order to deploy the project you will need to create a general configuration
 file. As a starting point for your config file you can copy
 `sdad-config.json.example` to `sdad-config.json`.
 
@@ -41,12 +41,12 @@ Run
 ``` sh
 ./compose-prod.sh up
 ```
-This will pull the latest Docker image from [the NBIS Docker Hub](ghcr.io/nbisweden/sda-download-ui) and run the project based on that.
+This will pull the latest Docker image from [the GitHub Container Repository (GHCR)](ghcr.io/nbisweden/sda-download-ui) and run the project based on that.
 
 
-## Deploying a customized version
+## Deploying a version with a custom color scheme
 
-The user interface is built with a design using eight base colors. To customize these colors you need to create a file `frontend/src/app/_theme_vars.local.scss`. Create it by copying the example file `frontend/src/app/_theme_vars.local.scss.example`. You will find eight color variables defined by rgb-codes that you can change to set different colors.
+The user interface is built with a color palette based on eight base colors. To customize these colors you need to create a file `frontend/src/app/_theme_vars.local.scss`. Create it by copying the example file `frontend/src/app/_theme_vars.local.scss.example`. You will find eight color variables defined by RGB-codes that you can change to set different colors.
 
 ### Choosing colors
 
