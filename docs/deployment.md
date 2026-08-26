@@ -41,7 +41,7 @@ Run
 ``` sh
 ./compose-prod.sh up
 ```
-This will pull the latest Docker image from [the GitHub Container Repository (GHCR)](ghcr.io/nbisweden/sda-download-ui) and run the project based on that.
+This will pull the latest Docker image from [the GitHub Container Registry (GHCR)](https://ghcr.io/nbisweden/sda-download-ui) and run the project based on that.
 
 
 ## Deploying a version with a custom color scheme
