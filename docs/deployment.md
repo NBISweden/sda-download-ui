@@ -30,7 +30,7 @@ The options available in the config file can be described as follows:
 | `oidcClientSecretPath` | File path | Path to OIDC client secret file. |
 | `oidcClientIdPath` | File path | Path to OIDC client id file. |
 | `sdaBaseUrl` | HTTP url | The base url to the SDA Download API. |
-| `nextAuthUrl` | HTTP url | The url to use for authenticatin in the app. |
+| `nextAuthUrl` | HTTP url | The url to use for authentication in the app. |
 | `oidcRoot` | HTTP url | Url to the OIDC provider. |
 | `allowHttp` | boolean | (Optional) Default is `false`. Recommendation for development setup is `true` and in production this option should be `false` or unset. | 
 
