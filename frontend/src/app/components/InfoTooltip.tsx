@@ -9,12 +9,14 @@ type InfoTooltipProps = {
   content: ReactNode;
   children: ReactNode;
   monospace?: boolean;
+  side?: Tooltip.TooltipContentProps["side"];
 };
 
 export default function InfoTooltip({
   content,
   children,
   monospace = false,
+  side,
 }: InfoTooltipProps) {
   const hydrated = useSyncExternalStore(
     emptySubscribe,
@@ -32,6 +34,7 @@ export default function InfoTooltip({
           <Tooltip.Content
             className={`info-tooltip${monospace ? " info-tooltip--mono" : ""}`}
             sideOffset={6}
+            side={side}
           >
             {content}
             <Tooltip.Arrow className="info-tooltip-arrow" />
