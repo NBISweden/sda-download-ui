@@ -107,10 +107,13 @@ export const extractJWT: NonNullable<
   NonNullable<NextAuthOptions["callbacks"]>["jwt"]
 > = async (input) => {
   const { token, account, profile } = input;
-  if (profile?.sub && profile?.email) {
-    if (account) {
-      await createOrUpdateSession({ token: account.access_token });
-    }
+  if (profile?.sub && profile?.email && account) {
+    await createOrUpdateSession({ token: account.access_token });
+
+    token.accessToken = account.access_token;
+    token.refreshToken = account.refresh_token;
+    token.expiresAt = account.expires_at; // seconds since epoch, per OAuth spec
+    token.publicKey = null;
   }
   return token;
 };
@@ -118,9 +121,15 @@ export const extractJWT: NonNullable<
 export const extractSession: NonNullable<
   NonNullable<NextAuthOptions["callbacks"]>["session"]
 > = async (input) => {
-  const { session } = input;
+  const { session, token } = input;
+  // Security note: anything returned from this callback is reachable from
+  // the browser via useSession() / GET /api/auth/session.
   return {
     ...session,
+    ...(token?.expiresAt
+      ? { expires: new Date(token.expiresAt * 1000).toISOString() }
+      : {}),
+    pemChecksum: token?.publicKey?.pemChecksum ?? null,
   };
 };
 
