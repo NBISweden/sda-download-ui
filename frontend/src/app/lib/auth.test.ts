@@ -80,39 +80,53 @@ describe("auth oidc", () => {
     });
   });
 
-  test("extract JWT information", async () => {
-    const token = { token: "The token" };
-    vi.mocked(createOrUpdateSession).mockImplementation(() =>
-      Promise.resolve(),
-    );
-    const profile = {
-      sub: "sub123",
-      email: "email123@local.local",
-    };
+  test("extractJWT copies OAuth account fields onto the JWT", async () => {
+    vi.mocked(createOrUpdateSession).mockResolvedValue();
+
+    const account = {
+      access_token: "at",
+      refresh_token: "rt",
+      expires_at: 1_700_000_000,
+    } as Account;
+    const profile = { sub: "u1", email: "u1@example.com" };
+
     const result = await extractJWT({
+      token: {},
+      account,
+      profile,
       user: {} as User,
-      token: token,
-      profile: profile,
-      account: { access_token: accessToken } as Account,
     });
-    expect(result).toStrictEqual(token);
-    expect(createOrUpdateSession).toHaveBeenCalledWith({
-      token: accessToken,
+
+    expect(result).toEqual({
+      accessToken: "at",
+      refreshToken: "rt",
+      expiresAt: 1_700_000_000,
+      publicKey: null,
     });
+    expect(createOrUpdateSession).toHaveBeenCalledWith({ token: "at" });
   });
 
-  test("extract Session information", async () => {
-    const session = {
-      expires: "2026-06-03",
-    };
+  test("extractSession exposes expires + pemChecksum but not tokens", async () => {
     const result = await extractSession({
-      session: session,
-      token: {},
+      session: { expires: "ignored" },
+      token: {
+        accessToken: "SECRET",
+        refreshToken: "ALSO_SECRET",
+        expiresAt: 1_700_000_000,
+        publicKey: { key: "k", pemChecksum: "abc" },
+      },
       user: { id: "", email: "", emailVerified: null },
       trigger: "update",
       newSession: null,
     });
-    expect(result).toStrictEqual(session);
+
+    expect(result).not.toHaveProperty("accessToken");
+    expect(result).not.toHaveProperty("refreshToken");
+    expect(JSON.stringify(result)).not.toContain("SECRET");
+    expect(result).toMatchObject({
+      expires: new Date(1_700_000_000 * 1000).toISOString(),
+      pemChecksum: "abc",
+    });
   });
 
   test("extract Profile information", async () => {
