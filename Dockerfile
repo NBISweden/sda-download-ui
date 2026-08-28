@@ -39,6 +39,7 @@ COPY --chown="$UID:$GID" package*.json .
 COPY --chown="$UID:$GID" ./tsconfig.json .
 COPY --chown="$UID:$GID" ./next*.ts .
 COPY --chown="$UID:$GID" ./src ./src
+COPY --chown="$UID:$GID" ./public ./public
 
 ARG BUILD_GIT_COMMIT
 ARG BUILD_GIT_BRANCH
@@ -79,6 +80,7 @@ WORKDIR "$HOME"
 # Copy standalone server output
 COPY --from=prod-build --chown="$BUILD_ID" "$HOME/.next/standalone" ./
 COPY --from=prod-build --chown="$BUILD_ID" "$HOME/.next/static" ./.next/static
+COPY --from=prod-build --chown="$BUILD_ID" "$HOME/public" ./public
 COPY --chown="$BUILD_ID" --chmod=755 docker-entrypoint.sh .
 
 USER "$RUNTIME_ID"
