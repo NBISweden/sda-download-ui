@@ -37,14 +37,6 @@ vi.mock(import("@/app/lib/config"), () => {
   };
 });
 
-vi.mock(import("@/app/lib/session"), () => {
-  return {
-    createOrUpdateSession: vi.fn(),
-  };
-});
-
-import { createOrUpdateSession } from "./session";
-
 describe("auth oidc", () => {
   beforeEach(() => {
     vi.restoreAllMocks();
@@ -82,8 +74,6 @@ describe("auth oidc", () => {
   });
 
   test("extractJWT copies OAuth account fields onto the JWT", async () => {
-    vi.mocked(createOrUpdateSession).mockResolvedValue();
-
     const account = {
       access_token: "at",
       refresh_token: "rt",
@@ -104,7 +94,6 @@ describe("auth oidc", () => {
       expiresAt: 1_700_000_000,
       publicKey: null,
     });
-    expect(createOrUpdateSession).toHaveBeenCalledWith({ token: "at" });
   });
 
   test("extractSession exposes expires + pemChecksum but not tokens", async () => {

@@ -1,30 +1,26 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { redirect, RedirectType } from "next/navigation";
-import { clearSession } from "../lib/session";
+import { clearServerToken } from "@/app/lib/serverToken";
 import { logout } from "./logout";
 
-vi.mock("../lib/session", () => ({
-  clearSession: vi.fn(),
+vi.mock("@/app/lib/serverToken", () => ({
+  clearServerToken: vi.fn(),
 }));
 
 vi.mock("next/navigation", () => ({
-  RedirectType: {
-    replace: "replace",
-  },
+  RedirectType: { replace: "replace" },
   redirect: vi.fn(() => {
     throw new Error("NEXT_REDIRECT");
   }),
 }));
 
 describe("logout", () => {
-  beforeEach(() => {
-    vi.clearAllMocks();
-  });
+  beforeEach(() => vi.clearAllMocks());
 
-  it("clears the session and redirects to the home page", async () => {
+  it("clears the JWT cookie and redirects to the home page", async () => {
     await expect(logout()).rejects.toThrow("NEXT_REDIRECT");
 
-    expect(clearSession).toHaveBeenCalledOnce();
+    expect(clearServerToken).toHaveBeenCalledOnce();
     expect(redirect).toHaveBeenCalledOnce();
     expect(redirect).toHaveBeenCalledWith("/", RedirectType.replace);
   });
