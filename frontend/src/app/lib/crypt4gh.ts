@@ -1,15 +1,24 @@
+export class Crypt4ghValidationError extends Error {
+  constructor(message: string) {
+    super(message);
+    this.name = "Crypt4ghValidationError";
+  }
+}
+
 export function validateCrypt4GHPublicKey(pemKey: string) {
   const m = pemKey.match(
     /-----BEGIN CRYPT4GH PUBLIC KEY-----\s+(.*?)\s+-----END CRYPT4GH PUBLIC KEY-----/,
   );
   if (!m) {
-    throw new Error("Missing PEM header and/or footer for PUBLIC key.");
+    throw new Crypt4ghValidationError(
+      "Missing PEM header and/or footer for PUBLIC key.",
+    );
   }
 
   const expectedKeyLength = 44;
   const key = m[1];
   if (key.length != expectedKeyLength) {
-    throw new Error(
+    throw new Crypt4ghValidationError(
       `Incorrect key length ${key.length}. Expected ${expectedKeyLength}.`,
     );
   }

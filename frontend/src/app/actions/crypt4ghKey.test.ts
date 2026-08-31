@@ -29,7 +29,7 @@ describe("postCrypt4GHPublicKey server action", () => {
     const data = await postCrypt4GHPublicKey({}, formData);
 
     expect(data).toEqual({
-      errors: ["Error: Missing PEM header and/or footer for PUBLIC key."],
+      errors: ["Missing PEM header and/or footer for PUBLIC key."],
     });
     expect(updateServerToken).not.toHaveBeenCalled();
   });
@@ -41,7 +41,7 @@ describe("postCrypt4GHPublicKey server action", () => {
     const data = await postCrypt4GHPublicKey({}, formData);
 
     expect(data).toEqual({
-      errors: ["Error: Incorrect key length 43. Expected 44."],
+      errors: ["Incorrect key length 43. Expected 44."],
     });
     expect(updateServerToken).not.toHaveBeenCalled();
   });
@@ -80,5 +80,27 @@ describe("postCrypt4GHPublicKey server action", () => {
 
     expect(data).toEqual({ messages: ["Public key removed."] });
     expect(updateServerToken).toHaveBeenCalledWith({ publicKey: null });
+  });
+
+  it("should not leak unexpected error details to the client", async () => {
+    const consoleError = vi
+      .spyOn(console, "error")
+      .mockImplementation(() => {});
+    vi.mocked(updateServerToken).mockRejectedValueOnce(
+      new Error("SECRET_INTERNAL_DETAIL"),
+    );
+    const formData = new FormData();
+    formData.append("pemKey", pemContent);
+    formData.append("action", "submit");
+    const data = await postCrypt4GHPublicKey({}, formData);
+
+    expect(data).toEqual({
+      errors: ["Could not save the public key. Please try again."],
+    });
+    expect(JSON.stringify(data)).not.toContain("SECRET_INTERNAL_DETAIL");
+    expect(consoleError).toHaveBeenCalledWith(
+      "crypt4gh key upload failed:",
+      expect.any(Error),
+    );
   });
 });
