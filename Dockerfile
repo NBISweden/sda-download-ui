@@ -40,6 +40,10 @@ COPY --chown="$UID:$GID" ./tsconfig.json .
 COPY --chown="$UID:$GID" ./next*.ts .
 COPY --chown="$UID:$GID" ./src ./src
 
+RUN if [ -f ./src/app/_theme_vars.local.scss ]; then \
+      cp ./src/app/_theme_vars.local.scss ./src/app/_theme_vars.scss; \
+    fi
+
 ARG BUILD_GIT_COMMIT
 ARG BUILD_GIT_BRANCH
 

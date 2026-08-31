@@ -2,25 +2,7 @@
 // SDAD - Bootstrap Theme
 // ===============================
 
-// Theme color definitions
-$night: rgb(22 0 124);
-$slateGrey: rgb(102 112 133);
-$steelBlue: rgb(36 116 178);
-$forestMoss: rgb(101 122 50);
-$autumn: rgb(177 95 24);
-$tomato: rgb(206 44 3);
-$stone: rgb(27 29 27);
-$light: rgb(248 249 250);
-
-// Botstrap color overrides
-$primary: $night;
-$secondary: $slateGrey;
-$success: $forestMoss;
-$warning: #b15f18;
-$info: $steelBlue;
-$danger: $tomato;
-$light: $light;
-$dark: $stone;
+@import "theme_vars";
 
 $theme-colors: (
   "primary": $primary,
@@ -36,7 +18,7 @@ $theme-colors: (
 @import "bootstrap/scss/bootstrap";
 
 body {
-  color: $stone;
+  color: $dark;
 }
 
 @import "bootstrap/scss/functions";
@@ -133,7 +115,7 @@ body {
 
 .info-tooltip {
   background-color: $secondary-bg-subtle;
-  color: $stone;
+  color: $dark;
   padding: 0.35rem 0.6rem;
   border-radius: 0.25rem;
   font-size: 0.875rem;
