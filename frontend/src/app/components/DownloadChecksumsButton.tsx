@@ -45,7 +45,7 @@ export default function DownloadChecksumsButton({
       onClick={handleDownload}
       title={`Download ${checksumType} checksums`}
     >
-      Download checksums
+      Download file checksums
     </button>
   );
 }
