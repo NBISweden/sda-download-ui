@@ -5,7 +5,6 @@ import {
   encode as defaultEncode,
   decode as defaultDecode,
 } from "next-auth/jwt";
-import { createOrUpdateSession } from "./session";
 import { Config, getConfig } from "./config";
 import fs from "fs";
 
@@ -130,8 +129,6 @@ export const extractJWT: NonNullable<
 > = async (input) => {
   const { token, account, profile } = input;
   if (profile?.sub && profile?.email && account) {
-    await createOrUpdateSession({ token: account.access_token });
-
     token.accessToken = account.access_token;
     token.refreshToken = account.refresh_token;
     token.expiresAt = account.expires_at; // seconds since epoch, per OAuth spec

@@ -1,6 +1,6 @@
 "use server";
 import { z } from "zod";
-import { createOrUpdateSession } from "@/app/lib/session";
+import { updateServerToken } from "@/app/lib/serverToken";
 import { validateCrypt4GHPublicKey } from "../lib/crypt4gh";
 import * as crypto from "crypto";
 
@@ -44,7 +44,7 @@ export async function postCrypt4GHPublicKey(
   }
 
   if (validatedFields.data.action === "remove") {
-    await createOrUpdateSession({
+    await updateServerToken({
       publicKey: null,
     });
     return {
@@ -56,7 +56,7 @@ export async function postCrypt4GHPublicKey(
     const { key, pemChecksum } = await parseCrypt4GHPublicKey(
       validatedFields.data,
     );
-    await createOrUpdateSession({
+    await updateServerToken({
       publicKey: {
         key,
         pemChecksum,

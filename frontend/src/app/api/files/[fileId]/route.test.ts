@@ -1,7 +1,7 @@
 import { describe, expect, test, vi, beforeEach, afterEach } from "vitest";
 import { GET } from "./route";
 import { NextRequest } from "next/server";
-import type { SessionData } from "@/app/lib/SessionManager";
+import type { SessionData } from "@/app/lib/serverToken";
 import { testConfig } from "@/test/testConfig";
 
 /**
@@ -35,13 +35,11 @@ vi.mock(import("@/app/lib/config"), () => {
 // Mutable session result so each test can control what getSession returns.
 const sessionState: { current: SessionData | null } = { current: null };
 
-vi.mock(import("@/app/lib/session"), () => {
-  return {
-    getSession: async () => sessionState.current,
-    createOrUpdateSession: async () => undefined,
-    getClaims: async () => ({}),
-  };
-});
+vi.mock("@/app/lib/serverToken", () => ({
+  getSession: async () => sessionState.current,
+  updateServerToken: async () => undefined,
+  clearServerToken: async () => undefined,
+}));
 
 function makeRequest(
   fileId: string,

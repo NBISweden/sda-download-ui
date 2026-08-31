@@ -4,7 +4,7 @@ import {
   type DatasetMetadata,
   fetchAll,
 } from "../../actions/datasets";
-import { getSession } from "@/app/lib/session";
+import { getSession } from "@/app/lib/serverToken";
 import DatasetsList from "../../components/DatasetsList";
 import Alert from "@/app/components/Alert";
 import { LoginRequiredAlert } from "@/app/components/LoginRequiredAlert";

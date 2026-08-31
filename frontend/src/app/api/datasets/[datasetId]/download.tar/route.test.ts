@@ -1,7 +1,7 @@
 import { describe, expect, test, vi, beforeEach, afterEach } from "vitest";
 import { GET, HEAD } from "./route";
 import { NextRequest } from "next/server";
-import type { SessionData } from "@/app/lib/SessionManager";
+import type { SessionData } from "@/app/lib/serverToken";
 import { MAX_TAR_SELECTION } from "@/app/lib/constants";
 
 const sdaBaseUrl = "http://test.local";
@@ -19,10 +19,10 @@ vi.mock("@/app/lib/config", () => ({
 }));
 
 const sessionState: { current: SessionData | null } = { current: null };
-vi.mock(import("@/app/lib/session"), () => ({
+vi.mock("@/app/lib/serverToken", () => ({
   getSession: async () => sessionState.current,
-  createOrUpdateSession: async () => undefined,
-  getClaims: async () => ({}),
+  updateServerToken: async () => undefined,
+  clearServerToken: async () => undefined,
 }));
 
 type MockFile = {
