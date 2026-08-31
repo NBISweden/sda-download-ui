@@ -28,20 +28,12 @@ export async function getServerToken(): Promise<JWT | null> {
   const store = await cookies();
   const raw = store.get(await getCookieName())?.value;
   if (!raw) return null;
-
-  let decoded: JWT | null;
   try {
-    decoded = await decode({ token: raw, secret: await getSecret() });
+    // decode verifies `exp` (bound to access-token TTL by auth.ts);
+    return await decode({ token: raw, secret: await getSecret() });
   } catch {
     return null;
   }
-  if (!decoded) return null;
-
-  // Session expiry is bound to the access token TTL.
-  const remaining = remainingSecondsFor(decoded);
-  if (remaining !== null && remaining === 0) return null;
-
-  return decoded;
 }
 
 // In case we need to modify the c4gh pub key and re-encrypt the cookie.

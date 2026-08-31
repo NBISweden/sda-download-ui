@@ -7,6 +7,7 @@ import {
   getAuthOptions,
 } from "./auth";
 import { Account, User } from "next-auth";
+import { decode as defaultDecode } from "next-auth/jwt";
 import * as fs from "fs";
 import { testConfig } from "@/test/testConfig";
 
@@ -158,7 +159,7 @@ describe("auth oidc", () => {
   test("get auth options", async () => {
     const options = await getAuthOptions();
     vi.spyOn(fs, "readFileSync").mockImplementation((path) => String(path));
-    expect(options).toStrictEqual({
+    expect(options).toMatchObject({
       secret: testConfig.nextAuthSecretPath,
       providers: [
         LsaaiOidcProvider(testConfig.oidcRoot, {
@@ -173,5 +174,25 @@ describe("auth oidc", () => {
         session: extractSession,
       },
     });
+    expect(options.jwt?.encode).toBeInstanceOf(Function);
+    expect(options.jwt?.decode).toBe(defaultDecode);
+  });
+
+  test("jwt.encode derives maxAge from token.expiresAt", async () => {
+    const options = await getAuthOptions();
+    const encodeSpy = vi
+      .spyOn(await import("next-auth/jwt"), "encode")
+      .mockResolvedValue("stub");
+
+    const nowSec = Math.floor(Date.now() / 1000);
+    await options.jwt!.encode!({
+      token: { accessToken: "at", expiresAt: nowSec + 600 },
+      secret: "s",
+      maxAge: 999, // should be ignored
+    });
+
+    const call = encodeSpy.mock.calls.at(-1)![0];
+    expect(call.maxAge).toBeGreaterThan(500);
+    expect(call.maxAge).toBeLessThanOrEqual(600);
   });
 });
