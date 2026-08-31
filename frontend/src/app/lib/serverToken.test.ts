@@ -81,13 +81,12 @@ describe("getServerToken", () => {
     expect(await getServerToken()).toBeNull();
   });
 
-  it("returns null when the access token has expired", async () => {
-    // maxAge > 0 so NextAuth's own exp check still passes; expiresAt in the
-    // past is what makes our helper reject.
-    const encoded = await encodeCookie(
-      { accessToken: "at", expiresAt: nowSec() - 1 },
-      300,
-    );
+  it("returns null when the JWT has expired", async () => {
+    const encoded = await encode({
+      token: { accessToken: "at", expiresAt: nowSec() - 3600 },
+      secret: SECRET,
+      maxAge: -3600, // Must exceed next-auth's 15s decode clockTolerance so decode throws.
+    });
     vi.mocked(cookies).mockResolvedValue(
       makeStore({ "next-auth.session-token": encoded }) as never,
     );

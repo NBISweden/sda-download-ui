@@ -1,6 +1,10 @@
 import "server-only";
 import type { NextAuthOptions } from "next-auth";
 import type { OAuthConfig, Provider } from "next-auth/providers/index";
+import {
+  encode as defaultEncode,
+  decode as defaultDecode,
+} from "next-auth/jwt";
 import { createOrUpdateSession } from "./session";
 import { Config, getConfig } from "./config";
 import fs from "fs";
@@ -96,6 +100,24 @@ export async function getAuthOptions(): Promise<NextAuthOptions> {
     ],
     session: { strategy: "jwt" },
     pages: { signIn: "/login" },
+    jwt: {
+      // Bind the JWT's `exp` claim to the OAuth access token's `expiresAt`
+      // so NextAuth's own expiry check aligns with the access token's TTL.
+      // Called on sign-in and on every session read.
+      encode: async ({ token, secret, maxAge }) => {
+        const now = Math.floor(Date.now() / 1000);
+        const derivedMaxAge =
+          typeof token?.expiresAt === "number"
+            ? Math.max(token.expiresAt - now, 0)
+            : maxAge;
+        return defaultEncode({
+          token: token ?? {},
+          secret,
+          maxAge: derivedMaxAge,
+        });
+      },
+      decode: defaultDecode,
+    },
     callbacks: {
       jwt: extractJWT,
       session: extractSession,
