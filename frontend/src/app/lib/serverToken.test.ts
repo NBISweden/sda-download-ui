@@ -5,6 +5,7 @@ import {
   clearServerToken,
   getServerToken,
   updateServerToken,
+  getSession,
 } from "./serverToken";
 
 vi.mock("server-only", () => ({}));
@@ -221,5 +222,79 @@ describe("clearServerToken", () => {
     vi.mocked(cookies).mockResolvedValue(store as never);
     await clearServerToken();
     expect(store.delete).not.toHaveBeenCalled();
+  });
+});
+
+describe("getSession", () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+    configState.nextAuthUrl = "http://localhost:3002";
+  });
+
+  it("projects the JWT to the SessionData shape when signed in", async () => {
+    const encoded = await encodeCookie(
+      {
+        accessToken: "at",
+        expiresAt: nowSec() + 60,
+        publicKey: { key: "k", pemChecksum: "cs" },
+      },
+      300,
+    );
+    vi.mocked(cookies).mockResolvedValue(
+      makeStore({ "next-auth.session-token": encoded }) as never,
+    );
+
+    await expect(getSession()).resolves.toEqual({
+      token: "at",
+      publicKey: { key: "k", pemChecksum: "cs" },
+    });
+  });
+
+  it("hides refreshToken and expiresAt from the projected shape", async () => {
+    const encoded = await encodeCookie(
+      {
+        accessToken: "at",
+        refreshToken: "rt",
+        expiresAt: nowSec() + 60,
+        publicKey: null,
+      },
+      300,
+    );
+    vi.mocked(cookies).mockResolvedValue(
+      makeStore({ "next-auth.session-token": encoded }) as never,
+    );
+
+    const session = await getSession();
+    expect(session).toEqual({ token: "at", publicKey: null });
+    expect(session).not.toHaveProperty("refreshToken");
+    expect(session).not.toHaveProperty("expiresAt");
+  });
+
+  it("returns null when there is no session cookie", async () => {
+    vi.mocked(cookies).mockResolvedValue(makeStore() as never);
+    await expect(getSession()).resolves.toBeNull();
+  });
+
+  it("returns null when the JWT has no accessToken", async () => {
+    // A malformed / partially-populated JWT should not present as a signed-in
+    // session to callers.
+    const encoded = await encodeCookie({ expiresAt: nowSec() + 60 }, 300);
+    vi.mocked(cookies).mockResolvedValue(
+      makeStore({ "next-auth.session-token": encoded }) as never,
+    );
+    await expect(getSession()).resolves.toBeNull();
+  });
+
+  it("returns null when the JWT has expired", async () => {
+    const encoded = await encode({
+      token: { accessToken: "at", expiresAt: nowSec() - 3600 },
+      secret: SECRET,
+      // Must exceed next-auth's 15s decode clockTolerance so decode throws.
+      maxAge: -3600,
+    });
+    vi.mocked(cookies).mockResolvedValue(
+      makeStore({ "next-auth.session-token": encoded }) as never,
+    );
+    await expect(getSession()).resolves.toBeNull();
   });
 });

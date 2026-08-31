@@ -73,3 +73,19 @@ export async function clearServerToken(): Promise<void> {
   const name = await getCookieName();
   if (store.get(name)) store.delete(name);
 }
+
+// Session-shaped view over the JWT for the rest of the app. Mostly used as a drop-in
+// replacement for the old session cookie logic and also provides the public key if present.
+export type SessionData = {
+  token: string;
+  publicKey?: { key: string; pemChecksum: string } | null;
+};
+
+export async function getSession(): Promise<SessionData | null> {
+  const jwt = await getServerToken();
+  if (!jwt?.accessToken) return null;
+  return {
+    token: jwt.accessToken,
+    publicKey: jwt.publicKey ?? null,
+  };
+}
