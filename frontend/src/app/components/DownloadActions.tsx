@@ -57,7 +57,7 @@ export function DownloadActions({ datasetId }: DownloadActionsProps) {
         data-bs-toggle="modal"
         data-bs-target="#cliModal"
       >
-        Download dataset
+        Download full dataset
       </button>
       <ModalDialog
         id="cliModal"
