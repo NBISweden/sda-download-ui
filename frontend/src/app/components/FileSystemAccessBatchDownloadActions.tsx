@@ -1,6 +1,7 @@
 "use client";
 
-import { useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
+import { ModalDialog } from "@/app/components/ModalDialog";
 import type { DatasetFile } from "@/app/actions/datasets";
 import {
   cloneDownloadMetadata,
@@ -59,6 +60,14 @@ export function FileSystemAccessBatchDownloadActions({
   const [downloadedBytes, setDownloadedBytes] = useState(0);
 
   const abortControllerRef = useRef<AbortController | null>(null);
+  const errorModalTriggerRef = useRef<HTMLButtonElement>(null);
+
+  // Open the error modal whenever a new error message is set.
+  useEffect(() => {
+    if (errorMessage) {
+      errorModalTriggerRef.current?.click();
+    }
+  }, [errorMessage]);
 
   const selectedCount = selectedFiles.length;
   const enabled = canDownload && selectedCount > 0 && !isDownloading;
@@ -230,9 +239,22 @@ export function FileSystemAccessBatchDownloadActions({
             {reason}
           </small>
         )}
-
-        {errorMessage && <small className="text-danger">{errorMessage}</small>}
       </div>
+
+      <button
+        ref={errorModalTriggerRef}
+        type="button"
+        className="d-none"
+        data-bs-toggle="modal"
+        data-bs-target="#fsa-download-error-modal"
+        aria-hidden="true"
+      />
+      <ModalDialog
+        id="fsa-download-error-modal"
+        title="Download error"
+        body={errorMessage || ""}
+        showActionButton={false}
+      />
 
       {isDownloading && (
         <FileSystemDownloadProgressModal
