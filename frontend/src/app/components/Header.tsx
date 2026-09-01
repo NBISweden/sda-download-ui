@@ -14,6 +14,7 @@ export function Header() {
   const navLinks = [
     { href: "/datasets", label: "Datasets" },
     { href: "/userinfo", label: "Your profile" },
+    { href: "/help", label: "Help" },
   ];
 
   const isHome = pathname === "/";
