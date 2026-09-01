@@ -103,6 +103,9 @@ export default async function UserPage() {
                 />
               </div>
               <div className="mt-3">
+                <p className="mt-4">
+                  Sign in with
+                </p>
                 <LsaaiSignInButton />
               </div>
             </>
