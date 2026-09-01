@@ -10,6 +10,8 @@ import InfoTooltip from "./InfoTooltip";
 import { ItemSelector, useItemsPerPage } from "./ItemsPerPage";
 import { ChecksumExportActions } from "./ChecksumExportActions";
 import { BatchDownloadActions } from "./BatchDownloadActions";
+import { filesize } from "filesize";
+import { getEstimatedFileSize } from "./FileSystemAccessBatchDownloadActions";
 
 type DatasetFilesProps = {
   files: DatasetFile[];
@@ -164,6 +166,10 @@ export default function DatasetFiles({
     }
   };
 
+  const selectedSizeSum = files
+    .filter((file) => selectedFileIds.has(file.fileId))
+    .reduce((acc, file) => acc + getEstimatedFileSize(file), 0);
+
   return (
     <>
       <div className="input-group col-12 my-3">
@@ -214,7 +220,8 @@ export default function DatasetFiles({
         </div>
         <div className="selection-info">
           <strong>{selectedFileIds.size}</strong>{" "}
-          {selectedFileIds.size === 1 ? "file selected" : "files selected"}
+          {selectedFileIds.size === 1 ? "file selected" : "files selected"}{" "}
+          (total size {filesize(selectedSizeSum)})
         </div>
         <BatchDownloadActions
           files={files}

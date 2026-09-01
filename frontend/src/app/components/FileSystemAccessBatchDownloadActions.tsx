@@ -728,7 +728,7 @@ function isAbortError(error: unknown): boolean {
   );
 }
 
-function getEstimatedFileSize(file: DownloadableFile): number {
+export function getEstimatedFileSize(file: DownloadableFile): number {
   return typeof file.size === "number" && Number.isFinite(file.size)
     ? file.size
     : 0;
