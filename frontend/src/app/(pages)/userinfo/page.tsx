@@ -3,7 +3,7 @@ import * as jose from "jose";
 import UserInfo from "@/app/components/UserInfo";
 import Alert from "@/app/components/Alert";
 import { postCrypt4GHPublicKey } from "@/app/actions/crypt4ghKey";
-import { LoginButton } from "@/app/components/LoginButton";
+import { LsaaiSignInButton } from "@/app/components/LsaaiSignInButton";
 import { LoginRequiredAlert } from "@/app/components/LoginRequiredAlert";
 
 export type TokenInfoRow = {
@@ -103,7 +103,7 @@ export default async function UserPage() {
                 />
               </div>
               <div className="mt-3">
-                <LoginButton buttonText="Sign in" />
+                <LsaaiSignInButton />
               </div>
             </>
           ) : (
