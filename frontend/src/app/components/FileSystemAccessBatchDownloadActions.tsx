@@ -472,7 +472,7 @@ async function downloadFileToDirectory(
 
     const estimatedFileSize = getEstimatedFileSize(file);
     if (writeOffset > 0) {
-      callbacks.onBytesDownloaded?.(writeOffset);
+      callbacks.onBytesDownloaded?.(Math.min(writeOffset, estimatedFileSize));
     }
 
     if (resumed) {
