@@ -4,9 +4,11 @@ type ModalProps = {
   id: string;
   title: string;
   body: ReactNode;
-  action: () => void;
-  iconClass: string;
-  actionButtonLabel: string;
+  showCloseButton?: boolean;
+  showActionButton?: boolean;
+  action?: () => void;
+  iconClass?: string;
+  actionButtonLabel?: string;
 };
 /**
  * Reusable Bootstrap modal dialog.
@@ -15,13 +17,18 @@ type ModalProps = {
  * `data-bs-target`. The `title` is rendered in the modal header, `body`
  * is rendered in the modal body.
  *
- * The modal contains a close button and for the action button use action property.
- * The iconClass and actionButtonLabel add icon and label for the action button.
+ * The footer contents are controlled by `showCloseButton` and
+ * `showActionButton`, both of which default to `true`. When the close
+ * button is hidden, the header "×" is hidden too, so the modal can't be
+ * dismissed by either affordance. The action button uses `iconClass`
+ * (optional) and `actionButtonLabel`, and calls `action` on click.
  */
 export function ModalDialog({
   id,
   title,
   body,
+  showCloseButton = true,
+  showActionButton = true,
   action,
   iconClass,
   actionButtonLabel,
@@ -42,30 +49,36 @@ export function ModalDialog({
               <h1 className="modal-title fs-5" id={titleId}>
                 {title}
               </h1>
-              <button
-                type="button"
-                className="btn-close"
-                data-bs-dismiss="modal"
-                aria-label="Close"
-              ></button>
+              {showCloseButton && (
+                <button
+                  type="button"
+                  className="btn-close"
+                  data-bs-dismiss="modal"
+                  aria-label="Close"
+                ></button>
+              )}
             </div>
             <div className="modal-body">{body}</div>
             <div className="modal-footer">
-              <button
-                type="button"
-                className="btn btn-secondary"
-                data-bs-dismiss="modal"
-              >
-                Close
-              </button>
-              <button
-                type="button"
-                className="btn btn-primary"
-                onClick={action}
-              >
-                <i className={`bi ${iconClass} me-1`}></i>
-                {actionButtonLabel}
-              </button>
+              {showCloseButton && (
+                <button
+                  type="button"
+                  className="btn btn-secondary"
+                  data-bs-dismiss="modal"
+                >
+                  Close
+                </button>
+              )}
+              {showActionButton && (
+                <button
+                  type="button"
+                  className="btn btn-primary"
+                  onClick={action}
+                >
+                  {iconClass && <i className={`bi ${iconClass} me-1`}></i>}
+                  {actionButtonLabel}
+                </button>
+              )}
             </div>
           </div>
         </div>
