@@ -10,9 +10,7 @@ export default async function Home() {
       {!sessionData ? (
         <>
           <h1>Welcome!</h1>
-          <p className="mt-4">
-            Sign in with
-          </p>
+          <p className="mt-4">Sign in with</p>
           <LsaaiSignInButton />
         </>
       ) : (

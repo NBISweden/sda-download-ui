@@ -39,9 +39,7 @@ export default async function LoginPage({ searchParams }: LoginPageProps) {
             iconClass="bi bi-exclamation-triangle-fill"
           />
         )}
-        <p className="mt-4">
-          Sign in with
-        </p>
+        <p className="mt-4">Sign in with</p>
         <LsaaiSignInButton callbackUrl={callbackUrl} />
       </div>
     </main>

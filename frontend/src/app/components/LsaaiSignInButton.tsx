@@ -34,7 +34,9 @@ export function LsaaiSignInButton({ callbackUrl }: LsaaiSignInButtonProps) {
       type="button"
       className="btn btn-link p-0 border-0"
       onClick={() =>
-        signIn("lsaai-oidc", { callbackUrl: toCallbackUrl(callbackUrl ?? pathname ?? undefined) })
+        signIn("lsaai-oidc", {
+          callbackUrl: toCallbackUrl(callbackUrl ?? pathname ?? undefined),
+        })
       }
     >
       <Image
