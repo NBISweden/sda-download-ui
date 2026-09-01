@@ -89,7 +89,7 @@ export default async function UserPage() {
   return (
     <main>
       <div className="container">
-        <h2 className="my-3">User info</h2>
+        <h2 className="my-3">Your profile</h2>
         <div className="row">
           {noTokenMessage ? (
             <LoginRequiredAlert />
