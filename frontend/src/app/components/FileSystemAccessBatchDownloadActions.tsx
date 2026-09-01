@@ -355,10 +355,11 @@ async function downloadFileToDirectory(
     );
   }
 
-  // A mismatching etag implies a changed c4gh pub key, unsafe to resume.
+  // A local file exists but we have no trustworthy record of it (no metadata entry, wrong path, or missing etag).
+  // Rather than silently overwrite it, stop and let the user decide.
   if (existingSize > 0 && !matchingMetadata?.etag) {
     throw new Error(
-      `Existing local file ${file.filePath} cannot be safely resumed because download metadata is missing. Delete or move the local file before retrying.`,
+      `${file.filePath} already exists in the chosen folder, but this app has no record of downloading it. To avoid overwriting a file you may want to keep, please move or delete the local copy of ${file.filePath} and start the download again.`,
     );
   }
 
