@@ -726,7 +726,8 @@ function isAbortError(error: unknown): boolean {
 }
 
 export function getEstimatedFileSize(file: DownloadableFile): number {
+  const fileHeaderSize = 140; // From API documentation the header should be 120 to 140 bytes.
   return typeof file.size === "number" && Number.isFinite(file.size)
-    ? file.size
+    ? file.size + fileHeaderSize
     : 0;
 }
