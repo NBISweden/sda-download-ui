@@ -2,6 +2,7 @@
 
 import Image from "next/image";
 import { signIn } from "next-auth/react";
+import { usePathname } from "next/navigation";
 
 // The button asset is a vector with a 100:23 aspect ratio; these set the
 // rendered size. Keep the ratio when changing them.
@@ -26,12 +27,16 @@ type LsaaiSignInButtonProps = {
 };
 
 export function LsaaiSignInButton({ callbackUrl }: LsaaiSignInButtonProps) {
+  const pathname = usePathname();
+
   return (
     <button
       type="button"
       className="btn btn-link p-0 border-0"
       onClick={() =>
-        signIn("lsaai-oidc", { callbackUrl: toCallbackUrl(callbackUrl) })
+        signIn("lsaai-oidc", {
+          callbackUrl: toCallbackUrl(callbackUrl ?? pathname ?? undefined),
+        })
       }
     >
       <Image

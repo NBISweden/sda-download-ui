@@ -32,8 +32,8 @@ describe("toCallbackUrl", () => {
 
   // next-auth forwards callback URLs to the sign-in page in absolute form, so
   // sign-in flows it initiates fall back to the root rather than returning the
-  // user to the page they came from. Links from our own LoginButton are
-  // relative, which is why the common cases still work.
+  // user to the page they came from. usePathname() gives a relative path, which
+  // is why the common cases still work.
   it("falls back to the root for an absolute same-origin URL", () => {
     expect(toCallbackUrl("http://localhost:3002/userinfo")).toBe("/");
   });

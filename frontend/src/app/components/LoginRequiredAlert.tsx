@@ -1,5 +1,5 @@
 import Alert from "@/app/components/Alert";
-import { LoginButton } from "@/app/components/LoginButton";
+import { LsaaiSignInButton } from "@/app/components/LsaaiSignInButton";
 
 export function LoginRequiredAlert() {
   const message = "Your session has expired or you are not signed in";
@@ -14,7 +14,8 @@ export function LoginRequiredAlert() {
         />
       </div>
       <div className="mt-3">
-        <LoginButton buttonText="Sign in" />
+        <p className="mt-4">Sign in with</p>
+        <LsaaiSignInButton />
       </div>
     </>
   );

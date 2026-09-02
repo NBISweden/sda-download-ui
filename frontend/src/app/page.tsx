@@ -1,6 +1,6 @@
 import { getSession } from "./lib/session";
 import { PageWrapper } from "./components/PageWrapper";
-import { LoginButton } from "@/app/components/LoginButton";
+import { LsaaiSignInButton } from "@/app/components/LsaaiSignInButton";
 
 export default async function Home() {
   const sessionData = await getSession();
@@ -10,10 +10,8 @@ export default async function Home() {
       {!sessionData ? (
         <>
           <h1>Welcome!</h1>
-          <p className="mt-4">
-            Sign in to explore datasets and download files.
-          </p>
-          <LoginButton />
+          <p className="mt-4">Sign in with</p>
+          <LsaaiSignInButton />
         </>
       ) : (
         <>
