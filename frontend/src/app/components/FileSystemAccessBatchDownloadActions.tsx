@@ -18,7 +18,7 @@ const FILE_SYSTEM_BATCH_CONCURRENCY = 2;
 // Define a checkpoint interval for saving download progress. Progressively increase it to mitigate
 // the fact that FSA API open/close and writing to crswap file is expensive. Cap the interval to
 // avoid losing too much progress in case of a crash.
-const FS_DOWNLOAD_STARTING_CHECKPOINT = 512 * 1024 * 1024;   // 512 MiB
+const FS_DOWNLOAD_STARTING_CHECKPOINT = 512 * 1024 * 1024; // 512 MiB
 const FS_DOWNLOAD_CHECKPOINT_INTERVAL_CAP = 4 * 1024 * 1024 * 1024; // 4 GiB
 
 // Include size in DownloadableFile to allow for byte based progress.
