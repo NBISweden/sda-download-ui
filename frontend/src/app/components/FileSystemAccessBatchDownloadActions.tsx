@@ -194,7 +194,7 @@ export function FileSystemAccessBatchDownloadActions({
       );
     } catch (error) {
       if ((error as { name?: string }).name === "AbortError") {
-        setErrorMessage("Download cancelled.");
+        setErrorMessage("The download process was cancelled.");
       } else {
         const message =
           error instanceof Error ? error.message : "Download failed.";
@@ -247,12 +247,12 @@ export function FileSystemAccessBatchDownloadActions({
         type="button"
         className="d-none"
         data-bs-toggle="modal"
-        data-bs-target="#fsa-download-error-modal"
+        data-bs-target="#fsa-download-notice-modal"
         aria-hidden="true"
       />
       <ModalDialog
-        id="fsa-download-error-modal"
-        title="Download error"
+        id="fsa-download-notice-modal"
+        title="Notice"
         body={errorMessage || ""}
         showActionButton={false}
       />
@@ -360,7 +360,7 @@ async function downloadFileToDirectory(
   // Rather than silently overwrite it, stop and let the user decide.
   if (existingSize > 0 && !matchingMetadata?.etag) {
     throw new Error(
-      `${file.filePath} already exists in the chosen folder, but this app has no record of downloading it. To avoid overwriting a file you may want to keep, please move or delete the local copy of ${file.filePath} and start the download again.`,
+      `The file ${file.filePath} already exists in the chosen folder, but this app has no record of downloading it. To avoid overwriting a file you may want to keep, please move or delete the local copy of ${file.filePath} and start the download again.`,
     );
   }
 
