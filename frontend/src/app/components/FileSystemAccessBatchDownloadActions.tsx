@@ -78,10 +78,6 @@ export function FileSystemAccessBatchDownloadActions({
     (sum, file) => sum + getEstimatedFileSize(file),
     0,
   );
-  const estimatedProgressPercent =
-    estimatedTotalBytes > 0
-      ? Math.min(100, Math.round((downloadedBytes / estimatedTotalBytes) * 100))
-      : 0;
 
   async function startDownload() {
     if (!enabled) return;
@@ -266,7 +262,8 @@ export function FileSystemAccessBatchDownloadActions({
           resumedCount={resumedCount}
           skippedCount={skippedCount}
           restartedCount={restartedCount}
-          estimatedProgressPercent={estimatedProgressPercent}
+          downloadedBytes={downloadedBytes}
+          estimatedTotalBytes={estimatedTotalBytes}
           onCancel={cancelDownload}
         />
       )}
