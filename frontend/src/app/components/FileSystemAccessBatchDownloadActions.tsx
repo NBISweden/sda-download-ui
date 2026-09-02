@@ -15,10 +15,11 @@ import { FileSystemDownloadProgressModal } from "@/app/components/FileSystemDown
 // Controls the number of active concurrent downloads.
 const FILE_SYSTEM_BATCH_CONCURRENCY = 2;
 
-// Define a checkpoint interval for saving download progress.
-// Every X bytes, save stream to disk so that in the event of a browser/tab crash, we
-// need to re-download at most this many bytes upon resuming.
-const FILE_SYSTEM_DOWNLOAD_CHECKPOINT_BYTES = 512 * 1024 * 1024;
+// Define a checkpoint interval for saving download progress. Progressively increase it to mitigate
+// the fact that FSA API open/close and writing to crswap file is expensive. Cap the interval to
+// avoid losing too much progress in case of a crash.
+const FS_DOWNLOAD_STARTING_CHECKPOINT = 512 * 1024 * 1024;   // 512 MiB
+const FS_DOWNLOAD_CHECKPOINT_INTERVAL_CAP = 4 * 1024 * 1024 * 1024; // 4 GiB
 
 // Include size in DownloadableFile to allow for byte based progress.
 type DownloadableFile = Pick<DatasetFile, "fileId" | "filePath"> &
@@ -532,6 +533,7 @@ async function downloadFileToDirectory(
 
   let nextWriteOffset = writeOffset;
   let bytesSinceCheckpoint = 0;
+  let checkpointBudget = FS_DOWNLOAD_STARTING_CHECKPOINT;
 
   // Every X bytes we close the file to commit bytes to disk and update metadata.
   // Subsequent writes reopen with keepExistingData: true and seek to the next offset.
@@ -578,8 +580,12 @@ async function downloadFileToDirectory(
       bytesSinceCheckpoint += chunk.byteLength;
       callbacks.onBytesDownloaded?.(chunk.byteLength);
 
-      if (bytesSinceCheckpoint >= FILE_SYSTEM_DOWNLOAD_CHECKPOINT_BYTES) {
+      if (bytesSinceCheckpoint >= checkpointBudget) {
         await checkpointDownload();
+        checkpointBudget = Math.min(
+          checkpointBudget * 2,
+          FS_DOWNLOAD_CHECKPOINT_INTERVAL_CAP,
+        );
       }
     }
 
