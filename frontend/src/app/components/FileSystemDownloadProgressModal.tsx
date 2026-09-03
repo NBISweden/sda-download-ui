@@ -1,5 +1,7 @@
 "use client";
 
+import type { DownloadGuardWarning } from "@/app/components/DownloadGuard";
+
 import { filesize } from "filesize";
 
 type FileSystemDownloadProgressModalProps = {
@@ -15,11 +17,17 @@ type FileSystemDownloadProgressModalProps = {
   downloadedBytes?: number;
   estimatedTotalBytes?: number;
   onCancel: () => void;
+
+  // Replaces the description and the cancel button with the question, keeping the
+  // progress above it. See DownloadGuard.
+  warning?: DownloadGuardWarning | null;
 };
 
 export function FileSystemDownloadProgressModal({
   title = "Downloading selected files",
-  description = "Please keep this page open until the download has completed. Navigating away may interrupt the current download. To resume later, start the download again and select the same folder.",
+  // How to resume an interrupted download is explained by the warning shown when the
+  // user is about to leave the page, see DownloadGuard.
+  description = "Please keep this page open until the download has completed. Navigating away interrupts the current download.",
   selectedCount,
   completedCount,
   activeCount,
@@ -30,6 +38,7 @@ export function FileSystemDownloadProgressModal({
   downloadedBytes = 0,
   estimatedTotalBytes = 0,
   onCancel,
+  warning = null,
 }: FileSystemDownloadProgressModalProps) {
   const estimatedProgressPercent =
     estimatedTotalBytes > 0
@@ -48,12 +57,12 @@ export function FileSystemDownloadProgressModal({
           <div className="modal-content">
             <div className="modal-header">
               <h2 className="modal-title fs-5" id="fsa-download-progress-title">
-                {title}
+                {warning ? warning.title : title}
               </h2>
             </div>
 
             <div className="modal-body">
-              <p className="mb-3">{description}</p>
+              {!warning && <p className="mb-3">{description}</p>}
 
               <div
                 className="progress mb-3"
@@ -118,16 +127,40 @@ export function FileSystemDownloadProgressModal({
                   </div>
                 )}
               </div>
+
+              {warning && (
+                <p className="mt-3 pt-3 border-top mb-0">{warning.body}</p>
+              )}
             </div>
 
             <div className="modal-footer">
-              <button
-                type="button"
-                className="btn btn-outline-danger"
-                onClick={onCancel}
-              >
-                Cancel downloads
-              </button>
+              {warning ? (
+                <>
+                  <button
+                    type="button"
+                    className="btn btn-primary"
+                    autoFocus
+                    onClick={warning.onStay}
+                  >
+                    {warning.stayLabel}
+                  </button>
+                  <button
+                    type="button"
+                    className="btn btn-outline-danger"
+                    onClick={warning.onLeave}
+                  >
+                    {warning.leaveLabel}
+                  </button>
+                </>
+              ) : (
+                <button
+                  type="button"
+                  className="btn btn-outline-danger"
+                  onClick={onCancel}
+                >
+                  Cancel downloads
+                </button>
+              )}
             </div>
           </div>
         </div>
