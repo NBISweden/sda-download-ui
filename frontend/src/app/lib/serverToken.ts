@@ -3,6 +3,15 @@ import { cookies } from "next/headers";
 import { decode, encode, type JWT } from "next-auth/jwt";
 import { getConfig } from "./config";
 import { getAuthConfig } from "./auth";
+import * as jose from "jose";
+import { verifyAccessToken } from "./oidc";
+
+export class SessionInvalidError extends Error {
+  constructor(message = "Session invalid.") {
+    super(message);
+    this.name = "SessionInvalidError";
+  }
+}
 
 async function getSecret(): Promise<string> {
   const config = await getConfig();
@@ -50,7 +59,22 @@ export async function updateServerToken(patch: Partial<JWT>): Promise<void> {
   } catch {
     return;
   }
-  if (!current) return;
+  if (!current?.accessToken) return;
+
+  // Re-verify the access token against the provider before we re-encrypt.
+  // This catches revocation and key rotation between sign-in and now.
+  try {
+    await verifyAccessToken(current.accessToken);
+  } catch (e) {
+    if (e instanceof jose.errors.JOSEError) {
+      // Token is probably invalid: clear the session and let the caller
+      // surface a "please sign in again" message.
+      if (store.get(name)) store.delete(name);
+      throw new SessionInvalidError();
+    }
+    // Verification unavailable, don't touch the session, let caller retry.
+    throw e;
+  }
 
   const merged: JWT = { ...current, ...patch };
   const remaining = remainingSecondsFor(merged);
@@ -61,7 +85,7 @@ export async function updateServerToken(patch: Partial<JWT>): Promise<void> {
   store.set(name, encoded, {
     httpOnly: true,
     secure: name.startsWith("__Secure-"),
-    sameSite: "lax", // NextAuth default, using "strict" will break the login flow when the user is redirected back from the OIDC provider.
+    sameSite: "lax",
     path: "/",
     maxAge: remaining,
   });

@@ -10,6 +10,7 @@ import { Account, User } from "next-auth";
 import { decode as defaultDecode } from "next-auth/jwt";
 import * as fs from "fs";
 import { testConfig } from "@/test/testConfig";
+import { verifyAccessToken } from "./oidc";
 
 const accessToken: string = "access_token";
 
@@ -36,6 +37,10 @@ vi.mock(import("@/app/lib/config"), () => {
     getConfig: async () => testConfig,
   };
 });
+
+vi.mock("./oidc", () => ({
+  verifyAccessToken: vi.fn(),
+}));
 
 describe("auth oidc", () => {
   beforeEach(() => {
@@ -73,7 +78,9 @@ describe("auth oidc", () => {
     });
   });
 
-  test("extractJWT copies OAuth account fields onto the JWT", async () => {
+  test("extractJWT verifies the access token and copies fields", async () => {
+    vi.mocked(verifyAccessToken).mockResolvedValue({} as never);
+
     const account = {
       access_token: "at",
       refresh_token: "rt",
@@ -88,12 +95,24 @@ describe("auth oidc", () => {
       user: {} as User,
     });
 
+    expect(verifyAccessToken).toHaveBeenCalledWith("at");
     expect(result).toEqual({
       accessToken: "at",
       refreshToken: "rt",
       expiresAt: 1_700_000_000,
       publicKey: null,
     });
+  });
+
+  test("extractJWT does not populate the token when verification fails", async () => {
+    vi.mocked(verifyAccessToken).mockRejectedValue(new Error("bad signature"));
+
+    const account = { access_token: "at" } as Account;
+    const profile = { sub: "u1", email: "u1@example.com" };
+
+    await expect(
+      extractJWT({ token: {}, account, profile, user: {} as User }),
+    ).rejects.toThrow("bad signature");
   });
 
   test("extractSession exposes expires + pemChecksum but not tokens", async () => {

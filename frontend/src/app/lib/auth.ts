@@ -7,6 +7,7 @@ import {
 } from "next-auth/jwt";
 import { Config, getConfig } from "./config";
 import fs from "fs";
+import { verifyAccessToken } from "./oidc";
 
 type Profile = {
   sub: string;
@@ -128,7 +129,11 @@ export const extractJWT: NonNullable<
   NonNullable<NextAuthOptions["callbacks"]>["jwt"]
 > = async (input) => {
   const { token, account, profile } = input;
-  if (profile?.sub && profile?.email && account) {
+  if (profile?.sub && profile?.email && account?.access_token) {
+    // Verify the access token's signature against the provider JWKS before storing it.
+    // NextAuth has already verified the id token, this is a sanity check at this point.
+    await verifyAccessToken(account.access_token);
+
     token.accessToken = account.access_token;
     token.refreshToken = account.refresh_token;
     token.expiresAt = account.expires_at; // seconds since epoch, per OAuth spec

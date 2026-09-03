@@ -1,6 +1,6 @@
 "use server";
 import { z } from "zod";
-import { updateServerToken } from "@/app/lib/serverToken";
+import { updateServerToken, SessionInvalidError } from "@/app/lib/serverToken";
 import {
   validateCrypt4GHPublicKey,
   Crypt4ghValidationError,
@@ -66,6 +66,11 @@ export async function postCrypt4GHPublicKey(
     // so that we don't accidentally expose sensitive information.
     if (e instanceof Crypt4ghValidationError) {
       return { errors: [e.message] };
+    }
+    if (e instanceof SessionInvalidError) {
+      return {
+        errors: ["Your session is no longer valid. Please sign in again."],
+      };
     }
     console.error("crypt4gh key upload failed:", e);
     return {

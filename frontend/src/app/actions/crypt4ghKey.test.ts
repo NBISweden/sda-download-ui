@@ -1,11 +1,21 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
 import { postCrypt4GHPublicKey } from "./crypt4ghKey";
-import { updateServerToken } from "@/app/lib/serverToken";
+import { updateServerToken, SessionInvalidError } from "@/app/lib/serverToken";
 
 vi.mock("server-only", () => ({}));
 
 vi.mock("@/app/lib/serverToken", () => ({
   updateServerToken: vi.fn(),
+}));
+
+vi.mock("@/app/lib/serverToken", () => ({
+  updateServerToken: vi.fn(),
+  SessionInvalidError: class SessionInvalidError extends Error {
+    constructor(msg?: string) {
+      super(msg);
+      this.name = "SessionInvalidError";
+    }
+  },
 }));
 
 const pemContent = `-----BEGIN CRYPT4GH PUBLIC KEY-----
@@ -102,5 +112,21 @@ describe("postCrypt4GHPublicKey server action", () => {
       "crypt4gh key upload failed:",
       expect.any(Error),
     );
+  });
+
+  it("surfaces a specific message when the session has become invalid", async () => {
+    vi.mocked(updateServerToken).mockRejectedValueOnce(
+      new SessionInvalidError(),
+    );
+
+    const formData = new FormData();
+    formData.append("pemKey", pemContent);
+    formData.append("action", "submit");
+
+    const data = await postCrypt4GHPublicKey({}, formData);
+
+    expect(data).toEqual({
+      errors: ["Your session is no longer valid. Please sign in again."],
+    });
   });
 });
