@@ -6,10 +6,16 @@ import {
   getServerToken,
   updateServerToken,
   getSession,
+  SessionInvalidError,
 } from "./serverToken";
+import { verifyAccessToken } from "./oidc";
+import * as jose from "jose";
 
 vi.mock("server-only", () => ({}));
 vi.mock("next/headers", () => ({ cookies: vi.fn() }));
+vi.mock("./oidc", () => ({
+  verifyAccessToken: vi.fn(),
+}));
 
 const SECRET = "test-secret-test-secret-test-secret-test";
 
@@ -118,6 +124,7 @@ describe("updateServerToken", () => {
   });
 
   it("merges the patch and preserves the access-token-derived lifetime", async () => {
+    vi.mocked(verifyAccessToken).mockResolvedValue({} as never);
     const expiresAt = nowSec() + 3600;
     const encoded = await encodeCookie(
       { accessToken: "at", expiresAt, publicKey: null },
@@ -190,6 +197,57 @@ describe("updateServerToken", () => {
     vi.mocked(cookies).mockResolvedValue(store as never);
 
     await updateServerToken({ publicKey: null });
+    expect(store.set).not.toHaveBeenCalled();
+  });
+
+  it("verifies the access token before re-encrypting", async () => {
+    const encoded = await encodeCookie(
+      { accessToken: "at", expiresAt: nowSec() + 60, publicKey: null },
+      300,
+    );
+    const store = makeStore({ "next-auth.session-token": encoded });
+    vi.mocked(cookies).mockResolvedValue(store as never);
+    vi.mocked(verifyAccessToken).mockResolvedValue({} as never);
+    await updateServerToken({ publicKey: { key: "k", pemChecksum: "cs" } });
+    expect(verifyAccessToken).toHaveBeenCalledWith("at");
+    expect(store.set).toHaveBeenCalledOnce();
+  });
+
+  it("clears the cookie and throws SessionInvalidError when the token is provably invalid", async () => {
+    const encoded = await encodeCookie(
+      { accessToken: "at", expiresAt: nowSec() + 60 },
+      300,
+    );
+    const store = makeStore({ "next-auth.session-token": encoded });
+    vi.mocked(cookies).mockResolvedValue(store as never);
+
+    // Any subclass of jose.errors.JOSEError triggers the fail-closed path.
+    vi.mocked(verifyAccessToken).mockRejectedValue(
+      new jose.errors.JWSSignatureVerificationFailed(),
+    );
+
+    await expect(updateServerToken({ publicKey: null })).rejects.toBeInstanceOf(
+      SessionInvalidError,
+    );
+    expect(store.delete).toHaveBeenCalledWith("next-auth.session-token");
+    expect(store.set).not.toHaveBeenCalled();
+  });
+
+  it("does not clear the cookie when verification is unavailable", async () => {
+    const encoded = await encodeCookie(
+      { accessToken: "at", expiresAt: nowSec() + 60 },
+      300,
+    );
+    const store = makeStore({ "next-auth.session-token": encoded });
+    vi.mocked(cookies).mockResolvedValue(store as never);
+
+    // Non-JOSE error simulates a network/discovery failure.
+    vi.mocked(verifyAccessToken).mockRejectedValue(new Error("ECONNREFUSED"));
+
+    await expect(updateServerToken({ publicKey: null })).rejects.toThrow(
+      "ECONNREFUSED",
+    );
+    expect(store.delete).not.toHaveBeenCalled();
     expect(store.set).not.toHaveBeenCalled();
   });
 });
