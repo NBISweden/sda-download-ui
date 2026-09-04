@@ -5,6 +5,7 @@ This project can be deployed using either the default color scheme or with a cus
 ## Deploying a version with the default color scheme
 
 ### Initial configuration
+
 In order to deploy the project you will need to create a general configuration
 file. As a starting point for your config file you can copy
 `sdad-config.json.example` to `sdad-config.json`.
@@ -19,6 +20,7 @@ openssl rand -base64 32 > secrets/frontend-token-secret.txt
 ```
 
 In the `secrets` folder you also need to create the files
+
 - `frontend-next-auth-secret.txt`
 - `frontend-oidc-client-id.txt`
 - `frontend-oidc-client-secret.txt`
@@ -32,17 +34,25 @@ The options available in the config file can be described as follows:
 | `sdaBaseUrl` | HTTP url | The base url to the SDA Download API. |
 | `nextAuthUrl` | HTTP url | The url to use for authentication in the app. |
 | `oidcRoot` | HTTP url | Url to the OIDC provider. |
-| `allowHttp` | boolean | (Optional) Default is `false`. Recommendation for development setup is `true` and in production this option should be `false` or unset. | 
+| `allowHttp` | boolean | (Optional) Default is `false`. Recommendation for development setup is `true` and in production this option should be `false` or unset. |
+
+### Customizing the help page
+
+The deployed website contains a page "Help" on which you can display whatever instructions you like.
+This project contains a file `frontend/src/app/help-content.json` that already contains instructions.
+You can modify the file to change, shorten or extend the existing instructions.
+The JSON file is checked by a validation script in `frontend/src/lib/validateHelpContent.ts`. The file contains
+TypeScript type definitions that can help you when formatting the JSON file.
 
 ### Startup
 
 Run
 
-``` sh
+```sh
 ./compose-prod.sh up
 ```
-This will pull the latest Docker image from [the GitHub Container Registry (GHCR)](https://ghcr.io/nbisweden/sda-download-ui) and run the project based on that.
 
+This will pull the latest Docker image from [the GitHub Container Registry (GHCR)](https://ghcr.io/nbisweden/sda-download-ui) and run the project based on that.
 
 ## Deploying a version with a custom color scheme
 
@@ -60,15 +70,18 @@ Follow the same configuration steps as described above for the deployment of the
 
 ### Building
 
-Run 
-``` sh
+Run
+
+```sh
 ./compose-prod.sh build
 ```
 
 ### Startup
+
 Run
 
-``` sh
+```sh
 ./compose-prod.sh up
 ```
+
 This will run the project based on the local image you just built, using the custom colors.
