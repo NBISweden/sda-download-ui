@@ -14,7 +14,6 @@ vi.mock(import("server-only"), () => ({}));
 vi.mock("@/app/lib/config", () => ({
   getConfig: async () => ({
     sdaBaseUrl,
-    sessionSecretPath: "",
   }),
 }));
 
