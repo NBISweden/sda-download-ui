@@ -1,0 +1,126 @@
+"use client";
+
+type FileSystemDownloadProgressModalProps = {
+  title?: string;
+  description?: string;
+  selectedCount: number;
+  completedCount: number;
+  activeCount: number;
+  activeResumeCount?: number;
+  resumedCount?: number;
+  skippedCount?: number;
+  restartedCount?: number;
+  estimatedProgressPercent?: number;
+  onCancel: () => void;
+};
+
+export function FileSystemDownloadProgressModal({
+  title = "Downloading selected files",
+  description = "Please keep this page open until the download has completed. Navigating away may interrupt the current download. To resume later, start the download again and select the same folder.",
+  selectedCount,
+  completedCount,
+  activeCount,
+  activeResumeCount = 0,
+  resumedCount = 0,
+  skippedCount = 0,
+  restartedCount = 0,
+  estimatedProgressPercent = 0,
+  onCancel,
+}: FileSystemDownloadProgressModalProps) {
+  return (
+    <>
+      <div
+        className="modal fade show d-block"
+        tabIndex={-1}
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby="fsa-download-progress-title"
+      >
+        <div className="modal-dialog modal-dialog-centered">
+          <div className="modal-content">
+            <div className="modal-header">
+              <h2 className="modal-title fs-5" id="fsa-download-progress-title">
+                {title}
+              </h2>
+            </div>
+
+            <div className="modal-body">
+              <p className="mb-3">{description}</p>
+
+              <div
+                className="progress mb-3"
+                role="progressbar"
+                aria-valuenow={estimatedProgressPercent}
+                aria-valuemin={0}
+                aria-valuemax={100}
+                aria-label="Estimated download progress"
+              >
+                <div
+                  className="progress-bar"
+                  style={{ width: `${estimatedProgressPercent}%` }}
+                >
+                  {estimatedProgressPercent}%
+                </div>
+              </div>
+
+              <div className="small text-muted" aria-live="polite">
+                <div>
+                  Completed <strong>{completedCount}</strong> of{" "}
+                  <strong>{selectedCount}</strong>.
+                </div>
+
+                <div>
+                  Active downloads: <strong>{activeCount}</strong>.
+                </div>
+
+                {activeResumeCount > 0 && (
+                  <div className="text-info">
+                    Resuming <strong>{activeResumeCount}</strong>{" "}
+                    {activeResumeCount === 1 ? "partial file" : "partial files"}
+                    .
+                  </div>
+                )}
+
+                {resumedCount > 0 && (
+                  <div>
+                    Resumed <strong>{resumedCount}</strong>{" "}
+                    {resumedCount === 1 ? "file" : "files"}.
+                  </div>
+                )}
+
+                {skippedCount > 0 && (
+                  <div>
+                    Skipped <strong>{skippedCount}</strong> already-complete{" "}
+                    {skippedCount === 1 ? "file" : "files"}.
+                  </div>
+                )}
+
+                {restartedCount > 0 && (
+                  <div className="text-warning">
+                    Restarted <strong>{restartedCount}</strong>{" "}
+                    {restartedCount === 1
+                      ? "stale partial download"
+                      : "stale partial downloads"}
+                    .
+                  </div>
+                )}
+              </div>
+            </div>
+
+            <div className="modal-footer">
+              <button
+                type="button"
+                className="btn btn-outline-danger"
+                onClick={onCancel}
+              >
+                Cancel downloads
+              </button>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div className="modal-backdrop fade show"></div>
+    </>
+  );
+}
