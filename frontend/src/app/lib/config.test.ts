@@ -13,7 +13,6 @@ vi.mock(import("server-only"), () => {
 
 const completeConfig: Omit<Config, "allowHttp"> = {
   sdaBaseUrl: "https://test.local",
-  sessionSecretPath: "/session-secret",
   nextAuthSecretPath: "/auth-secret",
   nextAuthUrl: "http://localhost:3002",
   oidcClientSecretPath: "/client-secret",
@@ -37,7 +36,7 @@ describe("config loading functions", () => {
 
   test("fail to parse config string when missing options", () => {
     const configWithMissingData: Partial<Config> = { ...completeConfig };
-    delete configWithMissingData.sessionSecretPath;
+    delete configWithMissingData.nextAuthSecretPath;
     expect(() => parseConfig(JSON.stringify(configWithMissingData))).toThrow();
   });
 

@@ -34,14 +34,11 @@ services:
     volumes:
       - ./sdad-config.json:/app/sdad-config.json:ro
     secrets:
-      - frontend-token-secret
       - frontend-oidc-client-secret
       - frontend-oidc-client-id
       - frontend-next-auth-secret
 
 secrets:
-  frontend-token-secret:
-    file: ./secrets/frontend-token-secret.txt
   frontend-oidc-client-secret:
     file: ./secrets/frontend-oidc-client-secret.txt
   frontend-oidc-client-id:

@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { Readable } from "node:stream";
 import * as crypto from "crypto";
-import { getSession } from "@/app/lib/session";
+import { getSession } from "@/app/lib/serverToken";
 import { getConfig } from "@/app/lib/config";
 import {
   fetchDatasetMetadata,

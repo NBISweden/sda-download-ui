@@ -5,7 +5,7 @@ import {
   fetchDatasetFiles,
   fetchAll,
 } from "../../../actions/datasets";
-import { getSession } from "@/app/lib/session";
+import { getSession } from "@/app/lib/serverToken";
 import DatasetDetails from "../../../components/DatasetDetails";
 import DatasetFiles from "@/app/components/DatasetFiles";
 import Alert from "@/app/components/Alert";

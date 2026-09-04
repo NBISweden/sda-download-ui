@@ -1,71 +1,28 @@
-import { expect, it, vi, describe } from "vitest";
+import { describe, it, expect, vi, beforeEach } from "vitest";
 import { postCrypt4GHPublicKey } from "./crypt4ghKey";
-import { ReadonlyRequestCookies } from "next/dist/server/web/spec-extension/adapters/request-cookies";
-import { getSessionManager } from "../lib/SessionManager";
-import { SignJWT } from "jose";
-import * as fs from "fs";
-import { testConfig } from "@/test/testConfig";
+import { updateServerToken, SessionInvalidError } from "@/app/lib/serverToken";
 
-vi.mock(import("next/server"), () => {
-  return {
-    connection: async () => {},
-  };
-});
+vi.mock("server-only", () => ({}));
 
-vi.mock(import("next/headers"), () => {
-  return {
-    cookies: async () => {
-      const sessionManager = await getSessionManager();
-      const token = await createMockToken();
-      const sessionData = await sessionManager.createSessionJWT(
-        { token },
-        Date.now() + 1000,
-      );
+vi.mock("@/app/lib/serverToken", () => ({
+  updateServerToken: vi.fn(),
+}));
 
-      return {
-        set: () => {},
-        get: () => ({
-          value: sessionData,
-        }),
-      } as ReadonlyRequestCookies;
-    },
-  };
-});
-
-vi.mock("fs");
-
-vi.mock(import("@/app/lib/config"), () => {
-  return {
-    getConfig: async () => testConfig,
-  };
-});
-
-vi.mock(import("@/app/lib/oidc"), () => {
-  return {
-    verifyAccessToken: vi.fn(async () => ({
-      exp: Math.floor(Date.now() / 1000) + 60,
-    })),
-  };
-});
-
-vi.mock(import("server-only"), () => {
-  return {};
-});
-
-async function createMockToken() {
-  const secretKey = "no-secrets-in-testing";
-  const secretBuffer = new TextEncoder().encode(secretKey);
-  return await new SignJWT({})
-    .setProtectedHeader({ alg: "HS256" })
-    .setIssuedAt()
-    .setExpirationTime("1s")
-    .sign(secretBuffer);
-}
+vi.mock("@/app/lib/serverToken", () => ({
+  updateServerToken: vi.fn(),
+  SessionInvalidError: class SessionInvalidError extends Error {
+    constructor(msg?: string) {
+      super(msg);
+      this.name = "SessionInvalidError";
+    }
+  },
+}));
 
 const pemContent = `-----BEGIN CRYPT4GH PUBLIC KEY-----
 aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa
 -----END CRYPT4GH PUBLIC KEY-----`;
 const pemContentChecksum = "acc5931d0409670c4a86ba236e934cf2";
+const expectedKey = "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa";
 
 const badPemContent = "bad pem data";
 const badSizePemContent = `-----BEGIN CRYPT4GH PUBLIC KEY-----
@@ -73,9 +30,7 @@ aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa
 -----END CRYPT4GH PUBLIC KEY-----`;
 
 describe("postCrypt4GHPublicKey server action", () => {
-  vi.spyOn(fs, "readFileSync").mockReturnValue(
-    "no-secrets-in-testing-no-secrets-in-testing",
-  );
+  beforeEach(() => vi.clearAllMocks());
 
   it("should fail to process bad PEM key data", async () => {
     const formData: FormData = new FormData();
@@ -84,8 +39,9 @@ describe("postCrypt4GHPublicKey server action", () => {
     const data = await postCrypt4GHPublicKey({}, formData);
 
     expect(data).toEqual({
-      errors: ["Error: Missing PEM header and/or footer for PUBLIC key."],
+      errors: ["Missing PEM header and/or footer for PUBLIC key."],
     });
+    expect(updateServerToken).not.toHaveBeenCalled();
   });
 
   it("should fail to process PEM data with a wrong size key", async () => {
@@ -95,38 +51,82 @@ describe("postCrypt4GHPublicKey server action", () => {
     const data = await postCrypt4GHPublicKey({}, formData);
 
     expect(data).toEqual({
-      errors: ["Error: Incorrect key length 43. Expected 44."],
+      errors: ["Incorrect key length 43. Expected 44."],
     });
+    expect(updateServerToken).not.toHaveBeenCalled();
   });
 
-  it("should successfully receive a PEM key data", async () => {
+  it("should store the public key on the JWT when given PEM text", async () => {
     const formData: FormData = new FormData();
     formData.append("pemKey", pemContent);
     formData.append("action", "submit");
     const data = await postCrypt4GHPublicKey({}, formData);
 
     expect(data).toEqual({ pemChecksum: pemContentChecksum });
+    expect(updateServerToken).toHaveBeenCalledWith({
+      publicKey: { key: expectedKey, pemChecksum: pemContentChecksum },
+    });
   });
 
-  it("should successfully receive a PEM key file", async () => {
+  it("should store the public key on the JWT when given a PEM file", async () => {
     const formData: FormData = new FormData();
     formData.append(
       "pemFile",
-      new File([pemContent], "pemFile.pub", {
-        type: "text/plain",
-      }),
+      new File([pemContent], "pemFile.pub", { type: "text/plain" }),
     );
     formData.append("action", "submit");
     const data = await postCrypt4GHPublicKey({}, formData);
 
     expect(data).toEqual({ pemChecksum: pemContentChecksum });
+    expect(updateServerToken).toHaveBeenCalledWith({
+      publicKey: { key: expectedKey, pemChecksum: pemContentChecksum },
+    });
   });
 
-  it("should successfully remove the public key data", async () => {
+  it("should clear the public key on the JWT when removing", async () => {
     const formData: FormData = new FormData();
     formData.append("action", "remove");
     const data = await postCrypt4GHPublicKey({}, formData);
 
     expect(data).toEqual({ messages: ["Public key removed."] });
+    expect(updateServerToken).toHaveBeenCalledWith({ publicKey: null });
+  });
+
+  it("should not leak unexpected error details to the client", async () => {
+    const consoleError = vi
+      .spyOn(console, "error")
+      .mockImplementation(() => {});
+    vi.mocked(updateServerToken).mockRejectedValueOnce(
+      new Error("SECRET_INTERNAL_DETAIL"),
+    );
+    const formData = new FormData();
+    formData.append("pemKey", pemContent);
+    formData.append("action", "submit");
+    const data = await postCrypt4GHPublicKey({}, formData);
+
+    expect(data).toEqual({
+      errors: ["Could not save the public key. Please try again."],
+    });
+    expect(JSON.stringify(data)).not.toContain("SECRET_INTERNAL_DETAIL");
+    expect(consoleError).toHaveBeenCalledWith(
+      "crypt4gh key upload failed:",
+      expect.any(Error),
+    );
+  });
+
+  it("surfaces a specific message when the session has become invalid", async () => {
+    vi.mocked(updateServerToken).mockRejectedValueOnce(
+      new SessionInvalidError(),
+    );
+
+    const formData = new FormData();
+    formData.append("pemKey", pemContent);
+    formData.append("action", "submit");
+
+    const data = await postCrypt4GHPublicKey({}, formData);
+
+    expect(data).toEqual({
+      errors: ["Your session is no longer valid. Please sign in again."],
+    });
   });
 });

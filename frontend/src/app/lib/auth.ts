@@ -1,9 +1,13 @@
 import "server-only";
 import type { NextAuthOptions } from "next-auth";
 import type { OAuthConfig, Provider } from "next-auth/providers/index";
-import { createOrUpdateSession } from "./session";
+import {
+  encode as defaultEncode,
+  decode as defaultDecode,
+} from "next-auth/jwt";
 import { Config, getConfig } from "./config";
 import fs from "fs";
+import { verifyAccessToken } from "./oidc";
 
 type Profile = {
   sub: string;
@@ -96,6 +100,24 @@ export async function getAuthOptions(): Promise<NextAuthOptions> {
     ],
     session: { strategy: "jwt" },
     pages: { signIn: "/login" },
+    jwt: {
+      // Bind the JWT's `exp` claim to the OAuth access token's `expiresAt`
+      // so NextAuth's own expiry check aligns with the access token's TTL.
+      // Called on sign-in and on every session read.
+      encode: async ({ token, secret, maxAge }) => {
+        const now = Math.floor(Date.now() / 1000);
+        const derivedMaxAge =
+          typeof token?.expiresAt === "number"
+            ? Math.max(token.expiresAt - now, 0)
+            : maxAge;
+        return defaultEncode({
+          token: token ?? {},
+          secret,
+          maxAge: derivedMaxAge,
+        });
+      },
+      decode: defaultDecode,
+    },
     callbacks: {
       jwt: extractJWT,
       session: extractSession,
@@ -107,10 +129,15 @@ export const extractJWT: NonNullable<
   NonNullable<NextAuthOptions["callbacks"]>["jwt"]
 > = async (input) => {
   const { token, account, profile } = input;
-  if (profile?.sub && profile?.email) {
-    if (account) {
-      await createOrUpdateSession({ token: account.access_token });
-    }
+  if (profile?.sub && profile?.email && account?.access_token) {
+    // Verify the access token's signature against the provider JWKS before storing it.
+    // NextAuth has already verified the id token, this is a sanity check at this point.
+    await verifyAccessToken(account.access_token);
+
+    token.accessToken = account.access_token;
+    token.refreshToken = account.refresh_token;
+    token.expiresAt = account.expires_at; // seconds since epoch, per OAuth spec
+    token.publicKey = null;
   }
   return token;
 };
@@ -118,9 +145,15 @@ export const extractJWT: NonNullable<
 export const extractSession: NonNullable<
   NonNullable<NextAuthOptions["callbacks"]>["session"]
 > = async (input) => {
-  const { session } = input;
+  const { session, token } = input;
+  // Security note: anything returned from this callback is reachable from
+  // the browser via useSession() / GET /api/auth/session.
   return {
     ...session,
+    ...(token?.expiresAt
+      ? { expires: new Date(token.expiresAt * 1000).toISOString() }
+      : {}),
+    pemChecksum: token?.publicKey?.pemChecksum ?? null,
   };
 };
 
