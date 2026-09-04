@@ -19,10 +19,21 @@ async function getSecret(): Promise<string> {
   return nextAuthSecret;
 }
 
-async function getCookieName(): Promise<string> {
+// If NextAuth ever renames its cookies (major-version bump), update every
+// name here in sync. Mismatches are silent: reads return null, writes
+// become no-ops, and logout leaves stale cookies behind.
+async function getCookieNames(): Promise<{
+  session: string;
+  csrf: string;
+  callbackUrl: string;
+}> {
   const { nextAuthUrl } = await getConfig();
   const useSecure = nextAuthUrl.startsWith("https://");
-  return `${useSecure ? "__Secure-" : ""}next-auth.session-token`;
+  return {
+    session: `${useSecure ? "__Secure-" : ""}next-auth.session-token`,
+    csrf: `${useSecure ? "__Host-" : ""}next-auth.csrf-token`,
+    callbackUrl: `${useSecure ? "__Secure-" : ""}next-auth.callback-url`,
+  };
 }
 
 // Seconds between now and the OAuth access token's expiry, used when re-encrypting the cookie.
@@ -35,7 +46,8 @@ function remainingSecondsFor(token: JWT): number | null {
 // Decrypt the NextAuth session cookie and return the JWT payload.
 export async function getServerToken(): Promise<JWT | null> {
   const store = await cookies();
-  const raw = store.get(await getCookieName())?.value;
+  const { session } = await getCookieNames();
+  const raw = store.get(session)?.value;
   if (!raw) return null;
   try {
     // decode verifies `exp` (bound to access-token TTL by auth.ts);
@@ -48,7 +60,7 @@ export async function getServerToken(): Promise<JWT | null> {
 // In case we need to modify the c4gh pub key and re-encrypt the cookie.
 export async function updateServerToken(patch: Partial<JWT>): Promise<void> {
   const store = await cookies();
-  const name = await getCookieName();
+  const { session: name } = await getCookieNames();
   const raw = store.get(name)?.value;
   if (!raw) return;
 
@@ -94,17 +106,9 @@ export async function updateServerToken(patch: Partial<JWT>): Promise<void> {
 // Delete the NextAuth session cookie. Also cleanup any other same-origin cookies NextAuth manages (not required).
 export async function clearServerToken(): Promise<void> {
   const store = await cookies();
-  const sessionCookieName = await getCookieName();
+  const { session, csrf, callbackUrl } = await getCookieNames();
 
-  // Same-origin cookies NextAuth manages that we can clean up too.
-  const otherNames = [
-    "next-auth.csrf-token",
-    "__Host-next-auth.csrf-token",
-    "next-auth.callback-url",
-    "__Secure-next-auth.callback-url",
-  ];
-
-  for (const name of [sessionCookieName, ...otherNames]) {
+  for (const name of [session, csrf, callbackUrl]) {
     if (store.get(name)) store.delete(name);
   }
 }
