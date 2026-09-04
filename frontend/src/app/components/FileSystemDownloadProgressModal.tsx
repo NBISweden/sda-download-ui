@@ -1,5 +1,7 @@
 "use client";
 
+import { filesize } from "filesize";
+
 type FileSystemDownloadProgressModalProps = {
   title?: string;
   description?: string;
@@ -10,7 +12,8 @@ type FileSystemDownloadProgressModalProps = {
   resumedCount?: number;
   skippedCount?: number;
   restartedCount?: number;
-  estimatedProgressPercent?: number;
+  downloadedBytes?: number;
+  estimatedTotalBytes?: number;
   onCancel: () => void;
 };
 
@@ -24,9 +27,14 @@ export function FileSystemDownloadProgressModal({
   resumedCount = 0,
   skippedCount = 0,
   restartedCount = 0,
-  estimatedProgressPercent = 0,
+  downloadedBytes = 0,
+  estimatedTotalBytes = 0,
   onCancel,
 }: FileSystemDownloadProgressModalProps) {
+  const estimatedProgressPercent =
+    estimatedTotalBytes > 0
+      ? Math.min(100, Math.round((downloadedBytes / estimatedTotalBytes) * 100))
+      : 0;
   return (
     <>
       <div
@@ -64,6 +72,11 @@ export function FileSystemDownloadProgressModal({
               </div>
 
               <div className="small text-muted" aria-live="polite">
+                <div>
+                  Estimated total size:{" "}
+                  <strong>{filesize(estimatedTotalBytes)}</strong>.
+                </div>
+
                 <div>
                   Completed <strong>{completedCount}</strong> of{" "}
                   <strong>{selectedCount}</strong>.

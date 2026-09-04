@@ -78,10 +78,6 @@ export function FileSystemAccessBatchDownloadActions({
     (sum, file) => sum + getEstimatedFileSize(file),
     0,
   );
-  const estimatedProgressPercent =
-    estimatedTotalBytes > 0
-      ? Math.min(100, Math.round((downloadedBytes / estimatedTotalBytes) * 100))
-      : 0;
 
   async function startDownload() {
     if (!enabled) return;
@@ -266,7 +262,8 @@ export function FileSystemAccessBatchDownloadActions({
           resumedCount={resumedCount}
           skippedCount={skippedCount}
           restartedCount={restartedCount}
-          estimatedProgressPercent={estimatedProgressPercent}
+          downloadedBytes={downloadedBytes}
+          estimatedTotalBytes={estimatedTotalBytes}
           onCancel={cancelDownload}
         />
       )}
@@ -728,8 +725,9 @@ function isAbortError(error: unknown): boolean {
   );
 }
 
-function getEstimatedFileSize(file: DownloadableFile): number {
+export function getEstimatedFileSize(file: DownloadableFile): number {
+  const fileHeaderSize = 140; // From API documentation the header should be 120 to 140 bytes.
   return typeof file.size === "number" && Number.isFinite(file.size)
-    ? file.size
+    ? file.size + fileHeaderSize
     : 0;
 }
