@@ -115,24 +115,31 @@ describe("auth oidc", () => {
     ).rejects.toThrow("bad signature");
   });
 
-  test("extractSession exposes expires + pemChecksum but not tokens", async () => {
+  // Chech for token leaks more strictly.
+  test("extractSession never leaks sensitive JWT fields to the client", async () => {
+    const ACCESS_TOKEN_SENTINEL = "ACCESS_TOKEN_SHOULD_NOT_LEAK";
+    const REFRESH_TOKEN_SENTINEL = "REFRESH_TOKEN_SHOULD_NOT_LEAK";
+    const PUBLIC_KEY_SENTINEL = "PUBLIC_KEY_MATERIAL_SHOULD_NOT_LEAK";
+
     const result = await extractSession({
       session: { expires: "ignored" },
       token: {
-        accessToken: "SECRET",
-        refreshToken: "ALSO_SECRET",
+        accessToken: ACCESS_TOKEN_SENTINEL,
+        refreshToken: REFRESH_TOKEN_SENTINEL,
         expiresAt: 1_700_000_000,
-        publicKey: { key: "k", pemChecksum: "abc" },
+        publicKey: { key: PUBLIC_KEY_SENTINEL, pemChecksum: "abc" },
       },
       user: { id: "", email: "", emailVerified: null },
       trigger: "update",
       newSession: null,
     });
 
-    expect(result).not.toHaveProperty("accessToken");
-    expect(result).not.toHaveProperty("refreshToken");
-    expect(JSON.stringify(result)).not.toContain("SECRET");
-    expect(result).toMatchObject({
+    const serialised = JSON.stringify(result);
+    expect(serialised).not.toContain(ACCESS_TOKEN_SENTINEL);
+    expect(serialised).not.toContain(REFRESH_TOKEN_SENTINEL);
+    expect(serialised).not.toContain(PUBLIC_KEY_SENTINEL);
+
+    expect(result).toEqual({
       expires: new Date(1_700_000_000 * 1000).toISOString(),
       pemChecksum: "abc",
     });
