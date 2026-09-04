@@ -281,6 +281,48 @@ describe("clearServerToken", () => {
     await clearServerToken();
     expect(store.delete).not.toHaveBeenCalled();
   });
+
+  it("also deletes NextAuth csrf-token and callback-url cookies when present", async () => {
+    const store = makeStore({
+      "next-auth.session-token": "s",
+      "next-auth.csrf-token": "c",
+      "next-auth.callback-url": "u",
+    });
+    vi.mocked(cookies).mockResolvedValue(store as never);
+    await clearServerToken();
+    expect(store.delete).toHaveBeenCalledWith("next-auth.session-token");
+    expect(store.delete).toHaveBeenCalledWith("next-auth.csrf-token");
+    expect(store.delete).toHaveBeenCalledWith("next-auth.callback-url");
+  });
+
+  it("also deletes the prefixed csrf-token and callback-url cookies in production", async () => {
+    configState.nextAuthUrl = "https://prod.example.com";
+    const store = makeStore({
+      "__Secure-next-auth.session-token": "s",
+      "__Host-next-auth.csrf-token": "c",
+      "__Secure-next-auth.callback-url": "u",
+    });
+    vi.mocked(cookies).mockResolvedValue(store as never);
+    await clearServerToken();
+    expect(store.delete).toHaveBeenCalledWith(
+      "__Secure-next-auth.session-token",
+    );
+    expect(store.delete).toHaveBeenCalledWith("__Host-next-auth.csrf-token");
+    expect(store.delete).toHaveBeenCalledWith(
+      "__Secure-next-auth.callback-url",
+    );
+  });
+
+  it("only deletes cookies that are actually present", async () => {
+    const store = makeStore({
+      "next-auth.session-token": "s",
+      // csrf-token and callback-url deliberately absent
+    });
+    vi.mocked(cookies).mockResolvedValue(store as never);
+    await clearServerToken();
+    expect(store.delete).toHaveBeenCalledWith("next-auth.session-token");
+    expect(store.delete).toHaveBeenCalledTimes(1);
+  });
 });
 
 describe("getSession", () => {

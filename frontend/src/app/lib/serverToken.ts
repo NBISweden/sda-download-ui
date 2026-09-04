@@ -91,11 +91,22 @@ export async function updateServerToken(patch: Partial<JWT>): Promise<void> {
   });
 }
 
-// Delete the NextAuth session cookie.
+// Delete the NextAuth session cookie. Also cleanup any other same-origin cookies NextAuth manages (not required).
 export async function clearServerToken(): Promise<void> {
   const store = await cookies();
-  const name = await getCookieName();
-  if (store.get(name)) store.delete(name);
+  const sessionCookieName = await getCookieName();
+
+  // Same-origin cookies NextAuth manages that we can clean up too.
+  const otherNames = [
+    "next-auth.csrf-token",
+    "__Host-next-auth.csrf-token",
+    "next-auth.callback-url",
+    "__Secure-next-auth.callback-url",
+  ];
+
+  for (const name of [sessionCookieName, ...otherNames]) {
+    if (store.get(name)) store.delete(name);
+  }
 }
 
 // Session-shaped view over the JWT for the rest of the app. Mostly used as a drop-in
