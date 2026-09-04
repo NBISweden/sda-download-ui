@@ -7,7 +7,6 @@ const relaxedUrl = z.union([z.httpUrl(), z.url({ hostname: /^localhost$/ })]);
 
 const Config = z.strictObject({
   sdaBaseUrl: relaxedUrl,
-  sessionSecretPath: z.string(),
   nextAuthSecretPath: z.string(),
   nextAuthUrl: relaxedUrl,
   oidcClientSecretPath: z.string(),
