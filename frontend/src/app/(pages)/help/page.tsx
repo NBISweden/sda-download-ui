@@ -4,11 +4,12 @@ export default function HelpPage() {
       <div className="container">
         <h2 className="my-3">How to use this download service</h2>
         <p>
-          This web application gives you the opportunity to view datasets that
-          you have excess to and explore the files they contain. To be able to
-          download files or a full dataset you will have to provide information
-          from a key file, see details below. You can also download checksums
-          for the relevant files to verify a correct download.
+          This web application gives you the opportunity to view and download
+          datasets that you have access to and explore the files they contain.
+          To be able to download files or a full dataset you will have to
+          provide information from a key file, see details below. You can also
+          download checksums for the relevant files to verify a correct
+          download.
         </p>
         <h3>Before you start</h3>
         <p>
@@ -33,23 +34,27 @@ export default function HelpPage() {
         <h3>Explore a dataset</h3>
         <p>
           From the list of datasets you can navigate to a specific dataset to
-          see the files it contains. So far, there is now way to show the inner
-          folder structure of a dataset but you can see the path for each file.
-          You can filter and search for certain files or file paths and see each
-          file's checksum. If you want to download anything you first have to
-          upload a public key.
+          see the files it contains. Currently, there is now way to show the
+          inner folder structure of a dataset but you can see the path for each
+          file. You can filter and search for certain files or file paths and
+          see each file's checksum. If you want to download anything you first
+          have to upload a public key.
         </p>
-        <h3>Upload a public key for downloading</h3>
+        <h3>Upload a Crypt4GH public key for downloading</h3>
         <p>
-          If you visit "Your profile" you have the opportunity to upload a
-          public key file. We recommend using the encryption tool Crypt4gh. If
-          you are not familiar with the tool, read more about{" "}
-          <a href="https://crypt4gh.readthedocs.io/latest/">
-            how to generate a crypt4gh key pair
-            <i className="bi bi-box-arrow-up-right ms-1"></i>
+          public key file. This can be created either with a specific crypt4gh
+          utility, e.g.{" "}
+          <a href="https://github.com/neicnordic/crypt4gh#crypt4gh">
+            NeIC crypt4gh <i className="bi bi-box-arrow-up-right ms-1"></i>
           </a>
-          . If you have used a different service to generate a key pair you can
-          instead upload the file content of your public key file directly.
+          or with the command line interface for sda{" "}
+          <a href="https://github.com/NBISweden/sda-cli#sda-cli">
+            sda-sli <i className="bi bi-box-arrow-up-right ms-1"></i>
+          </a>
+          A "key-pair" can be created with either of those tools and then the
+          public part of that can be uploaded. If you have used a different
+          service to generate a key pair you can instead upload the file content
+          of your public key file directly.
         </p>
         <h3>Download files</h3>
         <p>
