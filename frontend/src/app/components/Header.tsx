@@ -2,12 +2,13 @@
 
 import { useState } from "react";
 import { usePathname } from "next/navigation";
-import Link from "next/link";
+import { GuardedLink, useDownloadGuard } from "./DownloadGuard";
 import { logout } from "../actions/logout";
 
 export function Header() {
   const [isNavCollapsed, setIsNavCollapsed] = useState(true);
   const pathname = usePathname();
+  const { requestNavigation } = useDownloadGuard();
 
   const handleNavCollapse = () => setIsNavCollapsed(!isNavCollapsed);
 
@@ -25,14 +26,14 @@ export function Header() {
         data-bs-theme="light"
       >
         <div className="container-fluid fs-5">
-          <Link
+          <GuardedLink
             className={`navbar-brand fs-4 ${isHome ? "text-info" : ""}`}
             href="/"
             aria-current={isHome ? "page" : undefined}
             onClick={() => setIsNavCollapsed(true)}
           >
             Sensitive Data Archive
-          </Link>
+          </GuardedLink>
           <button
             className="navbar-toggler fs-2 d-flex flex-column d-md-none p-3 hamburger"
             type="button"
@@ -56,14 +57,14 @@ export function Header() {
                   (link.href !== "/" && pathname.startsWith(link.href + "/"));
                 return (
                   <li className="nav-item" key={link.href}>
-                    <Link
+                    <GuardedLink
                       className={`nav-link px-3 ${isActive ? "text-info" : ""}`}
                       href={link.href}
                       aria-current={isActive ? "page" : undefined}
                       onClick={() => setIsNavCollapsed(true)}
                     >
                       {link.label}
-                    </Link>
+                    </GuardedLink>
                   </li>
                 );
               })}
@@ -73,7 +74,20 @@ export function Header() {
                   <button
                     type="submit"
                     className="nav-link px-3 border-0 bg-transparent w-100 text-center text-md-start"
-                    onClick={() => setIsNavCollapsed(true)}
+                    onClick={(event) => {
+                      setIsNavCollapsed(true);
+
+                      // Logging out ends the session the download needs, so it is
+                      // guarded like any other way of leaving the page.
+                      const form = event.currentTarget.form;
+
+                      if (
+                        form &&
+                        !requestNavigation(() => form.requestSubmit())
+                      ) {
+                        event.preventDefault();
+                      }
+                    }}
                   >
                     Logout
                   </button>

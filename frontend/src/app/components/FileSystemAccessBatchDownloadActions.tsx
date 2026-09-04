@@ -11,6 +11,7 @@ import {
   type DownloadMetadata,
 } from "@/app/components/fileSystemDownloadMetadata";
 import { FileSystemDownloadProgressModal } from "@/app/components/FileSystemDownloadProgressModal";
+import { useActiveDownloadGuard } from "@/app/components/DownloadGuard";
 
 // Controls the number of active concurrent downloads.
 const FILE_SYSTEM_BATCH_CONCURRENCY = 2;
@@ -206,6 +207,10 @@ export function FileSystemAccessBatchDownloadActions({
     abortControllerRef.current?.abort();
   }
 
+  // Warn before a reload, a tab close or a navigation stops the running batch. The
+  // warning is shown inside the progress modal, which is on screen whenever it applies.
+  const downloadWarning = useActiveDownloadGuard(isDownloading, cancelDownload);
+
   const reason = !canDownload
     ? "Upload your Crypt4GH public key on the profile page to enable downloads."
     : selectedCount === 0
@@ -265,6 +270,7 @@ export function FileSystemAccessBatchDownloadActions({
           downloadedBytes={downloadedBytes}
           estimatedTotalBytes={estimatedTotalBytes}
           onCancel={cancelDownload}
+          warning={downloadWarning}
         />
       )}
     </>
