@@ -21,6 +21,10 @@ body {
   color: $dark;
 }
 
+main {
+  margin-top: 3rem;
+}
+
 @import "bootstrap/scss/functions";
 @import "bootstrap/scss/variables";
 @import "bootstrap/scss/mixins";
@@ -142,4 +146,17 @@ body {
   white-space: nowrap;
   vertical-align: bottom;
   cursor: help;
+}
+
+.help-page-wrapper {
+  width: 65ch;
+  line-height: 1.6;
+}
+
+.help-page-wrapper h3 {
+  margin-top: 2rem;
+}
+
+.help-page-wrapper h4 {
+  margin-top: 1.5rem;
 }
