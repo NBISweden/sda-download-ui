@@ -12,8 +12,6 @@ import * as fs from "fs";
 import { testConfig } from "@/test/testConfig";
 import { verifyAccessToken } from "./oidc";
 
-const accessToken: string = "access_token";
-
 vi.mock("fs");
 
 vi.mock(import("next/server"), () => {

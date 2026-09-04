@@ -31,16 +31,16 @@ vi.mock("./auth", () => ({
   getAuthConfig: () => ({ nextAuthSecret: SECRET }),
 }));
 
+type CookieSetOptions = { maxAge?: number; secure?: boolean };
+
 function makeStore(initial: Record<string, string> = {}) {
   const jar: Record<string, string> = { ...initial };
   return {
     get: (name: string) =>
       name in jar ? { name, value: jar[name] } : undefined,
-    set: vi.fn(
-      (name: string, value: string, _opts?: Record<string, unknown>) => {
-        jar[name] = value;
-      },
-    ),
+    set: vi.fn((name: string, value: string, opts?: CookieSetOptions) => {
+      jar[name] = value;
+    }),
     delete: vi.fn((name: string) => {
       delete jar[name];
     }),
