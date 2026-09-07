@@ -1,6 +1,6 @@
 // Helper module for reading and writing download metadata to the file system using the File System Access API.
 
-export const DOWNLOAD_METADATA_FILENAME = ".download-metadata";
+export const DOWNLOAD_METADATA_FILENAME = ".sda-download-metadata";
 
 const DOWNLOAD_METADATA_VERSION = 1;
 
