@@ -165,14 +165,20 @@ export function DownloadGuardProvider({ children }: { children: ReactNode }) {
     pushGuardHistoryEntry();
 
     const handlePopState = () => {
-      // Re-arm right away so the page stays put while the warning is shown. Each Back
-      // press pops one entry and pushes one back, so the stack length stays the same.
-      pushGuardHistoryEntry();
+      // The browser has already moved. When the guard declines - nothing left to
+      // interrupt, or the user leaving after confirming - that movement has to stand,
+      // since pushing mid-unwind would cost an extra Back press.
+      if (
+        requestNavigation(() => {
+          // Skip both the entry pushed below and the duplicate that was popped.
+          window.history.go(-2);
+        })
+      ) {
+        return;
+      }
 
-      requestNavigation(() => {
-        // Skip both the entry just pushed and the duplicate that was popped.
-        window.history.go(-2);
-      });
+      // Put the position back while the warning is shown: one entry popped, one pushed.
+      pushGuardHistoryEntry();
     };
 
     window.addEventListener("popstate", handlePopState);
