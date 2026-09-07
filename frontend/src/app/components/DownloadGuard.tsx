@@ -159,6 +159,11 @@ export function DownloadGuardProvider({ children }: { children: ReactNode }) {
   useEffect(() => {
     if (!isDownloadActive) return;
 
+    // With nothing to go back to, Back cannot leave the page by itself. Pushing an entry
+    // would hand it a destination the guard is then unable to honour, since the `go(-2)`
+    // below would be out of range: the download would stop without the page changing.
+    if (!hasBackDestination()) return;
+
     // Duplicate the current history entry. The first Back press then lands on the page
     // the user is already on, which gives the guard a chance to ask before the app
     // navigates anywhere.
@@ -299,6 +304,25 @@ export function GuardedLink({ href, ...linkProps }: GuardedLinkProps) {
       }}
     />
   );
+}
+
+// The Navigation API is Chrome-only, as is the File System Access API this guard exists
+// for, so `canGoBack` is available wherever folder downloads are. `history.length` is
+// the fallback for the Chrome versions predating it; it cannot tell a first entry with
+// forward entries after it from a real destination, which only costs the accuracy this
+// check had before.
+type WindowWithNavigation = Window & {
+  navigation?: { canGoBack?: boolean };
+};
+
+function hasBackDestination(): boolean {
+  const { navigation } = window as WindowWithNavigation;
+
+  if (typeof navigation?.canGoBack === "boolean") {
+    return navigation.canGoBack;
+  }
+
+  return window.history.length > 1;
 }
 
 function pushGuardHistoryEntry() {
