@@ -100,7 +100,7 @@ describe("getServerToken", () => {
     expect(await getServerToken()).toBeNull();
   });
 
-  it("reads the __Secure- prefixed cookie in production", async () => {
+  it("reads the __Secure- prefixed cookie when nextAuthUrl is https", async () => {
     configState.nextAuthUrl = "https://prod.example.com";
     const encoded = await encodeCookie(
       { accessToken: "prod", expiresAt: nowSec() + 60 },
@@ -108,7 +108,7 @@ describe("getServerToken", () => {
     );
     vi.mocked(cookies).mockResolvedValue(
       makeStore({
-        // Non-prefixed one is deliberately present but must be ignored in prod.
+        // Non-prefixed one is deliberately present but must be ignored when in https.
         "next-auth.session-token": "wrong",
         "__Secure-next-auth.session-token": encoded,
       }) as never,
@@ -155,7 +155,7 @@ describe("updateServerToken", () => {
     expect(remaining).toBeLessThanOrEqual(3600);
   });
 
-  it("writes the __Secure- prefixed cookie in production", async () => {
+  it("writes the __Secure- prefixed cookie when nextAuthUrl is https", async () => {
     configState.nextAuthUrl = "https://prod.example.com";
     const encoded = await encodeCookie(
       { accessToken: "at", expiresAt: nowSec() + 60 },
@@ -265,7 +265,7 @@ describe("clearServerToken", () => {
     expect(store.delete).toHaveBeenCalledWith("next-auth.session-token");
   });
 
-  it("uses the __Secure- prefixed name in production", async () => {
+  it("uses the __Secure- prefixed name when nextAuthUrl is https", async () => {
     configState.nextAuthUrl = "https://prod.example.com";
     const store = makeStore({ "__Secure-next-auth.session-token": "y" });
     vi.mocked(cookies).mockResolvedValue(store as never);
@@ -295,7 +295,7 @@ describe("clearServerToken", () => {
     expect(store.delete).toHaveBeenCalledWith("next-auth.callback-url");
   });
 
-  it("also deletes the prefixed csrf-token and callback-url cookies in production", async () => {
+  it("also deletes the prefixed csrf-token and callback-url cookies when nextAuthUrl is https", async () => {
     configState.nextAuthUrl = "https://prod.example.com";
     const store = makeStore({
       "__Secure-next-auth.session-token": "s",
