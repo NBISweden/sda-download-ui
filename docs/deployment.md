@@ -41,8 +41,20 @@ The options available in the config file can be described as follows:
 The deployed website contains a page "Help" on which you can display whatever instructions you like.
 This project contains a file `frontend/src/app/help-content.json` that already contains instructions.
 You can modify the file to change, shorten or extend the existing instructions.
-The JSON file is checked by a validation script in `frontend/src/lib/validateHelpContent.ts`. The file contains
-TypeScript type definitions that can help you when formatting the JSON file.
+
+The JSON file is structured as a list of help sections. Each section can define a heading level and heading text, followed by one or more paragraphs.
+A paragraph can either be plain text or an object containing links. Each link requires a display text and a URL (href).
+
+For example, a section may contain:
+
+- level – the heading level, 2,3 or 4
+- heading – the heading text
+- paragraphs – a list of text paragraphs and/or link groups
+- links – a list of links
+- text – the text displayed for a link
+- href – the URL the link points to
+
+The JSON file is checked by a validation script in `frontend/src/lib/validateHelpContent.ts` at runtime so invalid or unsupported structures will cause validation to fail and display an error message on the "Help" page. The file contains TypeScript type definitions that can also help you when formatting the JSON file.
 
 ### Startup
 
