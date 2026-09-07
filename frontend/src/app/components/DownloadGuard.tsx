@@ -27,16 +27,12 @@ const LEAVE_WARNING_LEAVE_LABEL = "Stop the download and leave";
 // Marks the extra history entry the guard pushes, so that it can be recognised later.
 const HISTORY_GUARD_KEY = "sdaDownloadGuardEntry";
 
-// Bootstrap places modals at z-index 1055 and backdrops at 1050. The fallback dialog
-// below has to sit above a download progress modal that is already open.
-const WARNING_Z_INDEX = 1065;
-const WARNING_BACKDROP_Z_INDEX = 1060;
-
 type StopDownload = () => void;
 
 /**
- * The pending warning, handed out so that a component already showing a dialog for the
- * running download can ask the question inside it instead of stacking a second one.
+ * The pending warning. The guard never renders it itself: it is handed to the component
+ * showing the dialog for the running download, which asks the question in there instead
+ * of stacking a second dialog on top.
  */
 export type DownloadGuardWarning = {
   title: string;
@@ -48,15 +44,9 @@ export type DownloadGuardWarning = {
 };
 
 type DownloadGuardValue = {
-  isDownloadActive: boolean;
-
   warning: DownloadGuardWarning | null;
 
   registerDownload: (stopDownload: StopDownload) => () => void;
-
-  // Claims responsibility for displaying `warning`. While at least one host is
-  // registered the guard renders no dialog of its own. Returns the unregister function.
-  registerWarningHost: () => () => void;
 
   // Asks the guard whether a navigation may happen. Returns true when the caller can
   // navigate right away. Returns false when a download is running: the guard then shows
@@ -97,13 +87,6 @@ export function DownloadGuardProvider({ children }: { children: ReactNode }) {
 
   const [isDownloadActive, setIsDownloadActive] = useState(false);
   const [isWarningOpen, setIsWarningOpen] = useState(false);
-  const [warningHostCount, setWarningHostCount] = useState(0);
-
-  const registerWarningHost = useCallback(() => {
-    setWarningHostCount((count) => count + 1);
-
-    return () => setWarningHostCount((count) => Math.max(count - 1, 0));
-  }, []);
 
   const registerDownload = useCallback((stopDownload: StopDownload) => {
     // A new download re-arms the guard after a previous "stop and leave", and clears a
@@ -242,82 +225,13 @@ export function DownloadGuardProvider({ children }: { children: ReactNode }) {
   );
 
   const guard = useMemo(
-    () => ({
-      isDownloadActive,
-      warning,
-      registerDownload,
-      registerWarningHost,
-      requestNavigation,
-    }),
-    [
-      isDownloadActive,
-      warning,
-      registerDownload,
-      registerWarningHost,
-      requestNavigation,
-    ],
+    () => ({ warning, registerDownload, requestNavigation }),
+    [warning, registerDownload, requestNavigation],
   );
 
   return (
     <DownloadGuardContext.Provider value={guard}>
       {children}
-
-      {/*
-        Fallback only. A download that shows a dialog of its own asks the question in
-        there instead, so that the two are never stacked on top of each other.
-      */}
-      {isWarningVisible && warningHostCount === 0 && (
-        <>
-          <div
-            className="modal fade show d-block"
-            style={{ zIndex: WARNING_Z_INDEX }}
-            tabIndex={-1}
-            role="dialog"
-            aria-modal="true"
-            aria-labelledby="download-guard-warning-title"
-          >
-            <div className="modal-dialog modal-dialog-centered">
-              <div className="modal-content">
-                <div className="modal-header">
-                  <h2
-                    className="modal-title fs-5"
-                    id="download-guard-warning-title"
-                  >
-                    {LEAVE_WARNING_TITLE}
-                  </h2>
-                </div>
-
-                <div className="modal-body">
-                  <p className="mb-0">{LEAVE_WARNING_BODY}</p>
-                </div>
-
-                <div className="modal-footer">
-                  <button
-                    type="button"
-                    className="btn btn-primary"
-                    autoFocus
-                    onClick={stayOnPage}
-                  >
-                    {LEAVE_WARNING_STAY_LABEL}
-                  </button>
-                  <button
-                    type="button"
-                    className="btn btn-outline-danger"
-                    onClick={stopDownloadsAndLeave}
-                  >
-                    {LEAVE_WARNING_LEAVE_LABEL}
-                  </button>
-                </div>
-              </div>
-            </div>
-          </div>
-
-          <div
-            className="modal-backdrop fade show"
-            style={{ zIndex: WARNING_BACKDROP_Z_INDEX }}
-          ></div>
-        </>
-      )}
     </DownloadGuardContext.Provider>
   );
 }
@@ -327,15 +241,15 @@ export function DownloadGuardProvider({ children }: { children: ReactNode }) {
  * true, so that the user is warned before an action that would interrupt it.
  * `stopDownload` is called when the user chooses to leave anyway.
  *
- * Returns the pending warning while one is being shown. The caller is expected to
- * render it inside the dialog it already shows for the running download; the guard
- * falls back to a dialog of its own only while no caller is registered.
+ * Returns the pending warning while one is being shown. The caller must render it,
+ * inside the dialog it already shows for the running download: the guard has no dialog
+ * of its own, so ignoring it leaves navigation blocked with nothing on screen.
  */
 export function useActiveDownloadGuard(
   isDownloadRunning: boolean,
   stopDownload: StopDownload,
 ): DownloadGuardWarning | null {
-  const { warning, registerDownload, registerWarningHost } = useDownloadGuard();
+  const { warning, registerDownload } = useDownloadGuard();
   const stopDownloadRef = useRef(stopDownload);
 
   // Keep the latest callback without re-registering the download.
@@ -348,14 +262,6 @@ export function useActiveDownloadGuard(
 
     return registerDownload(() => stopDownloadRef.current());
   }, [isDownloadRunning, registerDownload]);
-
-  // Claim the warning for the same period, since that is exactly while the caller has
-  // its own dialog on screen.
-  useEffect(() => {
-    if (!isDownloadRunning) return;
-
-    return registerWarningHost();
-  }, [isDownloadRunning, registerWarningHost]);
 
   return isDownloadRunning ? warning : null;
 }
