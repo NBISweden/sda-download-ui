@@ -175,15 +175,15 @@ export default function DatasetFiles({
       <div className="input-group col-12 my-3">
         <label
           htmlFor="file-filter"
-          className="input-group-text text-success-emphasis
-                bg-success-subtle border"
+          className="input-group-text text-secondary-emphasis
+                bg-secondary-subtle border border-secondary-subtle"
         >
           Filter files
         </label>
         <input
           id="file-filter"
           type="search"
-          className="form-control"
+          className="form-control border-secondary-subtle"
           placeholder="Search by file ID, path, checksums or decrypted size"
           value={searchTerm}
           onChange={handleSearchChange}
