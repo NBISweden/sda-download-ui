@@ -81,11 +81,26 @@ Stop and remove containers:
 
 ### Download UI production-like build and local run
 
+**Note**: The production-like `docker-compose.yml` is primarily meant for local testing of the production image build. To cover any accidental situation where this is deployed "as is" in a production system, this compose file assumes that sda-download UI makes external calls to LS-AAI and the sda-download service.
+
+For local testing, first create the file `docker-compose.override.yml` next to `docker-compose.yml` and populate it with the following:
+
+```
+services:
+  frontend:
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+      - "localhost:host-gateway"
+
+```
+
 Build and run the production image using the `compose-prod.sh` :
 
 ``` sh
 ./compose-prod.sh up --build
 ```
+
+Note: The script will automatically pick up `docker-compose.override.yml`, if it exists.
 
 Open the UI at:
 

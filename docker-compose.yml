@@ -21,8 +21,6 @@ services:
       start_period: 10s
     ports:
       - 127.0.0.1:3002:3000
-    extra_hosts:
-      - "host.docker.internal:host-gateway"
 
     read_only: true             # similar to readOnlyRootFilesystem
     security_opt:

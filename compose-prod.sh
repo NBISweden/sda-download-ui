@@ -12,4 +12,12 @@ export TAG="${TAG:-latest}"
 export BUILD_GIT_COMMIT="$(git rev-parse --short HEAD 2>/dev/null || true)"
 export BUILD_GIT_BRANCH="$(git symbolic-ref --short -q HEAD 2>/dev/null || true)"
 
-exec docker compose -f docker-compose.yml "$@"
+# Additional local overrides are merged in if the file exists.
+extra=""
+if [ -f docker-compose.override.yml ]; then
+  extra="-f docker-compose.override.yml"
+fi
+
+# extra needs to expand to avoid space issues
+# shellcheck disable=SC2086
+exec docker compose -f docker-compose.yml $extra "$@"
