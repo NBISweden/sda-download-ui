@@ -107,7 +107,6 @@ describe("postCrypt4GHPublicKey server action", () => {
     expect(data).toEqual({
       errors: ["Could not save the public key. Please try again."],
     });
-    expect(JSON.stringify(data)).not.toContain("SECRET_INTERNAL_DETAIL");
     expect(consoleError).toHaveBeenCalledWith(
       "crypt4gh key upload failed:",
       expect.any(Error),
