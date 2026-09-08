@@ -1,9 +1,9 @@
 "use server";
 
 import { redirect, RedirectType } from "next/navigation";
-import { clearSession } from "../lib/session";
+import { clearServerToken } from "@/app/lib/serverToken";
 
 export async function logout() {
-  await clearSession();
+  await clearServerToken();
   redirect("/", RedirectType.replace);
 }

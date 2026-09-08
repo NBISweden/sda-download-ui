@@ -1,4 +1,4 @@
-import { getSession } from "./lib/session";
+import { getSession } from "@/app/lib/serverToken";
 import { PageWrapper } from "./components/PageWrapper";
 import { LsaaiSignInButton } from "@/app/components/LsaaiSignInButton";
 

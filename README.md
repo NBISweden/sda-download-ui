@@ -30,24 +30,28 @@ In order to start the dev stack you will need to create a configuration
 file. As a starting point for your config file you can copy
 `sdad-config.json.example` to `sdad-config.json`.
 
-The example config includes `sessionSecretPath` which points to the
-path where `frontend-token-secret` is located. Configuring the secret
-involves creating the file `secrets/frontend-token-secret.txt`.
+The example config includes `nextAuthSecretPath` which points to the
+path where `frontend-next-auth-secret` is located. Configuring the secret
+involves creating the file `secrets/frontend-next-auth-secret.txt`.
 This can be done by using the following command:
 
 ```sh
-openssl rand -base64 32 > secrets/frontend-token-secret.txt
+openssl rand -base64 32 > secrets/frontend-next-auth-secret.txt
 ```
 
 In the `secrets` folder you also need to create the files
-- `frontend-next-auth-secret.txt`
 - `frontend-oidc-client-id`
 - `frontend-oidc-client-secret`
+
+These can be rabdom 16-character alphanumeric strings, e.g created by the command:
+
+```sh
+openssl rand -base64 12 | tr -dc 'A-Za-z0-9' | head -c 16 > secrets/frontend-oidc-client-secret.txt
+```
 
 The options available in the config file can be described as follows:
 | Option | Type | Description |
 | :----- | :--- | :---------- |
-| `sessionSecretPath` | File path | Path to session secret file. |
 | `oidcClientSecretPath` | File path | Path to OIDC client secret file. |
 | `oidcClientIdPath` | File path | Path to OIDC client id file. |
 | `sdaBaseUrl` | HTTP url | The base url to the SDA Download API. |

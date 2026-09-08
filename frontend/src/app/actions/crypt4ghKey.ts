@@ -1,7 +1,10 @@
 "use server";
 import { z } from "zod";
-import { createOrUpdateSession } from "@/app/lib/session";
-import { validateCrypt4GHPublicKey } from "../lib/crypt4gh";
+import { updateServerToken, SessionInvalidError } from "@/app/lib/serverToken";
+import {
+  validateCrypt4GHPublicKey,
+  Crypt4ghValidationError,
+} from "../lib/crypt4gh";
 import * as crypto from "crypto";
 
 const Crypt4GHForm = z.object({
@@ -44,7 +47,7 @@ export async function postCrypt4GHPublicKey(
   }
 
   if (validatedFields.data.action === "remove") {
-    await createOrUpdateSession({
+    await updateServerToken({
       publicKey: null,
     });
     return {
@@ -56,18 +59,22 @@ export async function postCrypt4GHPublicKey(
     const { key, pemChecksum } = await parseCrypt4GHPublicKey(
       validatedFields.data,
     );
-    await createOrUpdateSession({
-      publicKey: {
-        key,
-        pemChecksum,
-      },
-    });
-    return {
-      pemChecksum,
-    };
+    await updateServerToken({ publicKey: { key, pemChecksum } });
+    return { pemChecksum };
   } catch (e) {
+    // Only surface messages from known, user-facing validation errors
+    // so that we don't accidentally expose sensitive information.
+    if (e instanceof Crypt4ghValidationError) {
+      return { errors: [e.message] };
+    }
+    if (e instanceof SessionInvalidError) {
+      return {
+        errors: ["Your session is no longer valid. Please sign in again."],
+      };
+    }
+    console.error("crypt4gh key upload failed:", e);
     return {
-      errors: [String(e)],
+      errors: ["Could not save the public key. Please try again."],
     };
   }
 }
@@ -77,7 +84,7 @@ export async function parseCrypt4GHPublicKey(data: Crypt4GHForm) {
   const pemData = fileData || (data.pemKey ? data.pemKey : null);
 
   if (!pemData) {
-    throw new Error(
+    throw new Crypt4ghValidationError(
       "You need to supply either the content of a public key PEM file or the PEM file itself.",
     );
   }

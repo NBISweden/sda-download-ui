@@ -7,10 +7,10 @@ import {
   getAuthOptions,
 } from "./auth";
 import { Account, User } from "next-auth";
+import { decode as defaultDecode } from "next-auth/jwt";
 import * as fs from "fs";
 import { testConfig } from "@/test/testConfig";
-
-const accessToken: string = "access_token";
+import { verifyAccessToken } from "./oidc";
 
 vi.mock("fs");
 
@@ -36,13 +36,9 @@ vi.mock(import("@/app/lib/config"), () => {
   };
 });
 
-vi.mock(import("@/app/lib/session"), () => {
-  return {
-    createOrUpdateSession: vi.fn(),
-  };
-});
-
-import { createOrUpdateSession } from "./session";
+vi.mock("./oidc", () => ({
+  verifyAccessToken: vi.fn(),
+}));
 
 describe("auth oidc", () => {
   beforeEach(() => {
@@ -80,39 +76,71 @@ describe("auth oidc", () => {
     });
   });
 
-  test("extract JWT information", async () => {
-    const token = { token: "The token" };
-    vi.mocked(createOrUpdateSession).mockImplementation(() =>
-      Promise.resolve(),
-    );
-    const profile = {
-      sub: "sub123",
-      email: "email123@local.local",
-    };
+  test("extractJWT verifies the access token and copies fields", async () => {
+    vi.mocked(verifyAccessToken).mockResolvedValue({} as never);
+
+    const account = {
+      access_token: "at",
+      refresh_token: "rt",
+      expires_at: 1_700_000_000,
+    } as Account;
+    const profile = { sub: "u1", email: "u1@example.com" };
+
     const result = await extractJWT({
+      token: {},
+      account,
+      profile,
       user: {} as User,
-      token: token,
-      profile: profile,
-      account: { access_token: accessToken } as Account,
     });
-    expect(result).toStrictEqual(token);
-    expect(createOrUpdateSession).toHaveBeenCalledWith({
-      token: accessToken,
+
+    expect(verifyAccessToken).toHaveBeenCalledWith("at");
+    expect(result).toEqual({
+      accessToken: "at",
+      refreshToken: "rt",
+      expiresAt: 1_700_000_000,
+      publicKey: null,
     });
   });
 
-  test("extract Session information", async () => {
-    const session = {
-      expires: "2026-06-03",
-    };
+  test("extractJWT does not populate the token when verification fails", async () => {
+    vi.mocked(verifyAccessToken).mockRejectedValue(new Error("bad signature"));
+
+    const account = { access_token: "at" } as Account;
+    const profile = { sub: "u1", email: "u1@example.com" };
+
+    await expect(
+      extractJWT({ token: {}, account, profile, user: {} as User }),
+    ).rejects.toThrow("bad signature");
+  });
+
+  // Chech for token leaks more strictly.
+  test("extractSession never leaks sensitive JWT fields to the client", async () => {
+    const ACCESS_TOKEN_SENTINEL = "ACCESS_TOKEN_SHOULD_NOT_LEAK";
+    const REFRESH_TOKEN_SENTINEL = "REFRESH_TOKEN_SHOULD_NOT_LEAK";
+    const PUBLIC_KEY_SENTINEL = "PUBLIC_KEY_MATERIAL_SHOULD_NOT_LEAK";
+
     const result = await extractSession({
-      session: session,
-      token: {},
+      session: { expires: "ignored" },
+      token: {
+        accessToken: ACCESS_TOKEN_SENTINEL,
+        refreshToken: REFRESH_TOKEN_SENTINEL,
+        expiresAt: 1_700_000_000,
+        publicKey: { key: PUBLIC_KEY_SENTINEL, pemChecksum: "abc" },
+      },
       user: { id: "", email: "", emailVerified: null },
       trigger: "update",
       newSession: null,
     });
-    expect(result).toStrictEqual(session);
+
+    const serialised = JSON.stringify(result);
+    expect(serialised).not.toContain(ACCESS_TOKEN_SENTINEL);
+    expect(serialised).not.toContain(REFRESH_TOKEN_SENTINEL);
+    expect(serialised).not.toContain(PUBLIC_KEY_SENTINEL);
+
+    expect(result).toEqual({
+      expires: new Date(1_700_000_000 * 1000).toISOString(),
+      pemChecksum: "abc",
+    });
   });
 
   test("extract Profile information", async () => {
@@ -144,7 +172,7 @@ describe("auth oidc", () => {
   test("get auth options", async () => {
     const options = await getAuthOptions();
     vi.spyOn(fs, "readFileSync").mockImplementation((path) => String(path));
-    expect(options).toStrictEqual({
+    expect(options).toMatchObject({
       secret: testConfig.nextAuthSecretPath,
       providers: [
         LsaaiOidcProvider(testConfig.oidcRoot, {
@@ -159,5 +187,25 @@ describe("auth oidc", () => {
         session: extractSession,
       },
     });
+    expect(options.jwt?.encode).toBeInstanceOf(Function);
+    expect(options.jwt?.decode).toBe(defaultDecode);
+  });
+
+  test("jwt.encode derives maxAge from token.expiresAt", async () => {
+    const options = await getAuthOptions();
+    const encodeSpy = vi
+      .spyOn(await import("next-auth/jwt"), "encode")
+      .mockResolvedValue("stub");
+
+    const nowSec = Math.floor(Date.now() / 1000);
+    await options.jwt!.encode!({
+      token: { accessToken: "at", expiresAt: nowSec + 600 },
+      secret: "s",
+      maxAge: 999, // should be ignored
+    });
+
+    const call = encodeSpy.mock.calls.at(-1)![0];
+    expect(call.maxAge).toBeGreaterThan(500);
+    expect(call.maxAge).toBeLessThanOrEqual(600);
   });
 });
