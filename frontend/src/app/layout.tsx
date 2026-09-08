@@ -5,8 +5,7 @@ import BootstrapClient from "@/app/components/BootstrapClient";
 import "./globals.scss";
 import { Header } from "./components/Header";
 import { SessionExpiryWatcher } from "./components/SessionExpiryWatcher";
-import { getSession } from "./lib/session";
-import { decodeJwt } from "jose";
+import { getServerToken } from "./lib/serverToken";
 
 export const metadata: Metadata = {
   title: "SDA Download UI",
@@ -16,8 +15,8 @@ export const metadata: Metadata = {
 export default async function RootLayout({
   children,
 }: Readonly<{ children: React.ReactNode }>) {
-  const session = await getSession();
-  const exp = session?.token ? decodeJwt(session.token).exp : undefined;
+  const jwt = await getServerToken();
+  const expiresAtMs = jwt?.expiresAt ? jwt.expiresAt * 1000 : undefined; // `expiresAt` is seconds since epoch; convert once for the client watcher.
 
   return (
     <html lang="en">
@@ -25,7 +24,7 @@ export default async function RootLayout({
         <Header />
         <BootstrapClient />
         {children}
-        {exp && <SessionExpiryWatcher expiresAt={exp * 1000} />}
+        {expiresAtMs && <SessionExpiryWatcher expiresAt={expiresAtMs} />}
       </body>
     </html>
   );

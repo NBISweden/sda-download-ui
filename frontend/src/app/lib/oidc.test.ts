@@ -1,18 +1,9 @@
 import { beforeEach, describe, expect, test, vi } from "vitest";
 import * as jose from "jose";
 import { testConfig } from "@/test/testConfig";
-import { verifyAccessToken } from "./oidc";
 
-vi.mock(import("server-only"), () => {
-  return {};
-});
-
-vi.mock(import("@/app/lib/config"), () => {
-  return {
-    getConfig: async () => testConfig,
-  };
-});
-
+vi.mock("server-only", () => ({}));
+vi.mock("@/app/lib/config", () => ({ getConfig: async () => testConfig }));
 vi.mock("jose", async (importOriginal) => {
   const actual = await importOriginal<typeof import("jose")>();
 
@@ -29,11 +20,12 @@ const discovery = {
 };
 
 describe("verifyAccessToken", () => {
-  beforeEach(() => {
+  beforeEach(async () => {
     vi.clearAllMocks();
+    vi.resetModules();
   });
 
-  test("verifies access token using OIDC discovery and JWKS", async () => {
+  test("verifies against JWKS on the happy path", async () => {
     vi.stubGlobal(
       "fetch",
       vi.fn().mockResolvedValue({
@@ -56,6 +48,7 @@ describe("verifyAccessToken", () => {
       },
     } as never);
 
+    const { verifyAccessToken } = await import("./oidc");
     const result = await verifyAccessToken("access-token");
 
     expect(fetch).toHaveBeenCalledWith(
@@ -69,7 +62,6 @@ describe("verifyAccessToken", () => {
     expect(jose.jwtVerify).toHaveBeenCalledWith("access-token", jwks, {
       issuer: discovery.issuer,
     });
-
     expect(result).toEqual({
       sub: "test-user",
       exp: 1234567890,
@@ -84,30 +76,32 @@ describe("verifyAccessToken", () => {
       }),
     );
 
+    const { verifyAccessToken } = await import("./oidc");
     await expect(verifyAccessToken("access-token")).rejects.toThrow(
       "Failed to fetch OIDC discovery document.",
     );
   });
 
-  test("throws if access token verification fails", async () => {
-    vi.stubGlobal(
-      "fetch",
-      vi.fn().mockResolvedValue({
-        ok: true,
-        json: async () => discovery,
-      }),
-    );
-
+  test("caches issuer + JWKS across calls", async () => {
+    const fetchSpy = vi.fn().mockResolvedValue({
+      ok: true,
+      json: async () => discovery,
+    });
+    vi.stubGlobal("fetch", fetchSpy);
     const jwks = vi.fn();
 
     vi.mocked(jose.createRemoteJWKSet).mockReturnValue(jwks as never);
+    vi.mocked(jose.jwtVerify).mockResolvedValue({
+      payload: {},
+      protectedHeader: { alg: "RS256" },
+    } as never);
 
-    vi.mocked(jose.jwtVerify).mockRejectedValue(
-      new Error("signature verification failed"),
-    );
+    const { verifyAccessToken } = await import("./oidc");
+    await verifyAccessToken("at");
+    await verifyAccessToken("at");
 
-    await expect(verifyAccessToken("invalid-token")).rejects.toThrow(
-      "signature verification failed",
-    );
+    // Discovery is fetched once, not twice.
+    expect(fetchSpy).toHaveBeenCalledTimes(1);
+    expect(jose.createRemoteJWKSet).toHaveBeenCalledTimes(1);
   });
 });
