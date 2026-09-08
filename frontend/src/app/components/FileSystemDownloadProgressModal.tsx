@@ -3,6 +3,7 @@
 import type { DownloadGuardWarning } from "@/app/components/DownloadGuard";
 
 import { filesize } from "filesize";
+import prettyMilliseconds from "pretty-ms";
 
 type FileSystemDownloadProgressModalProps = {
   title?: string;
@@ -16,6 +17,7 @@ type FileSystemDownloadProgressModalProps = {
   restartedCount?: number;
   downloadedBytes?: number;
   estimatedTotalBytes?: number;
+  estimatedDownloadSpeed?: number;
   onCancel: () => void;
 
   // Replaces the description and the cancel button with the question, keeping the
@@ -37,6 +39,7 @@ export function FileSystemDownloadProgressModal({
   restartedCount = 0,
   downloadedBytes = 0,
   estimatedTotalBytes = 0,
+  estimatedDownloadSpeed = 0,
   onCancel,
   warning = null,
 }: FileSystemDownloadProgressModalProps) {
@@ -84,6 +87,25 @@ export function FileSystemDownloadProgressModal({
                 <div>
                   Estimated total size:{" "}
                   <strong>{filesize(estimatedTotalBytes)}</strong>.
+                </div>
+
+                <div>
+                  Estimated download speed:{" "}
+                  <strong>{filesize(estimatedDownloadSpeed * 1000)} / s</strong>
+                  .
+                </div>
+
+                <div>
+                  Estimated download time:{" "}
+                  <strong>
+                    {estimatedDownloadSpeed > 0
+                      ? prettyMilliseconds(
+                          (estimatedTotalBytes - downloadedBytes) /
+                            estimatedDownloadSpeed,
+                        )
+                      : "-"}
+                  </strong>
+                  .
                 </div>
 
                 <div>
