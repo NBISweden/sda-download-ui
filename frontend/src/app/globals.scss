@@ -160,3 +160,9 @@ main {
 .help-page-wrapper h4 {
   margin-top: 1.5rem;
 }
+
+.dropdown-item[aria-disabled="true"] {
+  color: var(--bs-dropdown-link-disabled-color);
+  background-color: transparent;
+  cursor: default;
+}

@@ -1,7 +1,13 @@
+"use client";
+
+import { ReactNode } from "react";
+import InfoTooltip from "./InfoTooltip";
+
 type DropdownItem = {
   label: string;
   onClick?: () => void;
   disabled?: boolean;
+  disabledReason?: ReactNode; // tooltip, shown only while disabled
   modalTarget?: string;
 };
 
@@ -26,7 +32,7 @@ export default function DropdownButton({
   return (
     <div className="dropdown">
       <button
-        className="btn btn-outline-primary dropdown-toggle me-3"
+        className="btn btn-primary dropdown-toggle me-3"
         type="button"
         data-bs-toggle="dropdown"
         aria-expanded="false"
@@ -37,25 +43,40 @@ export default function DropdownButton({
 
       <ul className="dropdown-menu">
         {items.map((item) => {
-          const modalAttributes = item.modalTarget
-            ? {
-                "data-bs-toggle": "modal",
-                "data-bs-target": item.modalTarget,
-              }
-            : {};
+          const modalAttributes =
+            item.modalTarget && !item.disabled
+              ? {
+                  "data-bs-toggle": "modal",
+                  "data-bs-target": item.modalTarget,
+                }
+              : {};
+
+          const button = (
+            <button
+              type="button"
+              // We use custom styles to let the button appear disabled
+              // because the disabled prop would block the tooltip on hover.
+              className="dropdown-item"
+              onClick={item.disabled ? undefined : item.onClick}
+              aria-disabled={item.disabled || undefined}
+              {...modalAttributes}
+            >
+              {item.label}
+            </button>
+          );
 
           return (
-            <li key={item.label}>
-              <button
-                type="button"
-                className="dropdown-item"
-                onClick={item.onClick}
-                disabled={item.disabled}
-                {...modalAttributes}
-              >
-                {item.label}
-              </button>
-            </li>
+            <>
+              <li key={item.label}>
+                {item.disabled && item.disabledReason ? (
+                  <InfoTooltip content={item.disabledReason} side="right">
+                    {button}
+                  </InfoTooltip>
+                ) : (
+                  button
+                )}
+              </li>
+            </>
           );
         })}
       </ul>
