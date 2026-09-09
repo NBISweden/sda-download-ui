@@ -66,17 +66,15 @@ export default function DropdownButton({
           );
 
           return (
-            <>
-              <li key={item.label}>
-                {item.disabled && item.disabledReason ? (
-                  <InfoTooltip content={item.disabledReason} side="right">
-                    {button}
-                  </InfoTooltip>
-                ) : (
-                  button
-                )}
-              </li>
-            </>
+            <li key={item.label}>
+              {item.disabled && item.disabledReason ? (
+                <InfoTooltip content={item.disabledReason} side="right">
+                  {button}
+                </InfoTooltip>
+              ) : (
+                button
+              )}
+            </li>
           );
         })}
       </ul>

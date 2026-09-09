@@ -209,7 +209,7 @@ export function useFileSystemAccessBatchDownload({
       } else {
         const message =
           error instanceof Error ? error.message : "Download failed.";
-        setError({ message: message });
+        setError({ message });
       }
     } finally {
       setIsDownloading(false);
@@ -259,10 +259,7 @@ export function FileSystemDownloadOverlays({
 }) {
   return (
     <>
-      <NoticeModal
-        id="fsa-download-notice-modal"
-        notice={error && error.message ? error : null}
-      />
+      <NoticeModal id="fsa-download-notice-modal" notice={error} />
 
       {isDownloading && (
         <FileSystemDownloadProgressModal {...progress} onCancel={onCancel} />

@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useState, useSyncExternalStore } from "react";
+import { useMemo, useState } from "react";
 import type { DatasetFile } from "@/app/actions/datasets";
 import DropdownButton from "@/app/components/DropdownButton";
 import { NoticeModal } from "./NoticeModal";
@@ -106,10 +106,7 @@ export function DownloadOptionsMenu({
           },
         ]}
       />
-      <NoticeModal
-        id="checksum-export-notice-modal"
-        notice={fsaDownload.error}
-      />
+      <NoticeModal id="checksum-export-notice-modal" notice={notice} />
       <FileSystemDownloadOverlays
         isDownloading={fsaDownload.isDownloading}
         error={fsaDownload.error}

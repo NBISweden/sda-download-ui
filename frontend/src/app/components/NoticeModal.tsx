@@ -10,9 +10,9 @@ type NoticeModalProps = {
 };
 
 /**
-The ModalDialog uses a bootstrap component and needs a button click to become visible. 
-This components works as a wrapper around the ModalDialog to trigger it by programatically "clicking" an invisible button. 
-This way we can reuse the ModalDialog to display error messages: it's shown whenever a new notice / error message is set.
+ * ModalDialog is a Bootstrap modal that requires a button click to open.
+ * This component wraps ModalDialog and triggers it by programmatically clicking a hidden button
+ * whenever a new notice/error message is set.
  */
 
 export function NoticeModal({
