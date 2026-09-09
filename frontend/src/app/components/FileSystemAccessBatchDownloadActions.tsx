@@ -1,6 +1,12 @@
 "use client";
 
-import { useCallback, useRef, useState, useSyncExternalStore } from "react";
+import {
+  useCallback,
+  ReactNode,
+  useRef,
+  useState,
+  useSyncExternalStore,
+} from "react";
 import type { DatasetFile } from "@/app/actions/datasets";
 import {
   cloneDownloadMetadata,
@@ -12,6 +18,12 @@ import {
 import { FileSystemDownloadProgressModal } from "@/app/components/FileSystemDownloadProgressModal";
 import { useActiveDownloadGuard } from "@/app/components/DownloadGuard";
 import { NoticeModal } from "./NoticeModal";
+import {
+  DownloadableFile,
+  FileSystemDownloadHandle,
+  FSABatchDownloadContext,
+  FSADownloadState,
+} from "./FileSystemAccessBatchDownloadContext";
 
 // Controls the number of active concurrent downloads.
 const FILE_SYSTEM_BATCH_CONCURRENCY = 2;
@@ -21,17 +33,6 @@ const FILE_SYSTEM_BATCH_CONCURRENCY = 2;
 // avoid losing too much progress in case of a crash.
 const FS_DOWNLOAD_STARTING_CHECKPOINT = 512 * 1024 * 1024; // 512 MiB
 const FS_DOWNLOAD_CHECKPOINT_INTERVAL_CAP = 4 * 1024 * 1024 * 1024; // 4 GiB
-
-// Include size in DownloadableFile to allow for byte based progress.
-type DownloadableFile = Pick<DatasetFile, "fileId" | "filePath"> &
-  Partial<Pick<DatasetFile, "size">>;
-
-// We need fileId for /api/files/:fileId and filePath to
-// preserve the dataset folder structure.
-type FileSystemAccessBatchDownloadActionsProps = {
-  selectedFiles: DownloadableFile[];
-  canDownload: boolean;
-};
 
 type SaveMetadata = () => Promise<void>;
 
@@ -51,23 +52,11 @@ type WindowWithDirectoryPicker = Window & {
   showDirectoryPicker?: unknown;
 };
 
-export type FileSystemDownloadProgress = {
-  selectedCount: number;
-  completedCount: number;
-  activeCount: number;
-  activeResumeCount: number;
-  resumedCount: number;
-  skippedCount: number;
-  restartedCount: number;
-  downloadedBytes: number;
-  estimatedTotalBytes: number;
-};
-
-export function useFileSystemAccessBatchDownload({
-  selectedFiles,
-  canDownload,
-}: FileSystemAccessBatchDownloadActionsProps) {
-  const [isDownloading, setIsDownloading] = useState(false);
+export function useFileSystemAccessBatchDownload() {
+  const [selectedFiles, setSelectedFiles] = useState<{
+    files: DownloadableFile[];
+    estimatedTotalBytes: number;
+  } | null>(null);
   const [completedCount, setCompletedCount] = useState(0);
   const [activeCount, setActiveCount] = useState(0);
   const [error, setError] = useState<{ message: string } | null>(null);
@@ -81,18 +70,13 @@ export function useFileSystemAccessBatchDownload({
     useDownloadSpeedEstimate();
 
   const abortControllerRef = useRef<AbortController | null>(null);
-
-  const selectedCount = selectedFiles.length;
-  const enabled = canDownload && selectedCount > 0 && !isDownloading;
+  const selectedCount = selectedFiles ? selectedFiles.files.length : 0;
+  const isDownloading = !!selectedFiles;
 
   // For progress reporting purposes.
-  const estimatedTotalBytes = selectedFiles.reduce(
-    (sum, file) => sum + getEstimatedFileSize(file),
-    0,
-  );
 
-  async function startDownload() {
-    if (!enabled) return;
+  async function startDownload(files: DownloadableFile[]) {
+    if (files.length === 0) return;
 
     // Check that the browser supports the File System Access API.
     // Here we check for the existence of `showDirectoryPicker` in the window object and ensure it's a function.
@@ -109,9 +93,15 @@ export function useFileSystemAccessBatchDownload({
     }
 
     setError(null);
+
+    // For progress reporting purposes.
+    const estimatedTotalBytes = (files || []).reduce(
+      (sum, file) => sum + getEstimatedFileSize(file),
+      0,
+    );
     setCompletedCount(0);
     setActiveCount(0);
-    setIsDownloading(true);
+    setSelectedFiles({ files, estimatedTotalBytes });
     setActiveResumeCount(0);
     setResumedCount(0);
     setSkippedCount(0);
@@ -147,7 +137,7 @@ export function useFileSystemAccessBatchDownload({
       };
 
       await runWithConcurrency(
-        selectedFiles,
+        files,
         FILE_SYSTEM_BATCH_CONCURRENCY,
         abortController.signal,
         async (file) => {
@@ -212,7 +202,7 @@ export function useFileSystemAccessBatchDownload({
         setError({ message });
       }
     } finally {
-      setIsDownloading(false);
+      setSelectedFiles(null);
       abortControllerRef.current = null;
     }
   }
@@ -225,44 +215,63 @@ export function useFileSystemAccessBatchDownload({
   // warning is shown inside the progress modal, which is on screen whenever it applies.
   const downloadWarning = useActiveDownloadGuard(isDownloading, cancelDownload);
 
-  return {
-    isDownloading,
-    error,
-    startDownload,
-    cancelDownload,
-    progress: {
-      selectedCount,
-      completedCount,
-      activeCount,
-      activeResumeCount,
-      resumedCount,
-      skippedCount,
-      restartedCount,
-      downloadedBytes,
-      estimatedTotalBytes,
-      estimatedDownloadSpeed,
-      warning: downloadWarning,
-    },
-  };
+  const value: FSADownloadState = isDownloading
+    ? {
+        error,
+        currentDownload: {
+          progress: {
+            selectedCount,
+            completedCount,
+            activeCount,
+            activeResumeCount,
+            resumedCount,
+            skippedCount,
+            restartedCount,
+            downloadedBytes,
+            estimatedTotalBytes: selectedFiles.estimatedTotalBytes,
+            estimatedDownloadSpeed,
+            warning: downloadWarning,
+          },
+          cancelDownload,
+        },
+      }
+    : {
+        error,
+        startDownload,
+      };
+  return value;
+}
+
+export function FileSystemAccessBatchDownloadProvider({
+  children,
+}: {
+  children: ReactNode;
+}) {
+  const value = useFileSystemAccessBatchDownload();
+
+  return (
+    <FSABatchDownloadContext.Provider value={value}>
+      {children}
+    </FSABatchDownloadContext.Provider>
+  );
 }
 
 export function FileSystemDownloadOverlays({
-  isDownloading,
   error,
-  progress,
-  onCancel,
+  downloadHandle,
 }: {
-  isDownloading: boolean;
   error: { message: string } | null;
-  progress: FileSystemDownloadProgress;
-  onCancel: () => void;
+  downloadHandle: FileSystemDownloadHandle | null;
 }) {
   return (
     <>
       <NoticeModal id="fsa-download-notice-modal" notice={error} />
 
-      {isDownloading && (
-        <FileSystemDownloadProgressModal {...progress} onCancel={onCancel} />
+      {downloadHandle && (
+        <FileSystemDownloadProgressModal
+          {...downloadHandle.progress}
+          onCancel={downloadHandle.cancelDownload}
+        />
       )}
     </>
   );
