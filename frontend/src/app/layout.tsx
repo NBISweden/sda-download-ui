@@ -4,6 +4,7 @@ import "bootstrap-icons/font/bootstrap-icons.css";
 import BootstrapClient from "@/app/components/BootstrapClient";
 import "./globals.scss";
 import { Header } from "./components/Header";
+import { DownloadGuardProvider } from "./components/DownloadGuard";
 import { SessionExpiryWatcher } from "./components/SessionExpiryWatcher";
 import { getServerToken } from "./lib/serverToken";
 
@@ -21,9 +22,11 @@ export default async function RootLayout({
   return (
     <html lang="en">
       <body>
-        <Header />
-        <BootstrapClient />
-        {children}
+        <DownloadGuardProvider>
+          <Header />
+          <BootstrapClient />
+          {children}
+        </DownloadGuardProvider>
         {expiresAtMs && <SessionExpiryWatcher expiresAt={expiresAtMs} />}
       </body>
     </html>
