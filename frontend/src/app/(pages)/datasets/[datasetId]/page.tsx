@@ -83,7 +83,11 @@ export default async function DatasetDetailsView({
               />
             ) : (
               <>
-                <DatasetDetails dataset={dataset} files={files} />
+                <DatasetDetails
+                  dataset={dataset}
+                  files={files}
+                  canDownload={hasPublicKey}
+                />
                 <div className="col-12 mt-5">
                   <h3>Files</h3>
                   {!hasPublicKey && (

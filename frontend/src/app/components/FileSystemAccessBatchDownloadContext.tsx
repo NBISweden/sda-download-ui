@@ -1,4 +1,4 @@
-import { createContext, useContext } from "react";
+import { createContext, useContext, useSyncExternalStore } from "react";
 import { DownloadGuardWarning } from "./DownloadGuard";
 import { DatasetFile } from "../actions/datasets";
 
@@ -39,4 +39,30 @@ export function useFSABatchDownload(): FSADownloadState {
     throw new Error("Failed to get FSA Batch Download Context");
   }
   return context;
+}
+
+type WindowWithDirectoryPicker = Window & {
+  showDirectoryPicker?: unknown;
+};
+
+function subscribe() {
+  return function unsubscribe() {
+    // No clean up needed.
+  };
+}
+
+function getSnapshot() {
+  return (
+    typeof window !== "undefined" &&
+    typeof (window as WindowWithDirectoryPicker).showDirectoryPicker ===
+      "function"
+  );
+}
+
+function getServerSnapshot() {
+  return false;
+}
+
+export function useFileSystemAccessSupported() {
+  return useSyncExternalStore(subscribe, getSnapshot, getServerSnapshot);
 }
