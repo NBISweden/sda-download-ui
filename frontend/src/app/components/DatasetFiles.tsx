@@ -189,22 +189,25 @@ export default function DatasetFiles({
           onChange={handleSearchChange}
         />
       </div>
-      <ItemSelector
-        item={itemsPerPage}
-        setItem={(i) => {
-          setItemsPerPage(i);
-          setCurrentPage(1);
-        }}
-        items={itemsPerPageOptions}
-        label="Items per page"
-      />
-      <Pagination
-        itemsPerPage={itemsPerPage}
-        totalItems={filteredFiles.length}
-        currentPage={currentPage}
-        totalPages={totalPages}
-        onPageChange={setCurrentPage}
-      />
+      <div className="d-flex flex-column flex-lg-row justify-content-between">
+        <Pagination
+          itemsPerPage={itemsPerPage}
+          totalItems={filteredFiles.length}
+          currentPage={currentPage}
+          totalPages={totalPages}
+          onPageChange={setCurrentPage}
+        />
+        <ItemSelector
+          item={itemsPerPage}
+          setItem={(i) => {
+            setItemsPerPage(i);
+            setCurrentPage(1);
+          }}
+          items={itemsPerPageOptions}
+          label="Items per page"
+        />
+      </div>
+
       <div className="d-flex flex-column flex-md-row justify-content-start align-items-start align-items-md-center mb-3 gap-3">
         <div className="d-flex gap-2">
           <button
