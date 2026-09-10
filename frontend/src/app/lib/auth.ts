@@ -33,6 +33,7 @@ export function LsaaiOidcProvider(
           "ga4gh_passport_v1",
           "eduperson_entitlement",
         ].join(" "),
+        prompt: "login",
       },
     },
     idToken: true,
