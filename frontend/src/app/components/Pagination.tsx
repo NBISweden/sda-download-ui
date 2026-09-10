@@ -71,7 +71,7 @@ export default function Pagination({
 
   return (
     <nav aria-label="Pagination">
-      <ul className="pagination flex-wrap">
+      <ul className="pagination flex-wrap mb-1 mb-lg-3">
         {shouldShowPagination && (
           <>
             <li className={`page-item ${isFirstPage ? "disabled" : ""}`}>
