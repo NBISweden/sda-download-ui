@@ -153,7 +153,7 @@ export default function Pagination({
         )}
 
         {shouldShowViewingSummary && (
-          <li className="my-3 my-lg-0 align-self-center">
+          <li className="my-2 my-lg-0 me-3 align-self-center">
             Viewing{" "}
             <strong>
               {startItem}-{endItem}

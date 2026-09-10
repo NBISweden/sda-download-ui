@@ -27,18 +27,18 @@ export function ItemSelector({
   label: string;
 }) {
   return (
-    <div className="col-12 d-flex mb-3">
+    <div className="d-flex mb-2">
       <div className="btn-group flex-grow-0">
         <select
-            className="form-select"
-            aria-label={label}
-            value={item}
-            onChange={(event) => setItem(Number(event.target.value))}
+          className="form-select"
+          aria-label={label}
+          value={item}
+          onChange={(event) => setItem(Number(event.target.value))}
         >
           {items.map((i) => (
-              <option key={i} value={i}>
-                {i}
-              </option>
+            <option key={i} value={i}>
+              {i}
+            </option>
           ))}
         </select>
       </div>
