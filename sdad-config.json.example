@@ -2,6 +2,7 @@
     "sdaBaseUrl": "http://host.docker.internal:8085",
     "nextAuthSecretPath": "/run/secrets/frontend-next-auth-secret",
     "nextAuthUrl": "http://localhost:3002",
+    "postLogoutRedirectUri": "http://localhost:3002/logout-complete",
     "oidcClientSecretPath": "/run/secrets/frontend-oidc-client-secret",
     "oidcClientIdPath": "/run/secrets/frontend-oidc-client-id",
     "oidcRoot": "http://host.docker.internal:8800/oidc",
