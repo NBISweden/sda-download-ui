@@ -766,9 +766,10 @@ function useDownloadSpeedEstimate(
       setDownloadState((prev) => {
         const accumulatedBytes = bytes + prev.accumulatedBytes;
         if (prev.lastEstimateUpdateTime === undefined) {
+          // We use the first package to get a start time only. Bytes are ignored.
           return {
             ...prev,
-            accumulatedBytes,
+            accumulatedBytes: 0,
             lastEstimateUpdateTime: currentTime,
           };
         }
