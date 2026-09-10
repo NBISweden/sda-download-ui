@@ -22,7 +22,12 @@ vi.mock("@/app/lib/auth", () => ({
   }),
 }));
 
-const configState: { postLogoutRedirectUri?: string } = {};
+const configState: {
+  postLogoutRedirectUri?: string;
+  nextAuthUrl: string;
+} = {
+  nextAuthUrl: "https://app.example.com",
+};
 
 vi.mock("@/app/lib/config", () => ({
   getConfig: async () => ({ ...configState }),
@@ -84,7 +89,7 @@ describe("signOutOfIdp", () => {
     expect(clearServerToken).toHaveBeenCalledOnce();
   });
 
-  it("redirects to the IdP end-session endpoint with client_id", async () => {
+  it("redirects to the IdP end-session endpoint with client_id and default post_logout_redirect_uri", async () => {
     vi.mocked(getEndSessionEndpoint).mockResolvedValue(
       "https://idp.example.com/logout",
     );
@@ -99,7 +104,11 @@ describe("signOutOfIdp", () => {
       "https://idp.example.com/logout",
     );
     expect(url.searchParams.get("client_id")).toBe("my-client");
-    expect(url.searchParams.has("post_logout_redirect_uri")).toBe(false);
+    // Defaults to `${nextAuthUrl}/logout-complete` so the user gets an
+    // explicit confirmation page if the IdP returns them to us.
+    expect(url.searchParams.get("post_logout_redirect_uri")).toBe(
+      "https://app.example.com/logout-complete",
+    );
   });
 
   it("never sends id_token_hint (in case someone naively adds this in the future after reading the documentation)", async () => {
@@ -114,8 +123,8 @@ describe("signOutOfIdp", () => {
     expect(url.searchParams.has("id_token_hint")).toBe(false);
   });
 
-  it("includes post_logout_redirect_uri when configured", async () => {
-    configState.postLogoutRedirectUri = "https://app.example.com/";
+  it("uses the configured post_logout_redirect_uri as an override when set", async () => {
+    configState.postLogoutRedirectUri = "https://app.example.com/custom-page";
     vi.mocked(getEndSessionEndpoint).mockResolvedValue(
       "https://idp.example.com/logout",
     );
@@ -125,7 +134,7 @@ describe("signOutOfIdp", () => {
     const [target] = vi.mocked(redirect).mock.calls[0];
     const url = new URL(target as string);
     expect(url.searchParams.get("post_logout_redirect_uri")).toBe(
-      "https://app.example.com/",
+      "https://app.example.com/custom-page",
     );
   });
 
