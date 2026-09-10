@@ -95,13 +95,14 @@ export function FileSystemDownloadProgressModal({
                   .
                 </div>
 
-                <div>
-                  Estimated download time:{" "}
+                <div className="mb-3">
+                  Estimated time remaining:{" "}
                   <strong>
                     {estimatedDownloadSpeed > 0
                       ? prettyMilliseconds(
                           (estimatedTotalBytes - downloadedBytes) /
                             estimatedDownloadSpeed,
+                          { secondsDecimalDigits: 0 },
                         )
                       : "-"}
                   </strong>
