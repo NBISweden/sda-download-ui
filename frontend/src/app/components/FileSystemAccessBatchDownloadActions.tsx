@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { ModalDialog } from "@/app/components/ModalDialog";
 import type { DatasetFile } from "@/app/actions/datasets";
 import {
@@ -11,6 +11,7 @@ import {
   type DownloadMetadata,
 } from "@/app/components/fileSystemDownloadMetadata";
 import { FileSystemDownloadProgressModal } from "@/app/components/FileSystemDownloadProgressModal";
+import { useActiveDownloadGuard } from "@/app/components/DownloadGuard";
 
 // Controls the number of active concurrent downloads.
 const FILE_SYSTEM_BATCH_CONCURRENCY = 2;
@@ -59,6 +60,9 @@ export function FileSystemAccessBatchDownloadActions({
   const [skippedCount, setSkippedCount] = useState(0);
   const [restartedCount, setRestartedCount] = useState(0);
   const [downloadedBytes, setDownloadedBytes] = useState(0);
+
+  const [estimatedDownloadSpeed, updateEstimatedDownloadSpeed] =
+    useDownloadSpeedEstimate();
 
   const abortControllerRef = useRef<AbortController | null>(null);
   const errorModalTriggerRef = useRef<HTMLButtonElement>(null);
@@ -155,6 +159,7 @@ export function FileSystemAccessBatchDownloadActions({
                   setActiveResumeCount((count) => count + 1);
                 },
                 onBytesDownloaded: (bytes) => {
+                  updateEstimatedDownloadSpeed(bytes);
                   setDownloadedBytes((current) =>
                     Math.min(current + bytes, estimatedTotalBytes),
                   );
@@ -205,6 +210,10 @@ export function FileSystemAccessBatchDownloadActions({
   function cancelDownload() {
     abortControllerRef.current?.abort();
   }
+
+  // Warn before a reload, a tab close or a navigation stops the running batch. The
+  // warning is shown inside the progress modal, which is on screen whenever it applies.
+  const downloadWarning = useActiveDownloadGuard(isDownloading, cancelDownload);
 
   const reason = !canDownload
     ? "Upload your Crypt4GH public key on the profile page to enable downloads."
@@ -264,7 +273,9 @@ export function FileSystemAccessBatchDownloadActions({
           restartedCount={restartedCount}
           downloadedBytes={downloadedBytes}
           estimatedTotalBytes={estimatedTotalBytes}
+          estimatedDownloadSpeed={estimatedDownloadSpeed}
           onCancel={cancelDownload}
+          warning={downloadWarning}
         />
       )}
     </>
@@ -730,4 +741,56 @@ export function getEstimatedFileSize(file: DownloadableFile): number {
   return typeof file.size === "number" && Number.isFinite(file.size)
     ? file.size + fileHeaderSize
     : 0;
+}
+
+type DownloadSpeedState = {
+  lastEstimatedSpeed: number;
+  lastEstimateUpdateTime?: number;
+  accumulatedBytes: number;
+};
+type UpdateDownloadSpeedFunc = (bytes: number) => void;
+
+function useDownloadSpeedEstimate(
+  minMeasurementTime = 5000,
+  historicWeight = 0.5,
+): [number, UpdateDownloadSpeedFunc] {
+  const [downloadState, setDownloadState] = useState<DownloadSpeedState>({
+    lastEstimatedSpeed: 0,
+    accumulatedBytes: 0,
+  });
+
+  const updateDownloadSpeed = useCallback<UpdateDownloadSpeedFunc>(
+    (bytes) => {
+      const currentTime = Date.now();
+
+      setDownloadState((prev) => {
+        const accumulatedBytes = bytes + prev.accumulatedBytes;
+        if (prev.lastEstimateUpdateTime === undefined) {
+          // We use the first package to get a start time only. Bytes are ignored.
+          return {
+            ...prev,
+            accumulatedBytes: 0,
+            lastEstimateUpdateTime: currentTime,
+          };
+        }
+        const timeDelta = currentTime - prev.lastEstimateUpdateTime;
+
+        return timeDelta >= minMeasurementTime
+          ? {
+              lastEstimateUpdateTime: currentTime,
+              lastEstimatedSpeed:
+                prev.lastEstimatedSpeed * historicWeight +
+                ((1 - historicWeight) * accumulatedBytes) / timeDelta,
+              accumulatedBytes: 0,
+            }
+          : {
+              ...prev,
+              accumulatedBytes,
+            };
+      });
+    },
+    [setDownloadState, minMeasurementTime, historicWeight],
+  );
+
+  return [downloadState.lastEstimatedSpeed, updateDownloadSpeed];
 }

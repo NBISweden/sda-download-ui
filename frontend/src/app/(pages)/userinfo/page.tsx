@@ -1,4 +1,4 @@
-import { getSession } from "@/app/lib/session";
+import { getSession } from "@/app/lib/serverToken";
 import * as jose from "jose";
 import UserInfo from "@/app/components/UserInfo";
 import Alert from "@/app/components/Alert";

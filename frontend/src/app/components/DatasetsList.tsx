@@ -115,15 +115,15 @@ export default function DatasetsList({
       <div className="input-group col-12 mb-3">
         <label
           htmlFor="dataset-filter"
-          className="input-group-text text-success-emphasis
-                bg-success-subtle border "
+          className="input-group-text text-secondary-emphasis
+                bg-secondary-subtle border border-secondary-subtle"
         >
           Filter datasets
         </label>
         <input
           id="dataset-filter"
           type="search"
-          className="form-control"
+          className="form-control border-secondary-subtle"
           placeholder="Search by dataset ID, date, number of files or size"
           value={searchTerm}
           onChange={handleSearchChange}

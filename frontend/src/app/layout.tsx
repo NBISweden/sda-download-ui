@@ -4,9 +4,9 @@ import "bootstrap-icons/font/bootstrap-icons.css";
 import BootstrapClient from "@/app/components/BootstrapClient";
 import "./globals.scss";
 import { Header } from "./components/Header";
+import { DownloadGuardProvider } from "./components/DownloadGuard";
 import { SessionExpiryWatcher } from "./components/SessionExpiryWatcher";
-import { getSession } from "./lib/session";
-import { decodeJwt } from "jose";
+import { getServerToken } from "./lib/serverToken";
 
 export const metadata: Metadata = {
   title: "SDA Download UI",
@@ -16,16 +16,18 @@ export const metadata: Metadata = {
 export default async function RootLayout({
   children,
 }: Readonly<{ children: React.ReactNode }>) {
-  const session = await getSession();
-  const exp = session?.token ? decodeJwt(session.token).exp : undefined;
+  const jwt = await getServerToken();
+  const expiresAtMs = jwt?.expiresAt ? jwt.expiresAt * 1000 : undefined; // `expiresAt` is seconds since epoch; convert once for the client watcher.
 
   return (
     <html lang="en">
       <body>
-        <Header />
-        <BootstrapClient />
-        {children}
-        {exp && <SessionExpiryWatcher expiresAt={exp * 1000} />}
+        <DownloadGuardProvider>
+          <Header />
+          <BootstrapClient />
+          {children}
+        </DownloadGuardProvider>
+        {expiresAtMs && <SessionExpiryWatcher expiresAt={expiresAtMs} />}
       </body>
     </html>
   );
