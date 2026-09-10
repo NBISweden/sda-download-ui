@@ -3,15 +3,18 @@ import DownloadChecksumsButton from "./DownloadChecksumsButton";
 import { DownloadActions } from "@/app/components/DownloadActions";
 import DatasetSize from "./DatasetSize";
 import { formatDatasetDate, formatFileCount } from "../lib/datasetFormat";
+import { FileSystemAccessDownloadButton } from "./FileSystemAccessDownloadButton";
 
 type DatasetDetailsProps = {
   dataset: DatasetMetadata;
   files: DatasetFile[];
+  canDownload: boolean;
 };
 
 export default function DatasetDetails({
   dataset: dataset,
   files: files,
+  canDownload,
 }: DatasetDetailsProps) {
   return (
     <>
@@ -41,6 +44,13 @@ export default function DatasetDetails({
               <DownloadChecksumsButton
                 files={files}
                 datasetId={dataset.datasetId}
+              />
+            </div>
+            <div className="d-flex justify-content-start mt-3">
+              <FileSystemAccessDownloadButton
+                files={files}
+                disabled={!canDownload}
+                label="Download to folder"
               />
             </div>
           </div>

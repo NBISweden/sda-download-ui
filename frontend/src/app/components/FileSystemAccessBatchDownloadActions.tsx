@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useCallback, ReactNode, useEffect, useRef, useState } from "react";
 import { ModalDialog } from "@/app/components/ModalDialog";
 import type { DatasetFile } from "@/app/actions/datasets";
 import {
@@ -12,6 +12,12 @@ import {
 } from "@/app/components/fileSystemDownloadMetadata";
 import { FileSystemDownloadProgressModal } from "@/app/components/FileSystemDownloadProgressModal";
 import { useActiveDownloadGuard } from "@/app/components/DownloadGuard";
+import {
+  DownloadableFile,
+  FSABatchDownloadContext,
+  FSADownloadState,
+  useFSABatchDownload,
+} from "./FileSystemAccessBatchDownloadContext";
 
 // Controls the number of active concurrent downloads.
 const FILE_SYSTEM_BATCH_CONCURRENCY = 2;
@@ -21,10 +27,6 @@ const FILE_SYSTEM_BATCH_CONCURRENCY = 2;
 // avoid losing too much progress in case of a crash.
 const FS_DOWNLOAD_STARTING_CHECKPOINT = 512 * 1024 * 1024; // 512 MiB
 const FS_DOWNLOAD_CHECKPOINT_INTERVAL_CAP = 4 * 1024 * 1024 * 1024; // 4 GiB
-
-// Include size in DownloadableFile to allow for byte based progress.
-type DownloadableFile = Pick<DatasetFile, "fileId" | "filePath"> &
-  Partial<Pick<DatasetFile, "size">>;
 
 // We need fileId for /api/files/:fileId and filePath to
 // preserve the dataset folder structure.
@@ -51,7 +53,109 @@ export function FileSystemAccessBatchDownloadActions({
   selectedFiles,
   canDownload,
 }: FileSystemAccessBatchDownloadActionsProps) {
-  const [isDownloading, setIsDownloading] = useState(false);
+  const downloadContext = useFSABatchDownload();
+  const errorModalTriggerRef = useRef<HTMLButtonElement>(null);
+  const errorMessage = downloadContext.errorMessage;
+  const isDownloading = "currentDownload" in downloadContext;
+
+  const selectedCount = selectedFiles.length;
+  const enabled = canDownload && selectedCount > 0 && !isDownloading;
+
+  async function startDownload() {
+    if (!enabled) return;
+
+    if ("startDownload" in downloadContext) {
+      await downloadContext.startDownload(selectedFiles);
+    }
+  }
+
+  // Open the error modal whenever a new error message is set.
+  useEffect(() => {
+    if (errorMessage) {
+      errorModalTriggerRef.current?.click();
+    }
+  }, [errorMessage]);
+
+  const reason = !canDownload
+    ? "Upload your Crypt4GH public key on the profile page to enable downloads."
+    : selectedCount === 0
+      ? null
+      : null;
+
+  return (
+    <>
+      <div className="d-flex flex-column align-items-start gap-1">
+        <div className="d-flex gap-2">
+          <button
+            type="button"
+            className="btn btn-outline-primary"
+            onClick={startDownload}
+            disabled={!enabled}
+            aria-describedby={
+              reason ? "batch-folder-download-reason" : undefined
+            }
+          >
+            {isDownloading
+              ? "Downloading selected files..."
+              : "Download selected files to folder"}
+          </button>
+        </div>
+
+        {reason && (
+          <small id="batch-folder-download-reason" className="text-muted">
+            {reason}
+          </small>
+        )}
+      </div>
+
+      <button
+        ref={errorModalTriggerRef}
+        type="button"
+        className="d-none"
+        data-bs-toggle="modal"
+        data-bs-target="#fsa-download-notice-modal"
+        aria-hidden="true"
+      />
+      <ModalDialog
+        id="fsa-download-notice-modal"
+        title="Notice"
+        body={errorMessage || ""}
+        showActionButton={false}
+      />
+
+      {isDownloading && (
+        <FileSystemDownloadProgressModal
+          selectedCount={downloadContext.currentDownload.selectedCount}
+          completedCount={downloadContext.currentDownload.completedCount}
+          activeCount={downloadContext.currentDownload.activeCount}
+          activeResumeCount={downloadContext.currentDownload.activeResumeCount}
+          resumedCount={downloadContext.currentDownload.resumedCount}
+          skippedCount={downloadContext.currentDownload.skippedCount}
+          restartedCount={downloadContext.currentDownload.restartedCount}
+          downloadedBytes={downloadContext.currentDownload.downloadedBytes}
+          estimatedTotalBytes={
+            downloadContext.currentDownload.estimatedTotalBytes
+          }
+          estimatedDownloadSpeed={
+            downloadContext.currentDownload.estimatedDownloadSpeed
+          }
+          onCancel={downloadContext.currentDownload.cancelDownload}
+          warning={downloadContext.currentDownload.downloadWarning}
+        />
+      )}
+    </>
+  );
+}
+
+export function FileSystemAccessBatchDownloadProvider({
+  children,
+}: {
+  children: ReactNode;
+}) {
+  const [selectedFiles, setSelectedFiles] = useState<{
+    files: DownloadableFile[];
+    estimatedTotalBytes: number;
+  } | null>(null);
   const [completedCount, setCompletedCount] = useState(0);
   const [activeCount, setActiveCount] = useState(0);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
@@ -65,26 +169,13 @@ export function FileSystemAccessBatchDownloadActions({
     useDownloadSpeedEstimate();
 
   const abortControllerRef = useRef<AbortController | null>(null);
-  const errorModalTriggerRef = useRef<HTMLButtonElement>(null);
-
-  // Open the error modal whenever a new error message is set.
-  useEffect(() => {
-    if (errorMessage) {
-      errorModalTriggerRef.current?.click();
-    }
-  }, [errorMessage]);
-
-  const selectedCount = selectedFiles.length;
-  const enabled = canDownload && selectedCount > 0 && !isDownloading;
+  const selectedCount = selectedFiles ? selectedFiles.files.length : 0;
+  const isDownloading = !!selectedFiles;
 
   // For progress reporting purposes.
-  const estimatedTotalBytes = selectedFiles.reduce(
-    (sum, file) => sum + getEstimatedFileSize(file),
-    0,
-  );
 
-  async function startDownload() {
-    if (!enabled) return;
+  async function startDownload(files: DownloadableFile[]) {
+    if (files.length === 0) return;
 
     // Check that the browser supports the File System Access API.
     // Here we check for the existence of `showDirectoryPicker` in the window object and ensure it's a function.
@@ -98,10 +189,16 @@ export function FileSystemAccessBatchDownloadActions({
       return;
     }
 
+    // For progress reporting purposes.
+    const estimatedTotalBytes = (files || []).reduce(
+      (sum, file) => sum + getEstimatedFileSize(file),
+      0,
+    );
+
     setErrorMessage(null);
     setCompletedCount(0);
     setActiveCount(0);
-    setIsDownloading(true);
+    setSelectedFiles({ files, estimatedTotalBytes });
     setActiveResumeCount(0);
     setResumedCount(0);
     setSkippedCount(0);
@@ -137,7 +234,7 @@ export function FileSystemAccessBatchDownloadActions({
       };
 
       await runWithConcurrency(
-        selectedFiles,
+        files,
         FILE_SYSTEM_BATCH_CONCURRENCY,
         abortController.signal,
         async (file) => {
@@ -202,7 +299,7 @@ export function FileSystemAccessBatchDownloadActions({
         setErrorMessage(message);
       }
     } finally {
-      setIsDownloading(false);
+      setSelectedFiles(null);
       abortControllerRef.current = null;
     }
   }
@@ -215,70 +312,33 @@ export function FileSystemAccessBatchDownloadActions({
   // warning is shown inside the progress modal, which is on screen whenever it applies.
   const downloadWarning = useActiveDownloadGuard(isDownloading, cancelDownload);
 
-  const reason = !canDownload
-    ? "Upload your Crypt4GH public key on the profile page to enable downloads."
-    : selectedCount === 0
-      ? null
-      : null;
+  const value: FSADownloadState = isDownloading
+    ? {
+        errorMessage,
+        currentDownload: {
+          selectedCount,
+          completedCount,
+          activeCount,
+          activeResumeCount,
+          resumedCount,
+          skippedCount,
+          restartedCount,
+          downloadedBytes,
+          estimatedTotalBytes: selectedFiles.estimatedTotalBytes,
+          estimatedDownloadSpeed,
+          cancelDownload,
+          downloadWarning,
+        },
+      }
+    : {
+        errorMessage,
+        startDownload,
+      };
 
   return (
-    <>
-      <div className="d-flex flex-column align-items-start gap-1">
-        <div className="d-flex gap-2">
-          <button
-            type="button"
-            className="btn btn-outline-primary"
-            onClick={startDownload}
-            disabled={!enabled}
-            aria-describedby={
-              reason ? "batch-folder-download-reason" : undefined
-            }
-          >
-            {isDownloading
-              ? "Downloading selected files..."
-              : "Download selected files to folder"}
-          </button>
-        </div>
-
-        {reason && (
-          <small id="batch-folder-download-reason" className="text-muted">
-            {reason}
-          </small>
-        )}
-      </div>
-
-      <button
-        ref={errorModalTriggerRef}
-        type="button"
-        className="d-none"
-        data-bs-toggle="modal"
-        data-bs-target="#fsa-download-notice-modal"
-        aria-hidden="true"
-      />
-      <ModalDialog
-        id="fsa-download-notice-modal"
-        title="Notice"
-        body={errorMessage || ""}
-        showActionButton={false}
-      />
-
-      {isDownloading && (
-        <FileSystemDownloadProgressModal
-          selectedCount={selectedCount}
-          completedCount={completedCount}
-          activeCount={activeCount}
-          activeResumeCount={activeResumeCount}
-          resumedCount={resumedCount}
-          skippedCount={skippedCount}
-          restartedCount={restartedCount}
-          downloadedBytes={downloadedBytes}
-          estimatedTotalBytes={estimatedTotalBytes}
-          estimatedDownloadSpeed={estimatedDownloadSpeed}
-          onCancel={cancelDownload}
-          warning={downloadWarning}
-        />
-      )}
-    </>
+    <FSABatchDownloadContext.Provider value={value}>
+      {children}
+    </FSABatchDownloadContext.Provider>
   );
 }
 

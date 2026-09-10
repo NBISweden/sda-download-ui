@@ -1,9 +1,10 @@
 "use client";
 
-import { useMemo, useSyncExternalStore } from "react";
+import { useMemo } from "react";
 import type { DatasetFile } from "@/app/actions/datasets";
 import { TarBatchDownloadActions } from "@/app/components/TarBatchDownloadActions";
 import { FileSystemAccessBatchDownloadActions } from "@/app/components/FileSystemAccessBatchDownloadActions";
+import { useFileSystemAccessSupported } from "./FileSystemAccessBatchDownloadContext";
 
 type BatchDownloadActionsProps = {
   files: Pick<DatasetFile, "fileId" | "filePath">[];
@@ -11,32 +12,6 @@ type BatchDownloadActionsProps = {
   datasetId: string;
   canDownload?: boolean;
 };
-
-type WindowWithDirectoryPicker = Window & {
-  showDirectoryPicker?: unknown;
-};
-
-function subscribe() {
-  return function unsubscribe() {
-    // No clean up needed.
-  };
-}
-
-function getSnapshot() {
-  return (
-    typeof window !== "undefined" &&
-    typeof (window as WindowWithDirectoryPicker).showDirectoryPicker ===
-      "function"
-  );
-}
-
-function getServerSnapshot() {
-  return false;
-}
-
-function useFileSystemAccessSupported() {
-  return useSyncExternalStore(subscribe, getSnapshot, getServerSnapshot);
-}
 
 export function BatchDownloadActions({
   files,
