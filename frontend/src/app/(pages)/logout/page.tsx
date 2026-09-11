@@ -1,9 +1,20 @@
 import Link from "next/link";
+import { redirect, RedirectType } from "next/navigation";
 import { signOutOfIdp } from "@/app/actions/logout";
 import { getEndSessionEndpoint } from "@/app/lib/oidc";
+import { isSignedOut } from "@/app/lib/logoutFlow";
 import { PageWrapper } from "@/app/components/PageWrapper";
 
+// Not indexable and only reachable via logout().
+export const metadata = {
+  robots: { index: false, follow: false },
+};
+
 export default async function LoggedOutPage() {
+  if (!(await isSignedOut())) {
+    redirect("/", RedirectType.replace);
+  }
+
   // Only show the "sign out of LS Login" button when the IdP actually
   // advertises an end-session endpoint. Otherwise it wouldn't do anything
   // useful.

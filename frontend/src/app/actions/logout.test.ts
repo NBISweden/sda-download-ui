@@ -3,6 +3,7 @@ import { redirect, RedirectType } from "next/navigation";
 import { clearServerToken } from "@/app/lib/serverToken";
 import { getEndSessionEndpoint } from "@/app/lib/oidc";
 import { logout, signOutOfIdp } from "./logout";
+import { markLogoutComplete } from "@/app/lib/logoutFlow";
 
 vi.mock("server-only", () => ({}));
 
@@ -20,6 +21,10 @@ vi.mock("@/app/lib/auth", () => ({
     oidcClientSecret: "cs",
     nextAuthSecret: "s",
   }),
+}));
+
+vi.mock("@/app/lib/logoutFlow", () => ({
+  markLogoutComplete: vi.fn(),
 }));
 
 const configState: {
@@ -70,6 +75,12 @@ describe("logout (local-only)", () => {
 
     await expect(logout()).rejects.toThrow("NEXT_REDIRECT");
     expect(callOrder).toEqual(["clear", "redirect"]);
+  });
+
+  it("does not set the logout-complete marker", async () => {
+    await expect(logout()).rejects.toThrow("NEXT_REDIRECT");
+
+    expect(markLogoutComplete).not.toHaveBeenCalled();
   });
 });
 
@@ -157,5 +168,23 @@ describe("signOutOfIdp", () => {
     await expect(signOutOfIdp()).rejects.toThrow("NEXT_REDIRECT");
 
     expect(redirect).toHaveBeenCalledWith("/", RedirectType.replace);
+  });
+
+  it("marks the browser as expecting to land on /logout-complete", async () => {
+    vi.mocked(getEndSessionEndpoint).mockResolvedValue(
+      "https://idp.example.com/logout",
+    );
+
+    await expect(signOutOfIdp()).rejects.toThrow("NEXT_REDIRECT");
+
+    expect(markLogoutComplete).toHaveBeenCalledOnce();
+  });
+
+  it("does not mark logout-complete when falling back (no end-session endpoint)", async () => {
+    vi.mocked(getEndSessionEndpoint).mockResolvedValue(null);
+
+    await expect(signOutOfIdp()).rejects.toThrow("NEXT_REDIRECT");
+
+    expect(markLogoutComplete).not.toHaveBeenCalled();
   });
 });

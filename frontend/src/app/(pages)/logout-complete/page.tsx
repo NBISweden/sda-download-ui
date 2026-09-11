@@ -1,7 +1,18 @@
 import Link from "next/link";
+import { redirect, RedirectType } from "next/navigation";
+import { isFromLogoutCompleteFlow } from "@/app/lib/logoutFlow";
 import { PageWrapper } from "@/app/components/PageWrapper";
 
-export default function LogoutCompletePage() {
+// Not indexable and only reachable via signOutOfIdp() + IdP round-trip.
+export const metadata = {
+  robots: { index: false, follow: false },
+};
+
+export default async function LogoutCompletePage() {
+  if (!(await isFromLogoutCompleteFlow())) {
+    redirect("/", RedirectType.replace);
+  }
+
   return (
     <PageWrapper>
       <h1>You have been signed out of everything</h1>
