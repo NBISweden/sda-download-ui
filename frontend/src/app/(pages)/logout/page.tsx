@@ -7,7 +7,7 @@ import { PageWrapper } from "@/app/components/PageWrapper";
 
 // Not indexable and only reachable via logout().
 export const metadata = {
-  robots: { index: false, follow: false },
+  robots: { index: false, follow: false, noarchive: true },
 };
 
 export default async function LoggedOutPage() {
