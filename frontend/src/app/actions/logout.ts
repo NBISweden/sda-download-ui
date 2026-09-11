@@ -5,6 +5,7 @@ import { clearServerToken } from "@/app/lib/serverToken";
 import { getEndSessionEndpoint } from "@/app/lib/oidc";
 import { getConfig } from "@/app/lib/config";
 import { getAuthConfig } from "@/app/lib/auth";
+import { markLogoutComplete } from "@/app/lib/logoutFlow";
 
 // Sign out of the app only: clears our own session cookie and lands on /logout.
 export async function logout() {
@@ -36,6 +37,11 @@ export async function signOutOfIdp() {
     config.postLogoutRedirectUri ??
     new URL("/logout-complete", config.nextAuthUrl).toString();
   url.searchParams.set("post_logout_redirect_uri", postLogoutUri);
+
+  // Mark the browser as expecting to land back on /logout-complete. Set
+  // only when the federated logout is actually initiated, not on the
+  // fallback path above.
+  await markLogoutComplete();
 
   redirect(url.toString(), RedirectType.replace);
 }
