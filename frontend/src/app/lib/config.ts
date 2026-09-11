@@ -12,6 +12,7 @@ const Config = z.strictObject({
   oidcClientSecretPath: z.string(),
   oidcClientIdPath: z.string(),
   oidcRoot: relaxedUrl,
+  postLogoutRedirectUri: relaxedUrl.optional(), // optional since in federated deployments the IdP cascades logout upstream so the return trip typically doesn't complete anyway.
   allowHttp: z.boolean().default(false),
 });
 
@@ -42,6 +43,9 @@ export const getConfig: () => Promise<Config> = (() => {
       requireHttps(config.sdaBaseUrl);
       requireHttps(config.nextAuthUrl);
       requireHttps(config.oidcRoot);
+      if (config.postLogoutRedirectUri) {
+        requireHttps(config.postLogoutRedirectUri);
+      }
     }
     return config;
   };

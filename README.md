@@ -57,6 +57,7 @@ The options available in the config file can be described as follows:
 | `sdaBaseUrl` | HTTP url | The base url to the SDA Download API. |
 | `nextAuthUrl` | HTTP url | The url to use for authenticatin in the app. |
 | `oidcRoot` | HTTP url | Url to the OIDC provider. |
+| `postLogoutRedirectUri` | HTTP url | (Optional) Default is `nextAuthUrl/logout-complete`. The post-logout redirect URI. This must be registered with the OIDC provider. Note that in federated setups, this redirect will usually not be honored and the user will land at the IdP's logout page  instead.
 | `allowHttp` | boolean | (Optional) Default is `false`. Recommendation for development setup is `true` and in production this option should be `false` or unset. |
 
 #### Startup

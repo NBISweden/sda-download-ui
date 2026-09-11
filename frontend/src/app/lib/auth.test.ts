@@ -66,6 +66,7 @@ describe("auth oidc", () => {
       authorization: {
         params: {
           scope: "openid profile email ga4gh_passport_v1 eduperson_entitlement",
+          prompt: "login",
         },
       },
       idToken: true,
