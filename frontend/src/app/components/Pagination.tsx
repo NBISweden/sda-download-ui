@@ -71,7 +71,7 @@ export default function Pagination({
 
   return (
     <nav aria-label="Pagination">
-      <ul className="pagination flex-wrap">
+      <ul className="pagination flex-wrap mb-1 mb-lg-3">
         {shouldShowPagination && (
           <>
             <li className={`page-item ${isFirstPage ? "disabled" : ""}`}>
@@ -153,7 +153,7 @@ export default function Pagination({
         )}
 
         {shouldShowViewingSummary && (
-          <li className="my-3 my-lg-0 align-self-center">
+          <li className="my-2 my-lg-0 me-3 align-self-center">
             Viewing{" "}
             <strong>
               {startItem}-{endItem}
