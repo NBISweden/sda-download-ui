@@ -1,7 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useRef, useState } from "react";
-import { ModalDialog } from "@/app/components/ModalDialog";
+import { useCallback, useRef, useState, useSyncExternalStore } from "react";
 import type { DatasetFile } from "@/app/actions/datasets";
 import {
   cloneDownloadMetadata,
@@ -12,6 +11,7 @@ import {
 } from "@/app/components/fileSystemDownloadMetadata";
 import { FileSystemDownloadProgressModal } from "@/app/components/FileSystemDownloadProgressModal";
 import { useActiveDownloadGuard } from "@/app/components/DownloadGuard";
+import { NoticeModal } from "./NoticeModal";
 
 // Controls the number of active concurrent downloads.
 const FILE_SYSTEM_BATCH_CONCURRENCY = 2;
@@ -47,14 +47,30 @@ type DownloadFileCallbacks = {
   onBytesDownloaded?: (bytes: number) => void;
 };
 
-export function FileSystemAccessBatchDownloadActions({
+type WindowWithDirectoryPicker = Window & {
+  showDirectoryPicker?: unknown;
+};
+
+export type FileSystemDownloadProgress = {
+  selectedCount: number;
+  completedCount: number;
+  activeCount: number;
+  activeResumeCount: number;
+  resumedCount: number;
+  skippedCount: number;
+  restartedCount: number;
+  downloadedBytes: number;
+  estimatedTotalBytes: number;
+};
+
+export function useFileSystemAccessBatchDownload({
   selectedFiles,
   canDownload,
 }: FileSystemAccessBatchDownloadActionsProps) {
   const [isDownloading, setIsDownloading] = useState(false);
   const [completedCount, setCompletedCount] = useState(0);
   const [activeCount, setActiveCount] = useState(0);
-  const [errorMessage, setErrorMessage] = useState<string | null>(null);
+  const [error, setError] = useState<{ message: string } | null>(null);
   const [activeResumeCount, setActiveResumeCount] = useState(0);
   const [resumedCount, setResumedCount] = useState(0);
   const [skippedCount, setSkippedCount] = useState(0);
@@ -65,14 +81,6 @@ export function FileSystemAccessBatchDownloadActions({
     useDownloadSpeedEstimate();
 
   const abortControllerRef = useRef<AbortController | null>(null);
-  const errorModalTriggerRef = useRef<HTMLButtonElement>(null);
-
-  // Open the error modal whenever a new error message is set.
-  useEffect(() => {
-    if (errorMessage) {
-      errorModalTriggerRef.current?.click();
-    }
-  }, [errorMessage]);
 
   const selectedCount = selectedFiles.length;
   const enabled = canDownload && selectedCount > 0 && !isDownloading;
@@ -94,11 +102,13 @@ export function FileSystemAccessBatchDownloadActions({
       !("showDirectoryPicker" in window) ||
       typeof window.showDirectoryPicker !== "function"
     ) {
-      setErrorMessage("Folder downloads are not supported in this browser.");
+      setError({
+        message: "Folder downloads are not supported in this browser.",
+      });
       return;
     }
 
-    setErrorMessage(null);
+    setError(null);
     setCompletedCount(0);
     setActiveCount(0);
     setIsDownloading(true);
@@ -195,11 +205,11 @@ export function FileSystemAccessBatchDownloadActions({
       );
     } catch (error) {
       if ((error as { name?: string }).name === "AbortError") {
-        setErrorMessage("The download process was cancelled.");
+        setError({ message: "The download process was cancelled." });
       } else {
         const message =
           error instanceof Error ? error.message : "Download failed.";
-        setErrorMessage(message);
+        setError({ message });
       }
     } finally {
       setIsDownloading(false);
@@ -215,68 +225,44 @@ export function FileSystemAccessBatchDownloadActions({
   // warning is shown inside the progress modal, which is on screen whenever it applies.
   const downloadWarning = useActiveDownloadGuard(isDownloading, cancelDownload);
 
-  const reason = !canDownload
-    ? "Upload your Crypt4GH public key on the profile page to enable downloads."
-    : selectedCount === 0
-      ? null
-      : null;
+  return {
+    isDownloading,
+    error,
+    startDownload,
+    cancelDownload,
+    progress: {
+      selectedCount,
+      completedCount,
+      activeCount,
+      activeResumeCount,
+      resumedCount,
+      skippedCount,
+      restartedCount,
+      downloadedBytes,
+      estimatedTotalBytes,
+      estimatedDownloadSpeed,
+      warning: downloadWarning,
+    },
+  };
+}
 
+export function FileSystemDownloadOverlays({
+  isDownloading,
+  error,
+  progress,
+  onCancel,
+}: {
+  isDownloading: boolean;
+  error: { message: string } | null;
+  progress: FileSystemDownloadProgress;
+  onCancel: () => void;
+}) {
   return (
     <>
-      <div className="d-flex flex-column align-items-start gap-1">
-        <div className="d-flex gap-2">
-          <button
-            type="button"
-            className="btn btn-outline-primary"
-            onClick={startDownload}
-            disabled={!enabled}
-            aria-describedby={
-              reason ? "batch-folder-download-reason" : undefined
-            }
-          >
-            {isDownloading
-              ? "Downloading selected files..."
-              : "Download selected files to folder"}
-          </button>
-        </div>
-
-        {reason && (
-          <small id="batch-folder-download-reason" className="text-muted">
-            {reason}
-          </small>
-        )}
-      </div>
-
-      <button
-        ref={errorModalTriggerRef}
-        type="button"
-        className="d-none"
-        data-bs-toggle="modal"
-        data-bs-target="#fsa-download-notice-modal"
-        aria-hidden="true"
-      />
-      <ModalDialog
-        id="fsa-download-notice-modal"
-        title="Notice"
-        body={errorMessage || ""}
-        showActionButton={false}
-      />
+      <NoticeModal id="fsa-download-notice-modal" notice={error} />
 
       {isDownloading && (
-        <FileSystemDownloadProgressModal
-          selectedCount={selectedCount}
-          completedCount={completedCount}
-          activeCount={activeCount}
-          activeResumeCount={activeResumeCount}
-          resumedCount={resumedCount}
-          skippedCount={skippedCount}
-          restartedCount={restartedCount}
-          downloadedBytes={downloadedBytes}
-          estimatedTotalBytes={estimatedTotalBytes}
-          estimatedDownloadSpeed={estimatedDownloadSpeed}
-          onCancel={cancelDownload}
-          warning={downloadWarning}
-        />
+        <FileSystemDownloadProgressModal {...progress} onCancel={onCancel} />
       )}
     </>
   );
@@ -793,4 +779,26 @@ function useDownloadSpeedEstimate(
   );
 
   return [downloadState.lastEstimatedSpeed, updateDownloadSpeed];
+}
+
+function subscribe() {
+  return function unsubscribe() {
+    // No clean up needed.
+  };
+}
+
+function getSnapshot() {
+  return (
+    typeof window !== "undefined" &&
+    typeof (window as WindowWithDirectoryPicker).showDirectoryPicker ===
+      "function"
+  );
+}
+
+function getServerSnapshot() {
+  return false;
+}
+
+export function useFileSystemAccessSupported() {
+  return useSyncExternalStore(subscribe, getSnapshot, getServerSnapshot);
 }

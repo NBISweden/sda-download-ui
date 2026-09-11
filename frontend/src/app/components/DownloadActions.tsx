@@ -53,7 +53,7 @@ export function DownloadActions({ datasetId }: DownloadActionsProps) {
     <>
       <button
         type="button"
-        className="btn btn-outline-primary me-3"
+        className="btn btn-primary me-3"
         data-bs-toggle="modal"
         data-bs-target="#cliModal"
       >

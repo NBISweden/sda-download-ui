@@ -8,8 +8,7 @@ import { ClipboardValue } from "./ClipboardValue";
 import DatasetSize from "./DatasetSize";
 import InfoTooltip from "./InfoTooltip";
 import { ItemSelector, useItemsPerPage } from "./ItemsPerPage";
-import { ChecksumExportActions } from "./ChecksumExportActions";
-import { BatchDownloadActions } from "./BatchDownloadActions";
+import { DownloadOptionsMenu } from "./DownloadOptionsMenu";
 import { filesize } from "filesize";
 import { getEstimatedFileSize } from "./FileSystemAccessBatchDownloadActions";
 
@@ -35,7 +34,7 @@ export default function DatasetFiles({
   );
 
   const reason =
-    "Upload your Crypt4GH public key on the profile page to enable downloads.";
+    "Upload your Crypt4GH public key on the profile page to enable file downloads.";
 
   const formattedFiles = files.map((file) => ({
     fileId: file.fileId,
@@ -209,7 +208,7 @@ export default function DatasetFiles({
         <div className="d-flex gap-2">
           <button
             type="button"
-            className="btn btn-secondary selection-button"
+            className="btn btn-outline-primary selection-button"
             onClick={handleSelectionButtonClick}
             disabled={currentFiles.length === 0}
           >
@@ -223,16 +222,11 @@ export default function DatasetFiles({
           {selectedFileIds.size === 1 ? "file selected" : "files selected"}{" "}
           (total size {filesize(selectedSizeSum)})
         </div>
-        <BatchDownloadActions
+        <DownloadOptionsMenu
           files={files}
           selectedFileIds={selectedFileIds}
           datasetId={datasetId}
           canDownload={canDownload}
-        />
-        <ChecksumExportActions
-          files={files}
-          selectedFileIds={selectedFileIds}
-          datasetId={datasetId}
         />
       </div>
       {currentFiles.length > 0 && (
