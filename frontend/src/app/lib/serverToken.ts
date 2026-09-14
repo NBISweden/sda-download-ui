@@ -81,7 +81,7 @@ export async function updateServerToken(patch: Partial<JWT>): Promise<void> {
     if (e instanceof jose.errors.JOSEError) {
       // Token is probably invalid: clear the session and let the caller
       // surface a "please sign in again" message.
-      if (store.get(name)) store.delete(name);
+      if (store.get(name)) expireCookie(store, name);
       throw new SessionInvalidError();
     }
     // Verification unavailable, don't touch the session, let caller retry.
@@ -109,7 +109,7 @@ export async function clearServerToken(): Promise<void> {
   const { session, csrf, callbackUrl } = await getCookieNames();
 
   for (const name of [session, csrf, callbackUrl]) {
-    if (store.get(name)) store.delete(name);
+    if (store.get(name)) expireCookie(store, name);
   }
 }
 
@@ -127,4 +127,21 @@ export async function getSession(): Promise<SessionData | null> {
     token: jwt.accessToken,
     publicKey: jwt.publicKey ?? null,
   };
+}
+
+// Deletes a NextAuth cookie by emitting an expired Set-Cookie. Prefixed cookies
+// (__Host- / __Secure-) require the deletion header to carry `Secure` as well,
+// or the browser rejects it and the cookie stays. `cookies().delete(name)`
+// doesn't set that flag, so we set the expired cookie ourselves.
+function expireCookie(
+  store: Awaited<ReturnType<typeof cookies>>,
+  name: string,
+) {
+  store.set(name, "", {
+    path: "/",
+    maxAge: 0,
+    secure: name.startsWith("__Secure-") || name.startsWith("__Host-"),
+    sameSite: "lax",
+    httpOnly: true,
+  });
 }
