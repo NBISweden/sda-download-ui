@@ -95,12 +95,12 @@ export function DownloadOptionsMenu({
         items={[
           downloadItem,
           {
-            label: "Export SHA256 checksums",
+            label: "Download SHA256 checksums",
             onClick: () => handleChecksumExport("sha256"),
             disabled: !canExportChecksums(selectedFiles, "sha256"),
           },
           {
-            label: "Export md5 checksums",
+            label: "Download md5 checksums",
             onClick: () => handleChecksumExport("md5"),
             disabled: !canExportChecksums(selectedFiles, "md5"),
           },
