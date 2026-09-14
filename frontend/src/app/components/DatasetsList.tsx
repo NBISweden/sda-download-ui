@@ -129,25 +129,27 @@ export default function DatasetsList({
           onChange={handleSearchChange}
         />
       </div>
-      <ItemSelector
-        item={itemsPerPage}
-        setItem={(i) => {
-          setItemsPerPage(i);
-          setCurrentPage(1);
-        }}
-        items={itemsPerPageOptions}
-        label="Items per page"
-      />
       {viewToggle}
-      {totalPages > 1 && (
-        <Pagination
-          currentPage={currentPage}
-          totalPages={totalPages}
-          onPageChange={setCurrentPage}
-          totalItems={filteredDatasets.length}
-          itemsPerPage={itemsPerPage}
+      <div className="d-flex flex-column flex-lg-row justify-content-between">
+        {totalPages > 1 && (
+          <Pagination
+            currentPage={currentPage}
+            totalPages={totalPages}
+            onPageChange={setCurrentPage}
+            totalItems={filteredDatasets.length}
+            itemsPerPage={itemsPerPage}
+          />
+        )}
+        <ItemSelector
+          item={itemsPerPage}
+          setItem={(i) => {
+            setItemsPerPage(i);
+            setCurrentPage(1);
+          }}
+          items={itemsPerPageOptions}
+          label="Items per page"
         />
-      )}
+      </div>
 
       {filteredDatasets.length === 0 ? (
         <div className="col-12">
