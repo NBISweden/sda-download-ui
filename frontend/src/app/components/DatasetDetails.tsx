@@ -18,7 +18,7 @@ export default function DatasetDetails({
 }: DatasetDetailsProps) {
   return (
     <>
-      <div className="col-12 col-lg-6">
+      <div className="col-12 col-lg-8 col-xl-6">
         <div className="card px-0">
           <div className="card-header">
             <h3 className="card-title m-3">Dataset {dataset.datasetId}</h3>
@@ -39,18 +39,16 @@ export default function DatasetDetails({
                 Created {formatDatasetDate(dataset.date)}
               </span>
             </div>
-            <div className="d-flex justify-content-start mt-3">
+            <div className="d-flex justify-content-start flex-wrap mt-3 gap-3">
               <DownloadActions datasetId={dataset.datasetId} />
-              <DownloadChecksumsButton
-                files={files}
-                datasetId={dataset.datasetId}
-              />
-            </div>
-            <div className="d-flex justify-content-start mt-3">
               <FileSystemAccessDownloadButton
                 files={files}
                 disabled={!canDownload}
                 label="Download to folder"
+              />
+              <DownloadChecksumsButton
+                files={files}
+                datasetId={dataset.datasetId}
               />
             </div>
           </div>

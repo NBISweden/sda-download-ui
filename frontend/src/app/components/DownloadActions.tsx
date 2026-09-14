@@ -53,11 +53,11 @@ export function DownloadActions({ datasetId }: DownloadActionsProps) {
     <>
       <button
         type="button"
-        className="btn btn-primary me-3"
+        className="btn btn-primary"
         data-bs-toggle="modal"
         data-bs-target="#cliModal"
       >
-        Download full dataset
+        Download via CLI
       </button>
       <ModalDialog
         id="cliModal"
