@@ -1,13 +1,14 @@
 "use client";
 
 import { useState } from "react";
-import { ModalDialog } from "@/app/components/ModalDialog";
+import { ModalDialog, useModalTrigger } from "@/app/components/ModalDialog";
 
 type DownloadActionsProps = {
   datasetId: string;
 };
 
 export function DownloadActions({ datasetId }: DownloadActionsProps) {
+  const [modalTrigger, modalId] = useModalTrigger();
   const [copied, setCopied] = useState(false);
   const command = [
     "sda-cli --config <configuration_file> download \\",
@@ -54,13 +55,12 @@ export function DownloadActions({ datasetId }: DownloadActionsProps) {
       <button
         type="button"
         className="btn btn-primary"
-        data-bs-toggle="modal"
-        data-bs-target="#cliModal"
+        onClick={modalTrigger}
       >
         Download via CLI
       </button>
       <ModalDialog
-        id="cliModal"
+        id={modalId}
         title="Download via sda-cli command"
         body={modalBody}
         action={copyCommand}
