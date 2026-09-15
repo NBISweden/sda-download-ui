@@ -49,4 +49,25 @@ describe("config loading functions", () => {
       parseConfig(JSON.stringify(configWithExtra));
     }).toThrow();
   });
+
+  test("parse config accepts an optional postLogoutRedirectUri", () => {
+    const result = parseConfig(
+      JSON.stringify({
+        ...completeConfig,
+        postLogoutRedirectUri: "https://app.example.com/",
+      }),
+    );
+    expect(result.postLogoutRedirectUri).toBe("https://app.example.com/");
+  });
+
+  test("parse config rejects a malformed postLogoutRedirectUri", () => {
+    expect(() =>
+      parseConfig(
+        JSON.stringify({
+          ...completeConfig,
+          postLogoutRedirectUri: "not a url",
+        }),
+      ),
+    ).toThrow();
+  });
 });
