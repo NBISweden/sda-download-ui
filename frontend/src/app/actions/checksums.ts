@@ -18,6 +18,14 @@ export function canExportChecksums(
   );
 }
 
+export function pickChecksumType(
+  files: DatasetFile[],
+): "sha256" | "md5" | null {
+  if (canExportChecksums(files, "sha256")) return "sha256";
+  if (canExportChecksums(files, "md5")) return "md5";
+  return null;
+}
+
 export function createChecksumFileContent(
   files: DatasetFile[],
   checksumType: string,

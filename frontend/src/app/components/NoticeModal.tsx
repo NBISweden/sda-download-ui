@@ -1,10 +1,9 @@
 "use client";
 
-import { useEffect, useRef } from "react";
-import { ModalDialog } from "@/app/components/ModalDialog";
+import { useEffect } from "react";
+import { ModalDialog, useModalTrigger } from "@/app/components/ModalDialog";
 
 type NoticeModalProps = {
-  id: string;
   title?: string;
   notice: { message: string } | null;
 };
@@ -15,32 +14,20 @@ type NoticeModalProps = {
  * whenever a new notice/error message is set.
  */
 
-export function NoticeModal({
-  id,
-  title = "Notice",
-  notice,
-}: NoticeModalProps) {
-  const triggerRef = useRef<HTMLButtonElement>(null);
+export function NoticeModal({ title = "Notice", notice }: NoticeModalProps) {
+  const [modalTrigger, modalId] = useModalTrigger();
 
   // Open the modal whenever a new notice is set.
   useEffect(() => {
     if (notice) {
-      triggerRef.current?.click();
+      modalTrigger();
     }
   }, [notice]);
 
   return (
     <>
-      <button
-        ref={triggerRef}
-        type="button"
-        className="d-none"
-        data-bs-toggle="modal"
-        data-bs-target={`#${id}`}
-        aria-hidden="true"
-      />
       <ModalDialog
-        id={id}
+        id={modalId}
         title={title}
         body={notice?.message ?? ""}
         showActionButton={false}
