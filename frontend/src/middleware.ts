@@ -1,0 +1,51 @@
+import { NextRequest, NextResponse } from "next/server";
+
+export function middleware(request: NextRequest) {
+  const nonce = Buffer.from(crypto.randomUUID()).toString("base64");
+
+  // - 'strict-dynamic' + nonce covers Next.js's inline hydration/streaming
+  //   scripts and any scripts they subsequently load, without listing hosts.
+  // - style-src needs 'unsafe-inline': Bootstrap, Radix UI and any React
+  //   `style={{...}}` prop (e.g. the progress bar width) inject inline styles.
+  //   Nonce-based styles are not supported for style attributes.
+  // - connect-src 'self' is enough: the client only talks to /api/*.
+  // - form-action 'self': next-auth POSTs to /api/auth/signin/... before it
+  //   redirects to the OIDC provider (redirects are exempt from form-action).
+  // - frame-ancestors 'none': the app doesn't need to be embedded.
+  const csp = [
+    `default-src 'self'`,
+    `script-src 'self' 'nonce-${nonce}' 'strict-dynamic'`,
+    `style-src 'self' 'unsafe-inline'`,
+    `img-src 'self' data: blob:`,
+    `font-src 'self'`,  //optional, covered by default-src 'self'
+    `connect-src 'self'`, // optional, covered by default-src 'self'
+    `form-action 'self'`, // optional, covered by default-src 'self'
+    `frame-ancestors 'none'`,
+    `base-uri 'self'`,
+    `object-src 'none'`,
+  ].join("; ");
+
+  const requestHeaders = new Headers(request.headers);
+  requestHeaders.set("x-nonce", nonce);
+  // Next.js reads this to nonce its injected <script> tags.
+  requestHeaders.set("Content-Security-Policy", csp);
+
+  const response = NextResponse.next({ request: { headers: requestHeaders } });
+  response.headers.set("Content-Security-Policy", csp);
+  return response;
+}
+
+export const config = {
+  matcher: [
+    // Skip API routes (downloads, auth callbacks etc, the browser doesn't render
+    // those and streaming data shouldn't go through middleware), static
+    // assets, and prefetches (they don't need per-request nonces).
+    {
+      source: "/((?!api|_next/static|_next/image|favicon.ico).*)",
+      missing: [
+        { type: "header", key: "next-router-prefetch" },
+        { type: "header", key: "purpose", value: "prefetch" },
+      ],
+    },
+  ],
+};
