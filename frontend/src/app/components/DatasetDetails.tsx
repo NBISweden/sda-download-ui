@@ -3,19 +3,22 @@ import DownloadChecksumsButton from "./DownloadChecksumsButton";
 import { DownloadActions } from "@/app/components/DownloadActions";
 import DatasetSize from "./DatasetSize";
 import { formatDatasetDate, formatFileCount } from "../lib/datasetFormat";
+import { FileSystemAccessDownloadButton } from "./FileSystemAccessDownloadButton";
 
 type DatasetDetailsProps = {
   dataset: DatasetMetadata;
   files: DatasetFile[];
+  canDownload: boolean;
 };
 
 export default function DatasetDetails({
   dataset: dataset,
   files: files,
+  canDownload,
 }: DatasetDetailsProps) {
   return (
     <>
-      <div className="col-12 col-lg-6">
+      <div className="col-12 col-lg-8 col-xl-6">
         <div className="card px-0">
           <div className="card-header">
             <h3 className="card-title m-3">Dataset {dataset.datasetId}</h3>
@@ -36,8 +39,13 @@ export default function DatasetDetails({
                 Created {formatDatasetDate(dataset.date)}
               </span>
             </div>
-            <div className="d-flex justify-content-start mt-3">
+            <div className="d-flex justify-content-start flex-wrap mt-3 gap-3">
               <DownloadActions datasetId={dataset.datasetId} />
+              <FileSystemAccessDownloadButton
+                files={files}
+                disabled={!canDownload}
+                label="Download to folder"
+              />
               <DownloadChecksumsButton
                 files={files}
                 datasetId={dataset.datasetId}

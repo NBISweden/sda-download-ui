@@ -11,6 +11,7 @@ import DatasetFiles from "@/app/components/DatasetFiles";
 import Alert from "@/app/components/Alert";
 import Link from "next/link";
 import { LoginRequiredAlert } from "@/app/components/LoginRequiredAlert";
+import { FileSystemAccessBatchDownloadProvider } from "@/app/components/FileSystemAccessBatchDownloadActions";
 
 interface DatasetDetailsViewProps {
   params: Promise<{
@@ -62,54 +63,60 @@ export default async function DatasetDetailsView({
   }
 
   return (
-    <main>
-      <div className="container">
-        <div className="row mt-5">
-          {noTokenMessage ? (
-            <LoginRequiredAlert />
-          ) : errorMessage ? (
-            <Alert
-              type="warning"
-              alertMessage={errorMessage}
-              iconClass="bi bi-exclamation-triangle-fill"
-            />
-          ) : !dataset ? (
-            <Alert
-              type="info"
-              alertMessage="Information on the dataset could not be loaded."
-              iconClass="bi bi-info-circle-fill"
-            />
-          ) : (
-            <>
-              <DatasetDetails dataset={dataset} files={files} />
-              <div className="col-12 mt-5">
-                <h3>Files</h3>
-                {!hasPublicKey && (
-                  <Alert
-                    type="warning"
-                    iconClass="bi bi-exclamation-triangle-fill"
-                    alertMessage={
-                      <>
-                        File download will be unavailable until you{" "}
-                        <Link href="/userinfo">
-                          upload a Crypt4GH public key on your profile page
-                        </Link>
-                        .
-                      </>
-                    }
-                  />
-                )}
-                <DatasetFiles
+    <FileSystemAccessBatchDownloadProvider>
+      <main>
+        <div className="container">
+          <div className="row mt-5">
+            {noTokenMessage ? (
+              <LoginRequiredAlert />
+            ) : errorMessage ? (
+              <Alert
+                type="warning"
+                alertMessage={errorMessage}
+                iconClass="bi bi-exclamation-triangle-fill"
+              />
+            ) : !dataset ? (
+              <Alert
+                type="info"
+                alertMessage="Information on the dataset could not be loaded."
+                iconClass="bi bi-info-circle-fill"
+              />
+            ) : (
+              <>
+                <DatasetDetails
+                  dataset={dataset}
                   files={files}
-                  defaultItemsPerPage={10}
                   canDownload={hasPublicKey}
-                  datasetId={dataset.datasetId}
                 />
-              </div>
-            </>
-          )}
+                <div className="col-12 mt-5">
+                  <h3>Files</h3>
+                  {!hasPublicKey && (
+                    <Alert
+                      type="warning"
+                      iconClass="bi bi-exclamation-triangle-fill"
+                      alertMessage={
+                        <>
+                          File download will be unavailable until you{" "}
+                          <Link href="/userinfo">
+                            upload a Crypt4GH public key on your profile page
+                          </Link>
+                          .
+                        </>
+                      }
+                    />
+                  )}
+                  <DatasetFiles
+                    files={files}
+                    defaultItemsPerPage={10}
+                    canDownload={hasPublicKey}
+                    datasetId={dataset.datasetId}
+                  />
+                </div>
+              </>
+            )}
+          </div>
         </div>
-      </div>
-    </main>
+      </main>
+    </FileSystemAccessBatchDownloadProvider>
   );
 }

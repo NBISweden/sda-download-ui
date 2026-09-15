@@ -11,10 +11,10 @@ import {
   downloadTextFile,
 } from "@/app/actions/checksums";
 import {
-  useFileSystemAccessBatchDownload,
   FileSystemDownloadOverlays,
   useFileSystemAccessSupported,
 } from "@/app/components/FileSystemAccessBatchDownloadActions";
+import { useFSABatchDownload } from "./FileSystemAccessBatchDownloadContext";
 
 const MISSING_KEY_REASON =
   "Upload your Crypt4GH public key on the profile page to enable file downloads.";
@@ -38,10 +38,9 @@ export function DownloadOptionsMenu({
   );
 
   const supportsFileSystemAccess = useFileSystemAccessSupported();
-  const fsaDownload = useFileSystemAccessBatchDownload({
-    selectedFiles,
-    canDownload,
-  });
+  const fsaDownload = useFSABatchDownload();
+  const currentDownload =
+    "currentDownload" in fsaDownload ? fsaDownload.currentDownload : null;
 
   const selectedCount = selectedFiles.length;
   const tooManyForTar = selectedCount > MAX_TAR_SELECTION;
@@ -49,9 +48,13 @@ export function DownloadOptionsMenu({
   const downloadItem = supportsFileSystemAccess
     ? {
         label: "Download selected files to folder",
-        onClick: fsaDownload.startDownload,
-        disabled:
-          !canDownload || selectedCount === 0 || fsaDownload.isDownloading,
+        onClick:
+          "startDownload" in fsaDownload
+            ? () => {
+                fsaDownload.startDownload(selectedFiles);
+              }
+            : () => {},
+        disabled: !canDownload || selectedCount === 0 || !!currentDownload,
         disabledReason: !canDownload ? MISSING_KEY_REASON : undefined,
       }
     : {
@@ -108,10 +111,8 @@ export function DownloadOptionsMenu({
       />
       <NoticeModal id="checksum-export-notice-modal" notice={notice} />
       <FileSystemDownloadOverlays
-        isDownloading={fsaDownload.isDownloading}
         error={fsaDownload.error}
-        progress={fsaDownload.progress}
-        onCancel={fsaDownload.cancelDownload}
+        downloadHandle={currentDownload}
       />
     </>
   );

@@ -41,7 +41,7 @@ export default function DownloadChecksumsButton({
   return (
     <button
       type="button"
-      className="btn btn-primary align-self-start me-3"
+      className="btn btn-primary align-self-start"
       onClick={handleDownload}
       title={`Download ${checksumType} checksums`}
     >
