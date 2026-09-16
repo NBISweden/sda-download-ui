@@ -20,9 +20,9 @@ import { useActiveDownloadGuard } from "@/app/components/DownloadGuard";
 import { NoticeModal } from "./NoticeModal";
 import {
   DownloadableFile,
-  FileSystemDownloadHandle,
   FSABatchDownloadContext,
   FSADownloadState,
+  useFSABatchDownload,
 } from "./FileSystemAccessBatchDownloadContext";
 
 // Controls the number of active concurrent downloads.
@@ -65,6 +65,7 @@ export function useFileSystemAccessBatchDownload() {
   const [skippedCount, setSkippedCount] = useState(0);
   const [restartedCount, setRestartedCount] = useState(0);
   const [downloadedBytes, setDownloadedBytes] = useState(0);
+  const [isHidden, setIsHidden] = useState(false);
 
   const [estimatedDownloadSpeed, updateEstimatedDownloadSpeed] =
     useDownloadSpeedEstimate();
@@ -230,8 +231,20 @@ export function useFileSystemAccessBatchDownload() {
             downloadedBytes,
             estimatedTotalBytes: selectedFiles.estimatedTotalBytes,
             estimatedDownloadSpeed,
+            estimatedProgressPercent:
+              selectedFiles.estimatedTotalBytes > 0
+                ? Math.min(
+                    100,
+                    Math.round(
+                      (downloadedBytes / selectedFiles.estimatedTotalBytes) *
+                        100,
+                    ),
+                  )
+                : 0,
             warning: downloadWarning,
           },
+          isHidden,
+          setIsHidden,
           cancelDownload,
         },
       }
@@ -256,21 +269,20 @@ export function FileSystemAccessBatchDownloadProvider({
   );
 }
 
-export function FileSystemDownloadOverlays({
-  error,
-  downloadHandle,
-}: {
-  error: { message: string } | null;
-  downloadHandle: FileSystemDownloadHandle | null;
-}) {
+export function FileSystemDownloadOverlays() {
+  const fsaDownload = useFSABatchDownload();
+  const error = fsaDownload.error;
+  const downloadHandle =
+    "currentDownload" in fsaDownload ? fsaDownload.currentDownload : null;
   return (
     <>
       <NoticeModal notice={error} />
 
-      {downloadHandle && (
+      {downloadHandle && !downloadHandle.isHidden && (
         <FileSystemDownloadProgressModal
           {...downloadHandle.progress}
           onCancel={downloadHandle.cancelDownload}
+          onHide={() => downloadHandle.setIsHidden(true)}
         />
       )}
     </>

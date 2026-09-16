@@ -7,6 +7,10 @@ import { Header } from "./components/Header";
 import { DownloadGuardProvider } from "./components/DownloadGuard";
 import { SessionExpiryWatcher } from "./components/SessionExpiryWatcher";
 import { getServerToken } from "./lib/serverToken";
+import {
+  FileSystemAccessBatchDownloadProvider,
+  FileSystemDownloadOverlays,
+} from "./components/FileSystemAccessBatchDownloadActions";
 
 export const metadata: Metadata = {
   title: "SDA Download UI",
@@ -23,9 +27,12 @@ export default async function RootLayout({
     <html lang="en">
       <body>
         <DownloadGuardProvider>
-          <Header isLoggedIn={Boolean(jwt?.accessToken)} />
-          <BootstrapClient />
-          {children}
+          <FileSystemAccessBatchDownloadProvider>
+            <Header isLoggedIn={Boolean(jwt?.accessToken)} />
+            <BootstrapClient />
+            {children}
+            <FileSystemDownloadOverlays />
+          </FileSystemAccessBatchDownloadProvider>
         </DownloadGuardProvider>
         {expiresAtMs && <SessionExpiryWatcher expiresAt={expiresAtMs} />}
       </body>

@@ -16,11 +16,14 @@ export type FileSystemDownloadProgress = {
   downloadedBytes: number;
   estimatedTotalBytes: number;
   estimatedDownloadSpeed: number;
+  estimatedProgressPercent: number;
   warning: DownloadGuardWarning | null;
 };
 
 export type FileSystemDownloadHandle = {
   cancelDownload: () => void;
+  setIsHidden: (v: boolean) => void;
+  isHidden: boolean;
   progress: FileSystemDownloadProgress;
 };
 
