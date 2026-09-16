@@ -10,9 +10,7 @@ import {
   createChecksumFileContent,
   downloadTextFile,
 } from "@/app/actions/checksums";
-import {
-  useFileSystemAccessSupported,
-} from "@/app/components/FileSystemAccessBatchDownloadActions";
+import { useFileSystemAccessSupported } from "@/app/components/FileSystemAccessBatchDownloadActions";
 import { useFSABatchDownload } from "./FileSystemAccessBatchDownloadContext";
 
 const MISSING_KEY_REASON =

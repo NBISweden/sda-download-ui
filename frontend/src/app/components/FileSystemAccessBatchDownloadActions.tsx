@@ -6,6 +6,7 @@ import {
   useRef,
   useState,
   useSyncExternalStore,
+  useEffect,
 } from "react";
 import type { DatasetFile } from "@/app/actions/datasets";
 import {
@@ -274,6 +275,12 @@ export function FileSystemDownloadOverlays() {
   const error = fsaDownload.error;
   const downloadHandle =
     "currentDownload" in fsaDownload ? fsaDownload.currentDownload : null;
+  const warning = downloadHandle?.progress.warning;
+  useEffect(() => {
+    if (warning) {
+      downloadHandle.setIsHidden(false);
+    }
+  }, [warning, downloadHandle]);
   return (
     <>
       <NoticeModal notice={error} />

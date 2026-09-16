@@ -5,10 +5,12 @@ import { usePathname } from "next/navigation";
 import { logout } from "../actions/logout";
 import Link from "next/link";
 import { FSABatchDownloadContext } from "./FileSystemAccessBatchDownloadContext";
+import { useDownloadGuard } from "./DownloadGuard";
 
 export function Header() {
   const [isNavCollapsed, setIsNavCollapsed] = useState(true);
   const pathname = usePathname();
+  const { requestNavigation } = useDownloadGuard();
 
   const handleNavCollapse = () => setIsNavCollapsed(!isNavCollapsed);
   const fsaDownload = useContext(FSABatchDownloadContext);
@@ -100,8 +102,10 @@ export function Header() {
                       // guarded like any other way of leaving the page.
                       const form = event.currentTarget.form;
 
-                      if (form) {
-                        form.requestSubmit();
+                      if (
+                        form &&
+                        !requestNavigation(() => form.requestSubmit())
+                      ) {
                         event.preventDefault();
                       }
                     }}
