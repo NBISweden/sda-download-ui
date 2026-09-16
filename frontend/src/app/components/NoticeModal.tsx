@@ -22,7 +22,7 @@ export function NoticeModal({ title = "Notice", notice }: NoticeModalProps) {
     if (notice) {
       modalTrigger();
     }
-  }, [notice]);
+  }, [notice, modalTrigger]);
 
   return (
     <>
