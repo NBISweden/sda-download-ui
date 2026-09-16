@@ -62,10 +62,7 @@ export default async function DataSetsViewPage() {
               />
             </div>
           ) : (
-            <DatasetsList
-              datasets={datasetMetadataList}
-              defaultItemsPerPage={15}
-            />
+            <DatasetsList datasets={datasetMetadataList} />
           )}
         </div>
       </div>

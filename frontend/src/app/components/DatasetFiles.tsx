@@ -14,7 +14,7 @@ import { getEstimatedFileSize } from "./FileSystemAccessBatchDownloadActions";
 
 type DatasetFilesProps = {
   files: DatasetFile[];
-  defaultItemsPerPage: number;
+  defaultItemsPerPage?: number;
   canDownload?: boolean;
   datasetId: string;
 };
@@ -188,14 +188,7 @@ export default function DatasetFiles({
           onChange={handleSearchChange}
         />
       </div>
-      <div className="d-flex flex-column flex-lg-row justify-content-between">
-        <Pagination
-          itemsPerPage={itemsPerPage}
-          totalItems={filteredFiles.length}
-          currentPage={currentPage}
-          totalPages={totalPages}
-          onPageChange={setCurrentPage}
-        />
+      <div className="d-flex flex-column flex-lg-row align-items-start align-items-lg-center mb-3 gap-3">
         <ItemSelector
           item={itemsPerPage}
           setItem={(i) => {
@@ -204,6 +197,13 @@ export default function DatasetFiles({
           }}
           items={itemsPerPageOptions}
           label="Items per page"
+        />
+        <Pagination
+          itemsPerPage={itemsPerPage}
+          totalItems={filteredFiles.length}
+          currentPage={currentPage}
+          totalPages={totalPages}
+          onPageChange={setCurrentPage}
         />
       </div>
 

@@ -64,6 +64,7 @@ export default async function DatasetDetailsView({
   return (
     <main>
       <div className="container">
+        <h2 className="my-3">Full dataset overview</h2>
         <div className="row mt-5">
           {noTokenMessage ? (
             <LoginRequiredAlert />
@@ -87,7 +88,7 @@ export default async function DatasetDetailsView({
                 canDownload={hasPublicKey}
               />
               <div className="col-12 mt-5">
-                <h3>Files</h3>
+                <h3>File selection</h3>
                 {!hasPublicKey && (
                   <Alert
                     type="warning"
@@ -105,7 +106,6 @@ export default async function DatasetDetailsView({
                 )}
                 <DatasetFiles
                   files={files}
-                  defaultItemsPerPage={10}
                   canDownload={hasPublicKey}
                   datasetId={dataset.datasetId}
                 />
