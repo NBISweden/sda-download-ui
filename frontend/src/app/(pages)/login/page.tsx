@@ -5,11 +5,14 @@ import { LsaaiSignInButton } from "@/app/components/LsaaiSignInButton";
 // SignInErrorTypes union. Email and credentials provider errors are omitted:
 // this app only has an OAuth provider.
 const SIGN_IN_ERRORS: Record<string, string> = {
-  Signin: "Try signing in with a different account.",
-  OAuthSignin: "Try signing in with a different account.",
-  OAuthCallback: "Try signing in with a different account.",
-  OAuthCreateAccount: "Try signing in with a different account.",
-  Callback: "Try signing in with a different account.",
+  Signin: "Unable to start the sign-in process. Please try again.",
+  OAuthSignin:
+    "Unable to start the sign-in process with the selected provider. Please try again.",
+  OAuthCallback:
+    "Unable to complete the sign-in process with the selected provider. Please try again.",
+  OAuthCreateAccount:
+    "Unable to create your account using the selected provider.",
+  Callback: "Unable to complete the sign-in process. Please try again.",
   OAuthAccountNotLinked:
     "To confirm your identity, sign in with the same account you used originally.",
   SessionRequired: "Please sign in to access this page.",
