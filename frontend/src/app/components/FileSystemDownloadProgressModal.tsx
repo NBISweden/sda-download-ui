@@ -18,7 +18,9 @@ type FileSystemDownloadProgressModalProps = {
   downloadedBytes?: number;
   estimatedTotalBytes?: number;
   estimatedDownloadSpeed?: number;
+  estimatedProgressPercent?: number;
   onCancel: () => void;
+  onHide: () => void;
 
   // Replaces the description and the cancel button with the question, keeping the
   // progress above it. See DownloadGuard.
@@ -40,13 +42,11 @@ export function FileSystemDownloadProgressModal({
   downloadedBytes = 0,
   estimatedTotalBytes = 0,
   estimatedDownloadSpeed = 0,
+  estimatedProgressPercent = 0,
   onCancel,
+  onHide,
   warning = null,
 }: FileSystemDownloadProgressModalProps) {
-  const estimatedProgressPercent =
-    estimatedTotalBytes > 0
-      ? Math.min(100, Math.round((downloadedBytes / estimatedTotalBytes) * 100))
-      : 0;
   return (
     <>
       <div
@@ -157,6 +157,13 @@ export function FileSystemDownloadProgressModal({
             </div>
 
             <div className="modal-footer">
+              <button
+                type="button"
+                className="btn btn-outline-info"
+                onClick={onHide}
+              >
+                Hide progress
+              </button>
               {warning ? (
                 <>
                   <button

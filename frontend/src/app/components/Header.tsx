@@ -1,16 +1,21 @@
 "use client";
 
-import { useState } from "react";
+import { useContext, useState } from "react";
 import { usePathname } from "next/navigation";
-import { GuardedLink, useDownloadGuard } from "./DownloadGuard";
 import { logout } from "../actions/logout";
+import Link from "next/link";
+import { FSABatchDownloadContext } from "./FileSystemAccessBatchDownloadContext";
 
 export function Header() {
   const [isNavCollapsed, setIsNavCollapsed] = useState(true);
   const pathname = usePathname();
-  const { requestNavigation } = useDownloadGuard();
 
   const handleNavCollapse = () => setIsNavCollapsed(!isNavCollapsed);
+  const fsaDownload = useContext(FSABatchDownloadContext);
+  const currentDownload =
+    fsaDownload && "currentDownload" in fsaDownload
+      ? fsaDownload.currentDownload
+      : null;
 
   const navLinks = [
     { href: "/datasets", label: "Datasets" },
@@ -27,14 +32,14 @@ export function Header() {
         data-bs-theme="light"
       >
         <div className="container-fluid fs-5">
-          <GuardedLink
+          <Link
             className={`navbar-brand fs-4 ${isHome ? "text-info" : ""}`}
             href="/"
             aria-current={isHome ? "page" : undefined}
             onClick={() => setIsNavCollapsed(true)}
           >
             Sensitive Data Archive
-          </GuardedLink>
+          </Link>
           <button
             className="navbar-toggler fs-2 d-flex flex-column d-md-none p-3 hamburger"
             type="button"
@@ -52,20 +57,33 @@ export function Header() {
             id="navbarNav"
           >
             <ul className="navbar-nav text-center text-md-start mt-3 mt-md-0">
+              {currentDownload ? (
+                <li className="nav-item">
+                  <a
+                    className={`nav-link px-3 ${!currentDownload.isHidden ? "text-info" : ""}`}
+                    onClick={() => currentDownload.setIsHidden(false)}
+                  >
+                    <i className="bi bi-download"></i>{" "}
+                    {currentDownload.progress.estimatedProgressPercent}%
+                  </a>
+                </li>
+              ) : (
+                <></>
+              )}
               {navLinks.map((link) => {
                 const isActive =
                   pathname === link.href ||
                   (link.href !== "/" && pathname.startsWith(link.href + "/"));
                 return (
                   <li className="nav-item" key={link.href}>
-                    <GuardedLink
+                    <Link
                       className={`nav-link px-3 ${isActive ? "text-info" : ""}`}
                       href={link.href}
                       aria-current={isActive ? "page" : undefined}
                       onClick={() => setIsNavCollapsed(true)}
                     >
                       {link.label}
-                    </GuardedLink>
+                    </Link>
                   </li>
                 );
               })}
@@ -82,10 +100,8 @@ export function Header() {
                       // guarded like any other way of leaving the page.
                       const form = event.currentTarget.form;
 
-                      if (
-                        form &&
-                        !requestNavigation(() => form.requestSubmit())
-                      ) {
+                      if (form) {
+                        form.requestSubmit();
                         event.preventDefault();
                       }
                     }}

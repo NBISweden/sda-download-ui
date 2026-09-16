@@ -11,7 +11,6 @@ import {
   downloadTextFile,
 } from "@/app/actions/checksums";
 import {
-  FileSystemDownloadOverlays,
   useFileSystemAccessSupported,
 } from "@/app/components/FileSystemAccessBatchDownloadActions";
 import { useFSABatchDownload } from "./FileSystemAccessBatchDownloadContext";
@@ -110,10 +109,6 @@ export function DownloadOptionsMenu({
         ]}
       />
       <NoticeModal notice={notice} />
-      <FileSystemDownloadOverlays
-        error={fsaDownload.error}
-        downloadHandle={currentDownload}
-      />
     </>
   );
 }
