@@ -5,7 +5,7 @@ import { usePathname } from "next/navigation";
 import { GuardedLink, useDownloadGuard } from "./DownloadGuard";
 import { logout } from "../actions/logout";
 
-export function Header() {
+export function Header({ isLoggedIn }: { isLoggedIn: boolean }) {
   const [isNavCollapsed, setIsNavCollapsed] = useState(true);
   const pathname = usePathname();
   const { requestNavigation } = useDownloadGuard();
@@ -13,9 +13,9 @@ export function Header() {
   const handleNavCollapse = () => setIsNavCollapsed(!isNavCollapsed);
 
   const navLinks = [
-    { href: "/datasets", label: "Datasets" },
-    { href: "/userinfo", label: "Your profile" },
-    { href: "/help", label: "Help" },
+    { href: "/datasets", label: "Datasets", requiresAuth: true },
+    { href: "/userinfo", label: "Your profile", requiresAuth: true },
+    { href: "/help", label: "Help", requiresAuth: false },
   ];
 
   const isHome = pathname === "/";
@@ -52,48 +52,51 @@ export function Header() {
             id="navbarNav"
           >
             <ul className="navbar-nav text-center text-md-start mt-3 mt-md-0">
-              {navLinks.map((link) => {
-                const isActive =
-                  pathname === link.href ||
-                  (link.href !== "/" && pathname.startsWith(link.href + "/"));
-                return (
-                  <li className="nav-item" key={link.href}>
-                    <GuardedLink
-                      className={`nav-link px-3 ${isActive ? "text-info" : ""}`}
-                      href={link.href}
-                      aria-current={isActive ? "page" : undefined}
-                      onClick={() => setIsNavCollapsed(true)}
+              {navLinks
+                .filter((link) => !link.requiresAuth || isLoggedIn)
+                .map((link) => {
+                  const isActive =
+                    pathname === link.href ||
+                    (link.href !== "/" && pathname.startsWith(link.href + "/"));
+                  return (
+                    <li className="nav-item" key={link.href}>
+                      <GuardedLink
+                        className={`nav-link px-3 ${isActive ? "text-info" : ""}`}
+                        href={link.href}
+                        aria-current={isActive ? "page" : undefined}
+                        onClick={() => setIsNavCollapsed(true)}
+                      >
+                        {link.label}
+                      </GuardedLink>
+                    </li>
+                  );
+                })}
+              {isLoggedIn && (
+                <li className="nav-item">
+                  <form action={logout}>
+                    <button
+                      type="submit"
+                      className="nav-link px-3 border-0 bg-transparent w-100 text-center text-md-start"
+                      onClick={(event) => {
+                        setIsNavCollapsed(true);
+
+                        // Logging out ends the session the download needs, so it is
+                        // guarded like any other way of leaving the page.
+                        const form = event.currentTarget.form;
+
+                        if (
+                          form &&
+                          !requestNavigation(() => form.requestSubmit())
+                        ) {
+                          event.preventDefault();
+                        }
+                      }}
                     >
-                      {link.label}
-                    </GuardedLink>
-                  </li>
-                );
-              })}
-
-              <li className="nav-item">
-                <form action={logout}>
-                  <button
-                    type="submit"
-                    className="nav-link px-3 border-0 bg-transparent w-100 text-center text-md-start"
-                    onClick={(event) => {
-                      setIsNavCollapsed(true);
-
-                      // Logging out ends the session the download needs, so it is
-                      // guarded like any other way of leaving the page.
-                      const form = event.currentTarget.form;
-
-                      if (
-                        form &&
-                        !requestNavigation(() => form.requestSubmit())
-                      ) {
-                        event.preventDefault();
-                      }
-                    }}
-                  >
-                    Logout
-                  </button>
-                </form>
-              </li>
+                      Logout
+                    </button>
+                  </form>
+                </li>
+              )}
             </ul>
           </div>
         </div>
