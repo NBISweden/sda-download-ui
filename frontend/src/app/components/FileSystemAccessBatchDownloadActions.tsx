@@ -265,7 +265,7 @@ export function FileSystemDownloadOverlays({
 }) {
   return (
     <>
-      <NoticeModal id="fsa-download-notice-modal" notice={error} />
+      <NoticeModal notice={error} />
 
       {downloadHandle && (
         <FileSystemDownloadProgressModal

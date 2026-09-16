@@ -1,4 +1,4 @@
-import { ReactNode } from "react";
+import { ReactNode, useCallback, useId } from "react";
 
 type ModalProps = {
   id: string;
@@ -85,4 +85,27 @@ export function ModalDialog({
       </div>
     </>
   );
+}
+
+export function useModalTrigger(id?: string): [() => void, string] {
+  const createdId = useId();
+  const targetId = id ? id : createdId;
+
+  const modalTrigger = useCallback(() => {
+    const buttonElement = document.createElement("button");
+    const attributes = {
+      class: "d-none",
+      "data-bs-target": `#${targetId}`,
+      "data-bs-toggle": "modal",
+      "aria-hidden": "true",
+    };
+    for (const [key, value] of Object.entries(attributes)) {
+      buttonElement.setAttribute(key, value);
+    }
+    document.body.appendChild(buttonElement);
+    buttonElement.click();
+    buttonElement.remove();
+  }, [targetId]);
+
+  return [modalTrigger, targetId];
 }

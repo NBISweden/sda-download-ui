@@ -109,7 +109,7 @@ export function DownloadOptionsMenu({
           },
         ]}
       />
-      <NoticeModal id="checksum-export-notice-modal" notice={notice} />
+      <NoticeModal notice={notice} />
       <FileSystemDownloadOverlays
         error={fsaDownload.error}
         downloadHandle={currentDownload}

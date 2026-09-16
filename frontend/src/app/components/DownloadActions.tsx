@@ -1,13 +1,23 @@
 "use client";
 
 import { useState } from "react";
-import { ModalDialog } from "@/app/components/ModalDialog";
+import { ModalDialog, useModalTrigger } from "@/app/components/ModalDialog";
+import DropdownButton from "./DropdownButton";
+import { DatasetFile } from "../actions/datasets";
+import {
+  createChecksumFileContent,
+  downloadTextFile,
+  pickChecksumType,
+} from "../actions/checksums";
+import { useFSABatchDownload } from "./FileSystemAccessBatchDownloadContext";
+import { useFileSystemAccessSupported } from "./FileSystemAccessBatchDownloadActions";
 
-type DownloadActionsProps = {
+type CLIDownloadModalProps = {
+  id: string;
   datasetId: string;
 };
 
-export function DownloadActions({ datasetId }: DownloadActionsProps) {
+function CLIDownloadModal({ datasetId, id }: CLIDownloadModalProps) {
   const [copied, setCopied] = useState(false);
   const command = [
     "sda-cli --config <configuration_file> download \\",
@@ -50,23 +60,74 @@ export function DownloadActions({ datasetId }: DownloadActionsProps) {
   };
 
   return (
+    <ModalDialog
+      id={id}
+      title="Download via sda-cli command"
+      body={modalBody}
+      action={copyCommand}
+      iconClass={copied ? "bi-clipboard-check" : "bi-copy"}
+      actionButtonLabel="Copy command"
+    />
+  );
+}
+
+type DownloadActionsProps = {
+  datasetId: string;
+  files: DatasetFile[];
+  canDownload: boolean;
+};
+
+export function DownloadActions({
+  datasetId,
+  files,
+  canDownload,
+}: DownloadActionsProps) {
+  const [modalTrigger, modalId] = useModalTrigger();
+
+  const checksumType: "sha256" | "md5" | null = pickChecksumType(files || []);
+  const handleChecksumDownload = () => {
+    if (!checksumType) return;
+
+    const content = createChecksumFileContent(files, checksumType);
+    downloadTextFile(content, `${datasetId}_checksums.${checksumType}`);
+  };
+
+  const downloadContext = useFSABatchDownload();
+  const supportsFileSystemAccess = useFileSystemAccessSupported();
+  const downloadAll =
+    canDownload && "startDownload" in downloadContext
+      ? () => {
+          downloadContext.startDownload(files);
+        }
+      : undefined;
+
+  return (
     <>
-      <button
-        type="button"
-        className="btn btn-primary"
-        data-bs-toggle="modal"
-        data-bs-target="#cliModal"
-      >
-        Download via CLI
-      </button>
-      <ModalDialog
-        id="cliModal"
-        title="Download via sda-cli command"
-        body={modalBody}
-        action={copyCommand}
-        iconClass={copied ? "bi-clipboard-check" : "bi-copy"}
-        actionButtonLabel="Copy command"
+      <DropdownButton
+        label="Download options"
+        items={[
+          {
+            label: "Download via CLI",
+            onClick: () => modalTrigger(),
+            disabled: false,
+          },
+          ...(supportsFileSystemAccess
+            ? [
+                {
+                  label: "Download to folder",
+                  onClick: downloadAll,
+                  disabled: !downloadAll,
+                },
+              ]
+            : []),
+          {
+            label: "Download checksums",
+            onClick: handleChecksumDownload,
+            disabled: !checksumType,
+          },
+        ]}
       />
+      <CLIDownloadModal datasetId={datasetId} id={modalId} />
     </>
   );
 }

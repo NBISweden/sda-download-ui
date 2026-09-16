@@ -40,10 +40,6 @@ export default function Loading() {
                   className="btn btn-primary disabled placeholder col-3 me-3"
                   aria-hidden="true"
                 ></span>
-                <span
-                  className="btn btn-primary disabled placeholder col-3"
-                  aria-hidden="true"
-                ></span>
               </div>
             </div>
           </div>
