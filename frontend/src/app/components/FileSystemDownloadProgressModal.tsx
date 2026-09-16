@@ -157,13 +157,17 @@ export function FileSystemDownloadProgressModal({
             </div>
 
             <div className="modal-footer">
-              <button
-                type="button"
-                className="btn btn-outline-info"
-                onClick={onHide}
-              >
-                Hide progress
-              </button>
+              {!warning ? (
+                <button
+                  type="button"
+                  className="btn btn-outline-info"
+                  onClick={onHide}
+                >
+                  Hide progress
+                </button>
+              ) : (
+                <></>
+              )}
               {warning ? (
                 <>
                   <button
