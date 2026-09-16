@@ -23,7 +23,7 @@ export default async function RootLayout({
     <html lang="en">
       <body>
         <DownloadGuardProvider>
-          <Header />
+          <Header isLoggedIn={Boolean(jwt?.accessToken)} />
           <BootstrapClient />
           {children}
         </DownloadGuardProvider>
