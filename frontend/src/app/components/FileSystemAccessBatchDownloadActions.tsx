@@ -109,6 +109,7 @@ export function useFileSystemAccessBatchDownload() {
     setSkippedCount(0);
     setRestartedCount(0);
     setDownloadedBytes(0);
+    setIsHidden(false);
 
     // An AbortController instance is shared by all active and future downloads in the
     // batch so that calling abort() cancels active fetches and prevents new workers
