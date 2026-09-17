@@ -31,7 +31,7 @@ export function FileSystemDownloadProgressModal({
   title = "Downloading selected files",
   // How to resume an interrupted download is explained by the warning shown when the
   // user is about to leave the page, see DownloadGuard.
-  description = "Please keep this page open until the download has completed. Navigating away interrupts the current download.",
+  description = "Please keep this site open until the download has completed. Navigating to another site or closing the window interrupts the current download.",
   selectedCount,
   completedCount,
   activeCount,
