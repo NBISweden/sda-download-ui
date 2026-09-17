@@ -18,7 +18,9 @@ type FileSystemDownloadProgressModalProps = {
   downloadedBytes?: number;
   estimatedTotalBytes?: number;
   estimatedDownloadSpeed?: number;
+  estimatedProgressPercent?: number;
   onCancel: () => void;
+  onHide: () => void;
 
   // Replaces the description and the cancel button with the question, keeping the
   // progress above it. See DownloadGuard.
@@ -29,7 +31,7 @@ export function FileSystemDownloadProgressModal({
   title = "Downloading selected files",
   // How to resume an interrupted download is explained by the warning shown when the
   // user is about to leave the page, see DownloadGuard.
-  description = "Please keep this page open until the download has completed. Navigating away interrupts the current download.",
+  description = "Please keep this site open until the download has completed. Navigating to another site or closing the window interrupts the current download.",
   selectedCount,
   completedCount,
   activeCount,
@@ -40,13 +42,11 @@ export function FileSystemDownloadProgressModal({
   downloadedBytes = 0,
   estimatedTotalBytes = 0,
   estimatedDownloadSpeed = 0,
+  estimatedProgressPercent = 0,
   onCancel,
+  onHide,
   warning = null,
 }: FileSystemDownloadProgressModalProps) {
-  const estimatedProgressPercent =
-    estimatedTotalBytes > 0
-      ? Math.min(100, Math.round((downloadedBytes / estimatedTotalBytes) * 100))
-      : 0;
   return (
     <>
       <div
@@ -157,6 +157,17 @@ export function FileSystemDownloadProgressModal({
             </div>
 
             <div className="modal-footer">
+              {!warning ? (
+                <button
+                  type="button"
+                  className="btn btn-outline-info"
+                  onClick={onHide}
+                >
+                  Hide progress
+                </button>
+              ) : (
+                <></>
+              )}
               {warning ? (
                 <>
                   <button
