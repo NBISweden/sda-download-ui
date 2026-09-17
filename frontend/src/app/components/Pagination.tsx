@@ -70,8 +70,11 @@ export default function Pagination({
   }
 
   return (
-    <nav aria-label="Pagination">
-      <ul className="pagination flex-wrap mb-1 mb-lg-3">
+    <nav
+      aria-label="Pagination"
+      className="d-flex gap-3 flex-column align-items-start flex-lg-row align-items-lg-center"
+    >
+      <ul className="pagination flex-wrap mb-0">
         {shouldShowPagination && (
           <>
             <li className={`page-item ${isFirstPage ? "disabled" : ""}`}>
@@ -151,17 +154,16 @@ export default function Pagination({
             </li>
           </>
         )}
-
-        {shouldShowViewingSummary && (
-          <li className="my-2 my-lg-0 me-3 align-self-center">
-            Viewing{" "}
-            <strong>
-              {startItem}-{endItem}
-            </strong>{" "}
-            of <strong>{totalItems}</strong>
-          </li>
-        )}
       </ul>
+      {shouldShowViewingSummary && (
+        <span>
+          Viewing{" "}
+          <strong>
+            {startItem}-{endItem}
+          </strong>{" "}
+          of <strong>{totalItems}</strong>
+        </span>
+      )}
     </nav>
   );
 }

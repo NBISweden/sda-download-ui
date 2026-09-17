@@ -27,7 +27,7 @@ export function ItemSelector({
   label: string;
 }) {
   return (
-    <div className="d-flex mb-2">
+    <div className="d-flex">
       <div className="btn-group flex-grow-0">
         <select
           className="form-select"

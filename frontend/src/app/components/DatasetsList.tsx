@@ -20,7 +20,7 @@ const viewOptions: { mode: ViewMode; icon: string; label: string }[] = [
 
 type DatasetsListProps = {
   datasets: DatasetMetadata[];
-  defaultItemsPerPage: number;
+  defaultItemsPerPage?: number;
 };
 
 export default function DatasetsList({
@@ -130,16 +130,7 @@ export default function DatasetsList({
         />
       </div>
       {viewToggle}
-      <div className="d-flex flex-column flex-lg-row justify-content-between">
-        {totalPages > 1 && (
-          <Pagination
-            currentPage={currentPage}
-            totalPages={totalPages}
-            onPageChange={setCurrentPage}
-            totalItems={filteredDatasets.length}
-            itemsPerPage={itemsPerPage}
-          />
-        )}
+      <div className="d-flex flex-column flex-lg-row align-items-start align-items-lg-center mb-3 gap-3">
         <ItemSelector
           item={itemsPerPage}
           setItem={(i) => {
@@ -149,6 +140,15 @@ export default function DatasetsList({
           items={itemsPerPageOptions}
           label="Items per page"
         />
+        {totalPages > 1 && (
+          <Pagination
+            currentPage={currentPage}
+            totalPages={totalPages}
+            onPageChange={setCurrentPage}
+            totalItems={filteredDatasets.length}
+            itemsPerPage={itemsPerPage}
+          />
+        )}
       </div>
 
       {filteredDatasets.length === 0 ? (
