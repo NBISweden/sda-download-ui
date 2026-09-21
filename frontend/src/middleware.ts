@@ -1,13 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 
 export function middleware(request: NextRequest) {
-  // API responses aren't rendered as documents so we can skip the CSP work here since it isn't needed.
-  if (request.nextUrl.pathname.startsWith("/api/")) {
-    const response = NextResponse.next();
-    response.headers.set("X-Content-Type-Options", "nosniff");
-    return response;
-  }
-
   const nonce = Buffer.from(crypto.randomUUID()).toString("base64");
 
   // - 'strict-dynamic' + nonce covers Next.js's inline hydration/streaming
@@ -19,6 +12,7 @@ export function middleware(request: NextRequest) {
   // - form-action 'self': next-auth POSTs to /api/auth/signin/... before it
   //   redirects to the OIDC provider (redirects are exempt from form-action).
   // - frame-ancestors 'none': the app doesn't need to be embedded.
+  // Note: X-Content-Type-Options: nosniff is set globally via next.config.ts.
   const csp = [
     `default-src 'self'`,
     `script-src 'self' 'nonce-${nonce}' 'strict-dynamic'`,
@@ -39,19 +33,15 @@ export function middleware(request: NextRequest) {
 
   const response = NextResponse.next({ request: { headers: requestHeaders } });
   response.headers.set("Content-Security-Policy", csp);
-  // Tell the browser to trust the declared Content-Type instead of guessing
-  // from the body. This stops a MIME-sniff from turning a non-scriptable response
-  // into an executable one.
-  response.headers.set("X-Content-Type-Options", "nosniff");
   return response;
 }
 
 export const config = {
   matcher: [
-    // API routes are included so nosniff is set on their responses too.
-    // Skip static assets and prefetches.
+    // Skip API routes (browsers don't render those; CSP doesn't apply),
+    // static assets and prefetches.
     {
-      source: "/((?!_next/static|_next/image|favicon.ico).*)",
+      source: "/((?!api|_next/static|_next/image|favicon.ico).*)",
       missing: [
         { type: "header", key: "next-router-prefetch" },
         { type: "header", key: "purpose", value: "prefetch" },

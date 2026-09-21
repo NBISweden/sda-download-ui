@@ -11,6 +11,20 @@ const nextConfig: NextConfig = {
       "if-function",
     ],
   },
+
+  // Middleware sets X-Content-Type-Options: nosniff for pages and API
+  // responses, but excludes static assets for performance. Set the header for
+  // those responses here instead.
+  async headers() {
+    return [
+      {
+        source: "/:path*",
+        headers: [
+          { key: "X-Content-Type-Options", value: "nosniff" },
+        ],
+      },
+    ];
+  },
 };
 
 export default nextConfig;
