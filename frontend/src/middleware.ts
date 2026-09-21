@@ -1,6 +1,13 @@
 import { NextRequest, NextResponse } from "next/server";
 
 export function middleware(request: NextRequest) {
+  // API responses aren't rendered as documents so we can skip the CSP work here since it isn't needed.
+  if (request.nextUrl.pathname.startsWith("/api/")) {
+    const response = NextResponse.next();
+    response.headers.set("X-Content-Type-Options", "nosniff");
+    return response;
+  }
+
   const nonce = Buffer.from(crypto.randomUUID()).toString("base64");
 
   // - 'strict-dynamic' + nonce covers Next.js's inline hydration/streaming
@@ -41,11 +48,10 @@ export function middleware(request: NextRequest) {
 
 export const config = {
   matcher: [
-    // Skip API routes (downloads, auth callbacks etc, the browser doesn't render
-    // those and streaming data shouldn't go through middleware), static
-    // assets, and prefetches (they don't need per-request nonces).
+    // API routes are included so nosniff is set on their responses too.
+    // Skip static assets and prefetches.
     {
-      source: "/((?!api|_next/static|_next/image|favicon.ico).*)",
+      source: "/((?!_next/static|_next/image|favicon.ico).*)",
       missing: [
         { type: "header", key: "next-router-prefetch" },
         { type: "header", key: "purpose", value: "prefetch" },
