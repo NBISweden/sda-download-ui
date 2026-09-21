@@ -32,6 +32,10 @@ export function middleware(request: NextRequest) {
 
   const response = NextResponse.next({ request: { headers: requestHeaders } });
   response.headers.set("Content-Security-Policy", csp);
+  // Tell the browser to trust the declared Content-Type instead of guessing
+  // from the body. This stops a MIME-sniff from turning a non-scriptable response
+  // into an executable one.
+  response.headers.set("X-Content-Type-Options", "nosniff");
   return response;
 }
 
