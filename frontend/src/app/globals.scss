@@ -169,7 +169,7 @@ main {
 
 // Utility classes that replace inline `style` props in our own components,
 // so that the CSP `style-src 'unsafe-inline'` relaxation is only exercised
-// by third-party libraries. See middleware.ts for the CSP itself.
+// by third-party libraries. See proxy.ts for the CSP itself.
 
 .pointer-events-none {
   pointer-events: none;

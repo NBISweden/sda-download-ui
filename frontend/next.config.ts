@@ -12,7 +12,7 @@ const nextConfig: NextConfig = {
     ],
   },
 
-  // Middleware sets X-Content-Type-Options: nosniff for pages and API
+  // Proxy sets X-Content-Type-Options: nosniff for pages and API
   // responses, but excludes static assets for performance. Set the header for
   // those responses here instead.
   async headers() {
