@@ -3,6 +3,11 @@ import { NextRequest, NextResponse } from "next/server";
 export function middleware(request: NextRequest) {
   const nonce = Buffer.from(crypto.randomUUID()).toString("base64");
 
+  // Detect whether this request came in over HTTPS and set the CSP below accordingly.
+  const isHttps =
+    request.nextUrl.protocol === "https:" ||
+    request.headers.get("x-forwarded-proto") === "https";
+
   // - 'strict-dynamic' + nonce covers Next.js's inline hydration/streaming
   //   scripts and any scripts they subsequently load, without listing hosts.
   // - style-src needs 'unsafe-inline': Bootstrap, Radix UI and any React
@@ -24,6 +29,7 @@ export function middleware(request: NextRequest) {
     `frame-ancestors 'none'`,
     `base-uri 'self'`,
     `object-src 'none'`,
+    ...(isHttps ? [`upgrade-insecure-requests`] : []),
   ].join("; ");
 
   const requestHeaders = new Headers(request.headers);
