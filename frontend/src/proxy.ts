@@ -8,6 +8,15 @@ export function proxy(request: NextRequest) {
     request.nextUrl.protocol === "https:" ||
     request.headers.get("x-forwarded-proto") === "https";
 
+  // - 'unsafe-eval' only in development because React complains.
+  const isDev = process.env.NODE_ENV === "development" && !isHttps;
+  const scriptSrc = [
+    "'self'",
+    `'nonce-${nonce}'`,
+    "'strict-dynamic'",
+    ...(isDev ? ["'unsafe-eval'"] : []),
+  ].join(" ");
+
   // - 'strict-dynamic' + nonce covers Next.js's inline hydration/streaming
   //   scripts and any scripts they subsequently load, without listing hosts.
   // - style-src needs 'unsafe-inline': Bootstrap, Radix UI and any React
@@ -20,7 +29,7 @@ export function proxy(request: NextRequest) {
   // Note: X-Content-Type-Options: nosniff is set globally via next.config.ts.
   const csp = [
     `default-src 'self'`,
-    `script-src 'self' 'nonce-${nonce}' 'strict-dynamic'`,
+    `script-src ${scriptSrc}`,
     `style-src 'self' 'unsafe-inline'`,
     `img-src 'self' data: blob:`,
     `font-src 'self'`, //optional, covered by default-src 'self'
