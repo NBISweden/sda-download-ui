@@ -23,7 +23,7 @@ export function proxy(request: NextRequest) {
     `script-src 'self' 'nonce-${nonce}' 'strict-dynamic'`,
     `style-src 'self' 'unsafe-inline'`,
     `img-src 'self' data: blob:`,
-    `font-src 'self'`,  //optional, covered by default-src 'self'
+    `font-src 'self'`, //optional, covered by default-src 'self'
     `connect-src 'self'`, // optional, covered by default-src 'self'
     `form-action 'self'`, // optional, covered by default-src 'self'
     `frame-ancestors 'none'`,

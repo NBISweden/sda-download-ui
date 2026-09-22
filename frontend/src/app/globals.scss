@@ -182,9 +182,21 @@ main {
 // Fixed column widths for the DatasetFiles loading placeholder. Names
 // correspond to the columns in the real DatasetFiles table so the layout
 // does not jump when data arrives.
-.col-w-select { width: 7%; }
-.col-w-file-id { width: 16%; }
-.col-w-path { width: 29%; }
-.col-w-decrypted-size { width: 15%; }
-.col-w-checksums { width: 21%; }
-.col-w-actions { width: 12%; }
+.col-w-select {
+  width: 7%;
+}
+.col-w-file-id {
+  width: 16%;
+}
+.col-w-path {
+  width: 29%;
+}
+.col-w-decrypted-size {
+  width: 15%;
+}
+.col-w-checksums {
+  width: 21%;
+}
+.col-w-actions {
+  width: 12%;
+}

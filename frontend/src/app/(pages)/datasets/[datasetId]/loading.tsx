@@ -8,7 +8,11 @@ export default function Loading() {
     { header: "Select", className: "col-w-select", fill: "col-5" },
     { header: "File ID", className: "col-w-file-id", fill: "col-9" },
     { header: "Path", className: "col-w-path", fill: "col-11" },
-    { header: "Decrypted size", className: "col-w-decrypted-size", fill: "col-5" },
+    {
+      header: "Decrypted size",
+      className: "col-w-decrypted-size",
+      fill: "col-5",
+    },
     { header: "Checksums", className: "col-w-checksums", fill: "col-8" },
     { header: " ", className: "col-w-actions", fill: "col-7" },
   ];
