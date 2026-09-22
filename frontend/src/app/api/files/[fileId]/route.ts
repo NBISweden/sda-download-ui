@@ -7,7 +7,7 @@ import {
   translateUpstreamError,
   buildContentDisposition,
   parseRange,
-} from "@/app/lib/proxy";
+} from "@/app/lib/backendProxy";
 
 function getFallbackFilename(filePath: string | null, fileId: string): string {
   if (filePath) {

@@ -16,7 +16,7 @@ import {
   translateUpstreamError,
   buildContentDisposition,
   parseRange,
-} from "@/app/lib/proxy";
+} from "@/app/lib/backendProxy";
 import {
   planEntry,
   TAR_BLOCK_SIZE,
