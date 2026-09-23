@@ -78,7 +78,12 @@ async function handle(
   const signal = request.signal;
 
   const sessionData = await getSession();
-  if (!sessionData?.token) return errorResponse(401, "Not authenticated.");
+  if (!sessionData?.token) {
+    return new NextResponse(null, {
+      status: 307,
+      headers: { location: "/userinfo" },
+    });
+  }
   if (!sessionData.publicKey?.key) {
     return errorResponse(
       400,
