@@ -143,3 +143,20 @@ Run the tests from the container with:
 The `sda-download-UI` containers can access services of the sda-stack
 through calls to the host gateway, e.g. fetching a token array from
 `http://host.docker.internal:8001/tokens` should work.
+
+## Routes and access control
+
+| Route | Type | Access | Behaviour when signed out |
+|---|---|---|---|
+| `/` | Page | Public | Shows welcome + sign-in button. |
+| `/help` | Page | Public | Static content. |
+| `/login` | Page | Public | Sign-in page. |
+| `/logout` | Page | Public | Redirects to `/` if signed in. |
+| `/logout-complete` | Page | Public | Redirects to `/` unless reached via IdP logout flow. |
+| `/datasets` | Page | Protected | Renders sign-in prompt in place. |
+| `/datasets/[datasetId]` | Page | Protected | Renders sign-in prompt in place. |
+| `/userinfo` | Page | Protected | Renders sign-in prompt in place. |
+| `/api/auth/*` | API | Public | Managed by NextAuth. |
+| `/api/files/[fileId]` | API | Protected | 307 → `/userinfo`. |
+| `/api/datasets/[datasetId]/download.tar` | API | Protected | 307 → `/userinfo`. |
+| `/color-theme` | Page | Dev-only | 404 in production. |
