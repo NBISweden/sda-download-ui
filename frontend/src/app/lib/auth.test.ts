@@ -65,7 +65,7 @@ describe("auth oidc", () => {
       wellKnown: `${root}/.well-known/openid-configuration`,
       authorization: {
         params: {
-          scope: "openid email ga4gh_passport_v1 eduperson_entitlement",
+          scope: "openid ga4gh_passport_v1 eduperson_entitlement",
           prompt: "login",
         },
       },
@@ -85,7 +85,7 @@ describe("auth oidc", () => {
       refresh_token: "rt",
       expires_at: 1_700_000_000,
     } as Account;
-    const profile = { sub: "u1", email: "u1@example.com" };
+    const profile = { sub: "u1" };
 
     const result = await extractJWT({
       token: {},
@@ -107,7 +107,7 @@ describe("auth oidc", () => {
     vi.mocked(verifyAccessToken).mockRejectedValue(new Error("bad signature"));
 
     const account = { access_token: "at" } as Account;
-    const profile = { sub: "u1", email: "u1@example.com" };
+    const profile = { sub: "u1" };
 
     await expect(
       extractJWT({ token: {}, account, profile, user: {} as User }),

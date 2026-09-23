@@ -11,7 +11,6 @@ import { verifyAccessToken } from "./oidc";
 
 type Profile = {
   sub: string;
-  email?: string;
 };
 
 export function LsaaiOidcProvider(
@@ -25,12 +24,9 @@ export function LsaaiOidcProvider(
     wellKnown: `${root}/.well-known/openid-configuration`,
     authorization: {
       params: {
-        scope: [
-          "openid",
-          "email",
-          "ga4gh_passport_v1",
-          "eduperson_entitlement",
-        ].join(" "),
+        scope: ["openid", "ga4gh_passport_v1", "eduperson_entitlement"].join(
+          " ",
+        ),
         prompt: "login",
       },
     },
@@ -128,7 +124,7 @@ export const extractJWT: NonNullable<
   NonNullable<NextAuthOptions["callbacks"]>["jwt"]
 > = async (input) => {
   const { token, account, profile } = input;
-  if (profile?.sub && profile?.email && account?.access_token) {
+  if (profile?.sub && account?.access_token) {
     // Verify the access token's signature against the provider JWKS before storing it.
     // NextAuth has already verified the id token, this is a sanity check at this point.
     await verifyAccessToken(account.access_token);
