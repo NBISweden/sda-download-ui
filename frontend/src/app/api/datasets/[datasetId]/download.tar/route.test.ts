@@ -219,12 +219,22 @@ describe("GET /api/datasets/[datasetId]/download.tar", () => {
 
   // --- Auth / input validation (no upstream fetch happens) ---
 
-  test("401 when no session", async () => {
+  test("redirects to /userinfo when no session", async () => {
+    const fetchSpy = vi.spyOn(globalThis, "fetch");
     const { req, params } = makeReq();
     const resp = await GET(req, { params });
-    expect(resp.status).toBe(401);
-    expect(resp.headers.get("cache-control")).toBe("no-store");
-    await expect(resp.json()).resolves.toMatchObject({ status: 401 });
+    expect(resp.status).toBe(307);
+    expect(resp.headers.get("location")).toMatch(/\/userinfo$/);
+    expect(fetchSpy).not.toHaveBeenCalled();
+  });
+
+  test("redirects to /userinfo when HEAD has no session", async () => {
+    const url = new URL("http://localhost/api/datasets/ds1/download.tar");
+    const resp = await HEAD(new NextRequest(url), {
+      params: Promise.resolve({ datasetId: "ds1" }),
+    });
+    expect(resp.status).toBe(307);
+    expect(resp.headers.get("location")).toMatch(/\/userinfo$/);
   });
 
   test("400 when session has no public key", async () => {

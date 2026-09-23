@@ -2,14 +2,19 @@ export default function Loading() {
   const placeholderRows = Array.from({ length: 8 });
   // Column widths approximate the real DatasetFiles table so the layout does
   // not jump when data arrives; `fill` keeps placeholder bars looking like
-  // varied content rather than uniform full-width blocks.
+  // varied content rather than uniform full-width blocks. Widths live in
+  // globals.scss as classes so we don't need inline `style` here.
   const fileColumns = [
-    { header: "Select", width: "7%", fill: "col-5" },
-    { header: "File ID", width: "16%", fill: "col-9" },
-    { header: "Path", width: "29%", fill: "col-11" },
-    { header: "Decrypted size", width: "15%", fill: "col-5" },
-    { header: "Checksums", width: "21%", fill: "col-8" },
-    { header: " ", width: "12%", fill: "col-7" },
+    { header: "Select", className: "col-w-select", fill: "col-5" },
+    { header: "File ID", className: "col-w-file-id", fill: "col-9" },
+    { header: "Path", className: "col-w-path", fill: "col-11" },
+    {
+      header: "Decrypted size",
+      className: "col-w-decrypted-size",
+      fill: "col-5",
+    },
+    { header: "Checksums", className: "col-w-checksums", fill: "col-8" },
+    { header: " ", className: "col-w-actions", fill: "col-7" },
   ];
 
   return (
@@ -56,10 +61,10 @@ export default function Loading() {
 
             {/* Files table placeholder */}
             <div className="table-responsive">
-              <table className="table" style={{ tableLayout: "fixed" }}>
+              <table className="table table-layout-fixed">
                 <colgroup>
                   {fileColumns.map((column, index) => (
-                    <col key={index} style={{ width: column.width }} />
+                    <col key={index} className={column.className} />
                   ))}
                 </colgroup>
                 <thead>
