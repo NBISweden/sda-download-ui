@@ -11,7 +11,6 @@ import { verifyAccessToken } from "./oidc";
 
 type Profile = {
   sub: string;
-  name?: string;
   email?: string;
 };
 
@@ -28,7 +27,6 @@ export function LsaaiOidcProvider(
       params: {
         scope: [
           "openid",
-          "profile",
           "email",
           "ga4gh_passport_v1",
           "eduperson_entitlement",

@@ -65,7 +65,7 @@ describe("auth oidc", () => {
       wellKnown: `${root}/.well-known/openid-configuration`,
       authorization: {
         params: {
-          scope: "openid profile email ga4gh_passport_v1 eduperson_entitlement",
+          scope: "openid email ga4gh_passport_v1 eduperson_entitlement",
           prompt: "login",
         },
       },
