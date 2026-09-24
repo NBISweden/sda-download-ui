@@ -54,7 +54,7 @@ describe("auth oidc", () => {
     const root = "http://root";
     const clientId = "clientId";
     const clientSecret = "clientSecret";
-    const result = LsaaiOidcProvider(root, {
+    const result = LsaaiOidcProvider(root, ["ga4gh_passport_v1"], {
       clientId,
       clientSecret,
     });
@@ -65,7 +65,7 @@ describe("auth oidc", () => {
       wellKnown: `${root}/.well-known/openid-configuration`,
       authorization: {
         params: {
-          scope: "openid ga4gh_passport_v1 eduperson_entitlement",
+          scope: "openid ga4gh_passport_v1",
           prompt: "login",
         },
       },
@@ -74,6 +74,23 @@ describe("auth oidc", () => {
       profile: extractProfile,
       clientId,
       clientSecret,
+    });
+  });
+
+  test("LsaaiOidcProvider always requests openid even when the caller omits it", () => {
+    const result = LsaaiOidcProvider("http://root", []);
+    expect(result).toMatchObject({
+      authorization: { params: { scope: "openid" } },
+    });
+  });
+
+  test("LsaaiOidcProvider does not duplicate openid if the caller includes it", () => {
+    const result = LsaaiOidcProvider("http://root", [
+      "openid",
+      "ga4gh_passport_v1",
+    ]);
+    expect(result).toMatchObject({
+      authorization: { params: { scope: "openid ga4gh_passport_v1" } },
     });
   });
 
@@ -175,7 +192,7 @@ describe("auth oidc", () => {
     expect(options).toMatchObject({
       secret: testConfig.nextAuthSecretPath,
       providers: [
-        LsaaiOidcProvider(testConfig.oidcRoot, {
+        LsaaiOidcProvider(testConfig.oidcRoot, testConfig.oidcExtraScopes, {
           clientId: testConfig.oidcClientIdPath,
           clientSecret: testConfig.oidcClientSecretPath,
         }),

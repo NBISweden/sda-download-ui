@@ -15,8 +15,11 @@ type Profile = {
 
 export function LsaaiOidcProvider(
   root: string,
+  extraScopes: string[],
   p?: Partial<OAuthConfig<Profile>>,
 ): Provider {
+  const scopes = Array.from(new Set(["openid", ...extraScopes]));
+
   const defaults: OAuthConfig<Profile> = {
     id: "lsaai-oidc",
     name: "LSAAI",
@@ -24,9 +27,7 @@ export function LsaaiOidcProvider(
     wellKnown: `${root}/.well-known/openid-configuration`,
     authorization: {
       params: {
-        scope: ["openid", "ga4gh_passport_v1", "eduperson_entitlement"].join(
-          " ",
-        ),
+        scope: scopes.join(" "),
         prompt: "login",
       },
     },
@@ -88,7 +89,7 @@ export async function getAuthOptions(): Promise<NextAuthOptions> {
   return {
     secret: nextAuthSecret,
     providers: [
-      LsaaiOidcProvider(root, {
+      LsaaiOidcProvider(root, config.oidcExtraScopes, {
         clientId: clientId,
         clientSecret: clientSecret,
       }),
