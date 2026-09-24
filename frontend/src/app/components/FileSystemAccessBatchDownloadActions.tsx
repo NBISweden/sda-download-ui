@@ -288,8 +288,8 @@ export function FileSystemDownloadOverlays() {
 
       {downloadHandle && !downloadHandle.isHidden && (
         <FileSystemDownloadProgressModal
-          {...downloadHandle.progress}
-          onCancel={downloadHandle.cancelDownload}
+          progress={downloadHandle.progress}
+          onCancel={downloadHandle.cancelDownload || (() => {})}
           onHide={() => downloadHandle.setIsHidden(true)}
         />
       )}
