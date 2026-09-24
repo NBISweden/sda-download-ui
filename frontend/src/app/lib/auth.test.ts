@@ -7,7 +7,7 @@ import {
   getAuthOptions,
 } from "./auth";
 import { Account, User } from "next-auth";
-import { decode as defaultDecode } from "next-auth/jwt";
+import { decode as defaultDecode, JWT } from "next-auth/jwt";
 import * as fs from "fs";
 import { testConfig } from "@/test/testConfig";
 import { verifyAccessToken } from "./oidc";
@@ -97,7 +97,6 @@ describe("auth oidc", () => {
     expect(verifyAccessToken).toHaveBeenCalledWith("at");
     expect(result).toEqual({
       accessToken: "at",
-      refreshToken: "rt",
       expiresAt: 1_700_000_000,
       publicKey: null,
     });
@@ -127,7 +126,7 @@ describe("auth oidc", () => {
         refreshToken: REFRESH_TOKEN_SENTINEL,
         expiresAt: 1_700_000_000,
         publicKey: { key: PUBLIC_KEY_SENTINEL, pemChecksum: "abc" },
-      },
+      } as JWT & { refreshToken: string },
       user: { id: "", email: "", emailVerified: null },
       trigger: "update",
       newSession: null,

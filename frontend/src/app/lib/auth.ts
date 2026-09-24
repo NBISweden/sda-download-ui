@@ -130,7 +130,6 @@ export const extractJWT: NonNullable<
     await verifyAccessToken(account.access_token);
 
     token.accessToken = account.access_token;
-    token.refreshToken = account.refresh_token;
     token.expiresAt = account.expires_at; // seconds since epoch, per OAuth spec
     token.publicKey = null;
   }
