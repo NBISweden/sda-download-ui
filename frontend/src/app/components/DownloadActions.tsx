@@ -64,9 +64,13 @@ function CLIDownloadModal({ datasetId, id }: CLIDownloadModalProps) {
       id={id}
       title="Download via sda-cli command"
       body={modalBody}
-      action={copyCommand}
-      iconClass={copied ? "bi-clipboard-check" : "bi-copy"}
-      actionButtonLabel="Copy command"
+      buttons={[
+        {
+          label: "Copy command",
+          action: copyCommand,
+          iconClass: copied ? "bi-clipboard-check" : "bi-copy",
+        },
+      ]}
     />
   );
 }
