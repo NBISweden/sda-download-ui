@@ -5,5 +5,6 @@ export const testConfig = {
   oidcClientSecretPath: "client-secret-path",
   oidcClientIdPath: "client-id-path",
   oidcRoot: "http://localhost:3002/oidc",
+  oidcExtraScopes: [],
   allowHttp: false,
 };

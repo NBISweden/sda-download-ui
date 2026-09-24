@@ -11,14 +11,15 @@ import { verifyAccessToken } from "./oidc";
 
 type Profile = {
   sub: string;
-  name?: string;
-  email?: string;
 };
 
 export function LsaaiOidcProvider(
   root: string,
+  extraScopes: string[],
   p?: Partial<OAuthConfig<Profile>>,
 ): Provider {
+  const scopes = Array.from(new Set(["openid", ...extraScopes]));
+
   const defaults: OAuthConfig<Profile> = {
     id: "lsaai-oidc",
     name: "LSAAI",
@@ -26,13 +27,7 @@ export function LsaaiOidcProvider(
     wellKnown: `${root}/.well-known/openid-configuration`,
     authorization: {
       params: {
-        scope: [
-          "openid",
-          "profile",
-          "email",
-          "ga4gh_passport_v1",
-          "eduperson_entitlement",
-        ].join(" "),
+        scope: scopes.join(" "),
         prompt: "login",
       },
     },
@@ -94,7 +89,7 @@ export async function getAuthOptions(): Promise<NextAuthOptions> {
   return {
     secret: nextAuthSecret,
     providers: [
-      LsaaiOidcProvider(root, {
+      LsaaiOidcProvider(root, config.oidcExtraScopes, {
         clientId: clientId,
         clientSecret: clientSecret,
       }),
@@ -130,13 +125,12 @@ export const extractJWT: NonNullable<
   NonNullable<NextAuthOptions["callbacks"]>["jwt"]
 > = async (input) => {
   const { token, account, profile } = input;
-  if (profile?.sub && profile?.email && account?.access_token) {
+  if (profile?.sub && account?.access_token) {
     // Verify the access token's signature against the provider JWKS before storing it.
     // NextAuth has already verified the id token, this is a sanity check at this point.
     await verifyAccessToken(account.access_token);
 
     token.accessToken = account.access_token;
-    token.refreshToken = account.refresh_token;
     token.expiresAt = account.expires_at; // seconds since epoch, per OAuth spec
     token.publicKey = null;
   }

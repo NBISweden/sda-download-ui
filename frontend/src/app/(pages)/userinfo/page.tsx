@@ -41,9 +41,7 @@ function getTokenInfoRows(payload: jose.JWTPayload): TokenInfoRow[] {
   return [
     {
       label: "Signed in as",
-      value: formatValue(
-        payload.sub ?? payload.email ?? payload["user"] ?? "Unknown user",
-      ),
+      value: formatValue(payload.sub ?? "Unknown user"),
     },
     {
       label: "Issued",

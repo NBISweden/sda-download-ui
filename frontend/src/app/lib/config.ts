@@ -5,6 +5,14 @@ import * as z from "zod";
 
 const relaxedUrl = z.union([z.httpUrl(), z.url({ hostname: /^localhost$/ })]);
 
+const oidcScope = z
+  .string()
+  .min(1)
+  .regex(
+    /^[\x21\x23-\x5B\x5D-\x7E]+$/,
+    "Scope must be non-empty printable ASCII without spaces, quotes, or backslashes.",
+  );
+
 const Config = z.strictObject({
   sdaBaseUrl: relaxedUrl,
   nextAuthSecretPath: z.string(),
@@ -12,7 +20,8 @@ const Config = z.strictObject({
   oidcClientSecretPath: z.string(),
   oidcClientIdPath: z.string(),
   oidcRoot: relaxedUrl,
-  postLogoutRedirectUri: relaxedUrl.optional(), // optional since in federated deployments the IdP cascades logout upstream so the return trip typically doesn't complete anyway.
+  oidcExtraScopes: z.array(oidcScope).max(20).default([]),
+  postLogoutRedirectUri: relaxedUrl.optional(),
   allowHttp: z.boolean().default(false),
 });
 

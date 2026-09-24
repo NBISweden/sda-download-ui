@@ -7,7 +7,7 @@ import {
   getAuthOptions,
 } from "./auth";
 import { Account, User } from "next-auth";
-import { decode as defaultDecode } from "next-auth/jwt";
+import { decode as defaultDecode, JWT } from "next-auth/jwt";
 import * as fs from "fs";
 import { testConfig } from "@/test/testConfig";
 import { verifyAccessToken } from "./oidc";
@@ -54,7 +54,7 @@ describe("auth oidc", () => {
     const root = "http://root";
     const clientId = "clientId";
     const clientSecret = "clientSecret";
-    const result = LsaaiOidcProvider(root, {
+    const result = LsaaiOidcProvider(root, ["ga4gh_passport_v1"], {
       clientId,
       clientSecret,
     });
@@ -65,7 +65,7 @@ describe("auth oidc", () => {
       wellKnown: `${root}/.well-known/openid-configuration`,
       authorization: {
         params: {
-          scope: "openid profile email ga4gh_passport_v1 eduperson_entitlement",
+          scope: "openid ga4gh_passport_v1",
           prompt: "login",
         },
       },
@@ -77,6 +77,23 @@ describe("auth oidc", () => {
     });
   });
 
+  test("LsaaiOidcProvider always requests openid even when the caller omits it", () => {
+    const result = LsaaiOidcProvider("http://root", []);
+    expect(result).toMatchObject({
+      authorization: { params: { scope: "openid" } },
+    });
+  });
+
+  test("LsaaiOidcProvider does not duplicate openid if the caller includes it", () => {
+    const result = LsaaiOidcProvider("http://root", [
+      "openid",
+      "ga4gh_passport_v1",
+    ]);
+    expect(result).toMatchObject({
+      authorization: { params: { scope: "openid ga4gh_passport_v1" } },
+    });
+  });
+
   test("extractJWT verifies the access token and copies fields", async () => {
     vi.mocked(verifyAccessToken).mockResolvedValue({} as never);
 
@@ -85,7 +102,7 @@ describe("auth oidc", () => {
       refresh_token: "rt",
       expires_at: 1_700_000_000,
     } as Account;
-    const profile = { sub: "u1", email: "u1@example.com" };
+    const profile = { sub: "u1" };
 
     const result = await extractJWT({
       token: {},
@@ -97,7 +114,6 @@ describe("auth oidc", () => {
     expect(verifyAccessToken).toHaveBeenCalledWith("at");
     expect(result).toEqual({
       accessToken: "at",
-      refreshToken: "rt",
       expiresAt: 1_700_000_000,
       publicKey: null,
     });
@@ -107,7 +123,7 @@ describe("auth oidc", () => {
     vi.mocked(verifyAccessToken).mockRejectedValue(new Error("bad signature"));
 
     const account = { access_token: "at" } as Account;
-    const profile = { sub: "u1", email: "u1@example.com" };
+    const profile = { sub: "u1" };
 
     await expect(
       extractJWT({ token: {}, account, profile, user: {} as User }),
@@ -127,7 +143,7 @@ describe("auth oidc", () => {
         refreshToken: REFRESH_TOKEN_SENTINEL,
         expiresAt: 1_700_000_000,
         publicKey: { key: PUBLIC_KEY_SENTINEL, pemChecksum: "abc" },
-      },
+      } as JWT & { refreshToken: string },
       user: { id: "", email: "", emailVerified: null },
       trigger: "update",
       newSession: null,
@@ -176,7 +192,7 @@ describe("auth oidc", () => {
     expect(options).toMatchObject({
       secret: testConfig.nextAuthSecretPath,
       providers: [
-        LsaaiOidcProvider(testConfig.oidcRoot, {
+        LsaaiOidcProvider(testConfig.oidcRoot, testConfig.oidcExtraScopes, {
           clientId: testConfig.oidcClientIdPath,
           clientSecret: testConfig.oidcClientSecretPath,
         }),
