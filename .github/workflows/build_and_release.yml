@@ -90,6 +90,21 @@ jobs:
         id: date
         run: echo "DATE_TAG=$(date +%Y%m%d-%H%M)" >>$GITHUB_OUTPUT
 
+      - name: Get PR number (develop only)
+        if: steps.should_build.outputs.build == 'true' && github.ref == 'refs/heads/develop'
+        id: pr
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          PR_NUMBER=$(gh api "/repos/${{ github.repository }}/commits/${{ github.sha }}/pulls" --jq '.[0].number // empty')
+          if [ -n "$PR_NUMBER" ]; then
+            echo "PR_TAG=PR$PR_NUMBER" >> $GITHUB_OUTPUT
+            echo "Found PR #$PR_NUMBER"
+          else
+            echo "No PR found for commit ${{ github.sha }}"
+            echo "PR_TAG=" >> $GITHUB_OUTPUT
+          fi
+
       - name: Extract metadata
         if: steps.should_build.outputs.build == 'true'
         id: meta
@@ -104,6 +119,7 @@ jobs:
             type=sha
             type=raw,value=latest,enable=${{ github.ref == 'refs/heads/main' }}
             type=raw,value=${{ steps.date.outputs.DATE_TAG }}
+            type=raw,value=${{ steps.pr.outputs.PR_TAG }},enable=${{ steps.pr.outputs.PR_TAG != '' }}
 
       - name: Build and push
         if: steps.should_build.outputs.build == 'true'
