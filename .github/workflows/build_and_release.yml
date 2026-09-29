@@ -12,6 +12,13 @@ env:
 jobs:
   build-and-push:
     runs-on: ubuntu-latest
+    # Skip when a sync-back PR from main is merged into develop
+    if: |
+      !(
+        github.ref == 'refs/heads/develop' &&
+        contains(github.event.head_commit.message, 'chore: sync v') &&
+        contains(github.event.head_commit.message, 'back to develop')
+      )
     permissions:
       contents: write
       packages: write
