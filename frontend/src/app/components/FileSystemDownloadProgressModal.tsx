@@ -3,7 +3,7 @@
 import { filesize } from "filesize";
 import prettyMilliseconds from "pretty-ms";
 import { FileSystemDownloadProgress } from "./FileSystemAccessBatchDownloadContext";
-import { ModalDialog } from "./ModalDialog";
+import { ModalButton, ModalDialog } from "./ModalDialog";
 import { useId } from "react";
 
 type FileSystemDownloadProgressModalProps = {
@@ -128,6 +128,31 @@ export function FileSystemDownloadProgressModal({
     </>
   );
   const modalId = useId();
+  const closeButton: ModalButton | null = warning
+    ? null
+    : {
+        label: "Hide downloads",
+        action: onHide,
+      };
+  const buttons: ModalButton[] = warning
+    ? [
+        {
+          label: warning.stayLabel,
+          action: warning.onStay,
+          buttonClass: "btn-primary",
+        },
+        {
+          label: warning.leaveLabel,
+          action: warning.onLeave,
+          buttonClass: "btn-outline-danger",
+        },
+      ]
+    : [
+        {
+          label: "Cancel downloads",
+          action: onCancel,
+        },
+      ];
   return (
     <>
       <ModalDialog
@@ -135,16 +160,8 @@ export function FileSystemDownloadProgressModal({
         show={true}
         title={warning ? warning.title : title}
         body={body}
-        buttons={[
-          {
-            label: "Cancel downloads",
-            action: onCancel,
-          },
-        ]}
-        closeButton={{
-          label: "Hide downloads",
-          action: onHide,
-        }}
+        buttons={buttons}
+        closeButton={closeButton}
       />
     </>
   );
