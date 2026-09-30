@@ -4,18 +4,17 @@ type ModalProps = {
   id: string;
   title: string;
   body: ReactNode;
-  closeButton?: ModalButton | null;
+  closeButton?: (ModalButton & { hidden?: boolean }) | null;
   buttons?: ModalButton[];
   show?: boolean;
 };
 
-type ModalButton = {
+export type ModalButton = {
   label: string;
   action?: () => void;
   dismissModal?: boolean;
   iconClass?: string;
   buttonClass?: string;
-  hidden?: boolean;
 };
 
 /**
@@ -48,11 +47,16 @@ export function ModalDialog({
   closeButton =
     closeButton === undefined
       ? defaultCloseButton
-      : {
-          ...defaultCloseButton,
-          ...(closeButton || {}),
-        };
-  const allButtons = [...buttons, ...(closeButton ? [closeButton] : [])];
+      : closeButton === null
+        ? null
+        : {
+            ...defaultCloseButton,
+            ...closeButton,
+          };
+  const allButtons = [
+    ...buttons,
+    ...(closeButton && !closeButton.hidden ? [closeButton] : []),
+  ];
   return (
     <>
       <div
@@ -83,27 +87,25 @@ export function ModalDialog({
             </div>
             <div className="modal-body">{body}</div>
             <div className="modal-footer">
-              {allButtons
-                .filter((b) => !b.hidden)
-                .map(
-                  (
-                    { action, label, iconClass, buttonClass, dismissModal },
-                    index,
-                  ) => (
-                    <button
-                      type="button"
-                      onClick={action}
-                      key={index}
-                      className={`btn ${buttonClass ? buttonClass : "btn-primary"}`}
-                      {...(dismissModal && !show
-                        ? { "data-bs-dismiss": "modal" }
-                        : {})}
-                    >
-                      {iconClass && <i className={`bi ${iconClass} me-1`}></i>}
-                      {label}
-                    </button>
-                  ),
-                )}
+              {allButtons.map(
+                (
+                  { action, label, iconClass, buttonClass, dismissModal },
+                  index,
+                ) => (
+                  <button
+                    type="button"
+                    onClick={action}
+                    key={index}
+                    className={`btn ${buttonClass ? buttonClass : "btn-primary"}`}
+                    {...(dismissModal && !show
+                      ? { "data-bs-dismiss": "modal" }
+                      : {})}
+                  >
+                    {iconClass && <i className={`bi ${iconClass} me-1`}></i>}
+                    {label}
+                  </button>
+                ),
+              )}
             </div>
           </div>
         </div>
