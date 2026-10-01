@@ -26,12 +26,7 @@ export function NoticeModal({ title = "Notice", notice }: NoticeModalProps) {
 
   return (
     <>
-      <ModalDialog
-        id={modalId}
-        title={title}
-        body={notice?.message ?? ""}
-        showActionButton={false}
-      />
+      <ModalDialog id={modalId} title={title} body={notice?.message ?? ""} />
     </>
   );
 }
