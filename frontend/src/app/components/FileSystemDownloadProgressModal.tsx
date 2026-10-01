@@ -133,6 +133,7 @@ export function FileSystemDownloadProgressModal({
     : {
         label: "Hide downloads",
         action: onHide,
+        buttonClass: "btn-outline-info",
       };
   const buttons: ModalButton[] = warning
     ? [
@@ -151,6 +152,7 @@ export function FileSystemDownloadProgressModal({
         {
           label: "Cancel downloads",
           action: onCancel,
+          buttonClass: "btn-outline-danger",
         },
       ];
   return (

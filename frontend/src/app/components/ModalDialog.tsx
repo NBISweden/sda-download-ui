@@ -54,8 +54,8 @@ export function ModalDialog({
             ...closeButton,
           };
   const allButtons = [
-    ...buttons,
     ...(closeButton && !closeButton.hidden ? [closeButton] : []),
+    ...buttons,
   ];
   return (
     <>
