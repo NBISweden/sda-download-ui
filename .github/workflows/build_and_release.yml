@@ -140,7 +140,7 @@ jobs:
       # Release-only steps (main branch)
       - name: Create GitHub Release
         if: github.ref == 'refs/heads/main' && steps.check.outputs.skip == 'false'
-        uses: softprops/action-gh-release@v2
+        uses: softprops/action-gh-release@v3
         with:
           tag_name: ${{ steps.version.outputs.TAG }}
           name: ${{ steps.version.outputs.TAG }}
