@@ -4,12 +4,19 @@ type ModalProps = {
   id: string;
   title: string;
   body: ReactNode;
-  showCloseButton?: boolean;
-  showActionButton?: boolean;
-  action?: () => void;
-  iconClass?: string;
-  actionButtonLabel?: string;
+  closeButton?: (ModalButton & { hidden?: boolean }) | null;
+  buttons?: ModalButton[];
+  show?: boolean;
 };
+
+export type ModalButton = {
+  label: string;
+  action?: () => void;
+  dismissModal?: boolean;
+  iconClass?: string;
+  buttonClass?: string;
+};
+
 /**
  * Reusable Bootstrap modal dialog.
  *
@@ -27,21 +34,37 @@ export function ModalDialog({
   id,
   title,
   body,
-  showCloseButton = true,
-  showActionButton = true,
-  action,
-  iconClass,
-  actionButtonLabel,
+  closeButton,
+  buttons = [],
+  show,
 }: ModalProps) {
+  const defaultCloseButton: ModalButton = {
+    label: "Close",
+    dismissModal: true,
+    buttonClass: "btn-secondary",
+  };
   const titleId = `${id}Label`;
+  closeButton =
+    closeButton === undefined
+      ? defaultCloseButton
+      : closeButton === null
+        ? null
+        : {
+            ...defaultCloseButton,
+            ...closeButton,
+          };
+  const allButtons = [
+    ...(closeButton && !closeButton.hidden ? [closeButton] : []),
+    ...buttons,
+  ];
   return (
     <>
       <div
-        className="modal fade"
+        className={`modal fade ${show ? "show d-block" : ""}`}
         id={id}
         tabIndex={-1}
         aria-labelledby={titleId}
-        aria-hidden="true"
+        {...(show ? { role: "dialog" } : { "aria-hidden": "true" })}
       >
         <div className="modal-dialog">
           <div className="modal-content">
@@ -49,40 +72,45 @@ export function ModalDialog({
               <h1 className="modal-title fs-5" id={titleId}>
                 {title}
               </h1>
-              {showCloseButton && (
-                <button
-                  type="button"
-                  className="btn-close"
-                  data-bs-dismiss="modal"
-                  aria-label="Close"
-                ></button>
-              )}
+              {closeButton &&
+                (closeButton.dismissModal || closeButton.action) && (
+                  <button
+                    type="button"
+                    className="btn-close"
+                    {...(closeButton.dismissModal && !show
+                      ? { "data-bs-dismiss": "modal" }
+                      : {})}
+                    onClick={closeButton.action}
+                    aria-label={closeButton.label}
+                  ></button>
+                )}
             </div>
             <div className="modal-body">{body}</div>
             <div className="modal-footer">
-              {showCloseButton && (
-                <button
-                  type="button"
-                  className="btn btn-secondary"
-                  data-bs-dismiss="modal"
-                >
-                  Close
-                </button>
-              )}
-              {showActionButton && (
-                <button
-                  type="button"
-                  className="btn btn-primary"
-                  onClick={action}
-                >
-                  {iconClass && <i className={`bi ${iconClass} me-1`}></i>}
-                  {actionButtonLabel}
-                </button>
+              {allButtons.map(
+                (
+                  { action, label, iconClass, buttonClass, dismissModal },
+                  index,
+                ) => (
+                  <button
+                    type="button"
+                    onClick={action}
+                    key={index}
+                    className={`btn ${buttonClass ? buttonClass : "btn-primary"}`}
+                    {...(dismissModal && !show
+                      ? { "data-bs-dismiss": "modal" }
+                      : {})}
+                  >
+                    {iconClass && <i className={`bi ${iconClass} me-1`}></i>}
+                    {label}
+                  </button>
+                ),
               )}
             </div>
           </div>
         </div>
       </div>
+      {show ? <div className="modal-backdrop fade show"></div> : <></>}
     </>
   );
 }
