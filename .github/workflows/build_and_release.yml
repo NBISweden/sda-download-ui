@@ -5,6 +5,9 @@ on:
     branches:
       - main
       - develop
+  pull_request: #temp for debugging
+    branches:
+      - develop
 
 env:
   REGISTRY: ghcr.io
@@ -126,9 +129,9 @@ jobs:
         uses: docker/build-push-action@v5
         with:
           context: ./frontend
-          file: ../Dockerfile
+          file: ./Dockerfile
           target: prod
-          push: true
+          push: false # temp for debugging
           tags: ${{ steps.meta.outputs.tags }}
           labels: ${{ steps.meta.outputs.labels }}
           build-args: |
