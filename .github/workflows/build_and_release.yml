@@ -13,7 +13,13 @@ env:
   REGISTRY: ghcr.io
 
 jobs:
+  lint:
+    uses: ./.github/workflows/lint.yml
+  test:
+    uses: ./.github/workflows/run_tests.yml
+
   build-and-push:
+    needs: [lint, test]
     runs-on: ubuntu-latest
     # Skip when a sync-back PR from main is merged into develop
     if: |
