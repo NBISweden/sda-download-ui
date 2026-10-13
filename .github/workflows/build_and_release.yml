@@ -5,12 +5,23 @@ on:
     branches:
       - main
       - develop
+  pull_request:
+    branches:
+      - main
 
 env:
   REGISTRY: ghcr.io
 
 jobs:
+  lint:
+    uses: ./.github/workflows/linting.yml
+  test:
+    uses: ./.github/workflows/run_tests.yml
+
   build-and-push:
+    needs:
+      - lint
+      - test
     runs-on: ubuntu-latest
     # Skip when a sync-back PR from main is merged into develop
     if: |
@@ -63,8 +74,10 @@ jobs:
       - name: Skip build if release skipped
         id: should_build
         run: |
-          # Build on develop always. On main, only if not skipped.
+          # Build on develop, on PRs (for validation), or on main if release not skipped.
           if [ "${{ github.ref }}" = "refs/heads/develop" ]; then
+            echo "build=true" >> $GITHUB_OUTPUT
+          elif [ "${{ github.event_name }}" = "pull_request" ]; then
             echo "build=true" >> $GITHUB_OUTPUT
           elif [ "${{ steps.check.outputs.skip }}" = "false" ]; then
             echo "build=true" >> $GITHUB_OUTPUT
@@ -73,7 +86,7 @@ jobs:
           fi
 
       - name: Log in to the Container registry
-        if: steps.should_build.outputs.build == 'true'
+        if: steps.should_build.outputs.build == 'true' && github.event_name != 'pull_request'
         uses: docker/login-action@v3
         with:
           registry: ${{ env.REGISTRY }}
@@ -126,9 +139,9 @@ jobs:
         uses: docker/build-push-action@v5
         with:
           context: ./frontend
-          file: ../Dockerfile
+          file: ./Dockerfile
           target: prod
-          push: true
+          push: ${{ github.event_name != 'pull_request' }}
           tags: ${{ steps.meta.outputs.tags }}
           labels: ${{ steps.meta.outputs.labels }}
           build-args: |

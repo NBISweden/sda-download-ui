@@ -1,6 +1,10 @@
 name: "Linting action"
 
-on: [pull_request]
+on:
+  pull_request:
+    branches:
+      - develop
+  workflow_call:
 
 jobs:
   frontend:
