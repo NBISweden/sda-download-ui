@@ -2,7 +2,8 @@ name: SDAD tests
 
 on:
   pull_request:
-    branches: [main, develop]
+    branches:
+      - develop
   workflow_call:
 
 jobs:
