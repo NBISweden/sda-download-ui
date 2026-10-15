@@ -105,7 +105,7 @@ docker compose -f sda-dev-stack.yml --profile sda-auth up -d
 | download  | 8085  | Download API v2                                      |
 | mockauth  | 8001  | Mock OIDC (JWKS, userinfo, /tokens)                  |
 | postgres  | 15432 | PostgreSQL with SDA schema                           |
-| minio     | 19000 | S3 storage (console at 19001)                        |
+| garage    | 19000 | S3 storage (api at 19001)                        |
 | reencrypt | 50051 | gRPC re-encryption for file downloads                |
 | auth-aai  | 8801  | OpenIDConnect client for fetching tokens             |
 | mock-aai  | 8800  | Mock LS-AAI OIDC server for issuing tokens and visas |

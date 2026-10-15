@@ -1,6 +1,6 @@
 #!/bin/sh
 # Seeds a mock BP dataset that reproduces the currently used dataset folder structure.
-# Files are truly downloadable: real crypt4gh-encrypted objects live in MinIO
+# Files are truly downloadable: real crypt4gh-encrypted objects live in S3
 # and DB metadata (header, sizes, checksums) matches.
 #
 set -e
@@ -15,11 +15,12 @@ fi
 
 echo "=== Seeding tree dataset ==="
 
-# MinIO setup
-mc alias set myminio http://s3:9000 access secretKey --quiet
-mc mb myminio/archive --ignore-existing --quiet
+# S3 credentials (must match garage-init.sh)
+export AWS_ACCESS_KEY_ID=GKabcdef0123456789abcdef01
+export AWS_SECRET_ACCESS_KEY=abcdef0123456789abcdef0123456789abcdef0123456789abcdef0123456789
+export AWS_REGION=us-east-1
 
-# Generate folder structured data, encrypt and upload to MinIO, emit a single SQL file.
+# Generate folder-structured data, encrypt and S3, emit a single SQL file.
 python3 << 'PYEOF'
 import hashlib, os, struct, subprocess
 
@@ -85,9 +86,10 @@ unique_sizes = sorted({sz for _, sz in tree})
 print(f"Unique sizes to encrypt: {len(unique_sizes)}")
 
 meta_by_size = {}
+uploads = []  # list of (local_body_path, s3_key, plain_path, enc_path)
+
 for sz in unique_sizes:
-    # Deterministic filler content of exactly sz bytes
-    seed = hashlib.sha256(f"tree-seed-size-{sz}".encode()).digest()  # 32 bytes
+    seed = hashlib.sha256(f"tree-seed-size-{sz}".encode()).digest()
     reps = (sz // 32) + 1
     plaintext = (seed * reps)[:sz]
 
@@ -114,16 +116,9 @@ for sz in unique_sizes:
     body   = data[off:]
 
     archive_object = f"tree-blobs/size-{sz}.c4gh"
-
-    # Upload archive object (body) to MinIO
     body_path = f"/tmp/tree_body_{sz}.bin"
     with open(body_path, "wb") as f:
         f.write(body)
-    with open(body_path, "rb") as fin:
-        subprocess.run(
-            ["mc", "pipe", f"myminio/archive/{archive_object}"],
-            stdin=fin, check=True,
-        )
 
     meta_by_size[sz] = {
         "header_hex":         header.hex(),
@@ -134,14 +129,24 @@ for sz in unique_sizes:
         "archive_object":     archive_object,
     }
 
+    uploads.append((body_path, f"s3://archive/{archive_object}", plain_path, enc_path))
+    print(f"  size={sz:>10}  archive={len(body):>10}  -> {archive_object}")
+
+# Batch upload all unique bodies in one s5cmd run invocation
+run_input = "\n".join(f"cp {src} {dst}" for src, dst, _, _ in uploads) + "\n"
+subprocess.run(
+    ["s5cmd", "--endpoint-url", "http://s3:9000", "run"],
+    input=run_input, text=True, check=True,
+)
+
+# Cleanup temp files
+for body_path, _, plain_path, enc_path in uploads:
     for p in (plain_path, enc_path, body_path):
         try: os.unlink(p)
         except OSError: pass
 
-    print(f"  size={sz:>10}  archive={len(body):>10}  -> {archive_object}")
-
 # Emit SQL
-def sq(s):  # SQL single-quote escape
+def sq(s):
     return s.replace("'", "''")
 
 with open("/tmp/tree_seed.sql", "w") as sql:
@@ -199,8 +204,8 @@ INSERT INTO sda.checksums (file_id, checksum, type, source) VALUES
 print(f"Wrote SQL for {len(tree)} files to /tmp/tree_seed.sql")
 PYEOF
 
-pg_isready -h postgres -p 5432 -U postgres
-psql -h postgres -U postgres -d sda -v ON_ERROR_STOP=1 -f /tmp/tree_seed.sql
+pg_isready -h postgres -p 5432 -U postgres >/dev/null
+psql -q -h postgres -U postgres -d sda -v ON_ERROR_STOP=1 -f /tmp/tree_seed.sql >/dev/null
 
 echo "Seeded 57 files across the tree into bp-Dataset-d6ummy-m3oc2k"
 touch "$SEED_MARKER_TMP"

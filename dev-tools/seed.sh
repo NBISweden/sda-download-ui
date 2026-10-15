@@ -1,10 +1,10 @@
 #!/bin/sh
 # Seed script for download v2 dev compose.
-# Creates a real Crypt4GH encrypted test file, uploads data segments to MinIO,
+# Creates a real Crypt4GH encrypted test file, uploads data segments to S3,
 # and inserts matching metadata (header, checksums, sizes) into the database.
 # Idempotent: safe to re-run against existing volumes.
 # Creates 120 datasets and reuses the base file for additional files.
-# It distributes files across the dataset  with a variable spread to support pagination testing.
+# It distributes files across the dataset with a variable spread to support pagination testing.
 # Up to max 101 files per dataset.
 set -e
 
@@ -22,6 +22,12 @@ SUBMISSION_USER="integration_test@example.org"
 BASE_FILE_UUID="aaaaaaaa-bbbb-cccc-dddd-eeeeeeeeeeee"
 BASE_FILE_STABLE_ID="EGAF00000000001"
 BASE_DATASET_STABLE_ID="EGAD00000000001"
+
+# S3 credentials (must match garage-init.sh)
+export AWS_ACCESS_KEY_ID=GKabcdef0123456789abcdef01
+export AWS_SECRET_ACCESS_KEY=abcdef0123456789abcdef0123456789abcdef0123456789abcdef0123456789
+export AWS_REGION=us-east-1
+S5="s5cmd --endpoint-url http://s3:9000"
 
 # Create deterministic plaintext test data (1 KB)
 python3 -c "import hashlib; open('/tmp/plaintext.bin','wb').write(hashlib.sha256(b'sda-download-v2-dev-test-data').digest() * 32)"
@@ -71,59 +77,47 @@ PYEOF
 # Load computed metadata
 . /shared/seed_metadata.env
 
-# MinIO setup
-mc alias set myminio http://s3:9000 access secretKey --quiet
-mc mb myminio/archive --ignore-existing --quiet
-
 # Upload base archived object
-mc pipe myminio/archive/test-file.c4gh < /tmp/body.bin
-echo "Uploaded to MinIO: archive/test-file.c4gh"
+$S5 cp /tmp/body.bin s3://archive/test-file.c4gh
+echo "Uploaded to S3: archive/test-file.c4gh"
 
-# Create all additional archived objects needed:
-# - files 2..101 for dataset 1
-# - a variable spread for datasets 2..120
-#
-# Global file sequence:
-#   1   = base file EGAF00000000001 => test-file.c4gh
-#   2+  = generated files => generated-file-XXXXXXXXXXX.c4gh
-#
-# Spread function for datasets 2..120:
-#   file_count = ((dataset_index - 2) % 10) + 1
-# This gives a repeating spread of 1..10 files across the remaining datasets.
+# Build server-side copy commands for all additional archived objects:
+#   - files 2..101 for dataset 1
+#   - a variable spread for datasets 2..120 (dataset 2 forced to 2 files)
+# All copies run in parallel via a single `s5cmd run` invocation.
 GLOBAL_FILE_SEQ=2
-
-# Additional archived objects for dataset 1 (100 more files)
-i=2
-while [ "$i" -le 101 ]; do
-  OBJ_NAME=$(printf "generated-file-%011d.c4gh" "$GLOBAL_FILE_SEQ")
-  mc cp "myminio/archive/test-file.c4gh" "myminio/archive/$OBJ_NAME" --quiet
-  GLOBAL_FILE_SEQ=$((GLOBAL_FILE_SEQ+1))
-  i=$((i+1))
-done
-
-# Archived objects for datasets 2..120 with spread 1..10
-dataset_idx=2
-while [ "$dataset_idx" -le 120 ]; do
-  file_count=$(( ((dataset_idx - 2) % 10) + 1 ))
-  if [ "$dataset_idx" -eq 2 ]; then
-    file_count=2
-  fi
-  j=1
-  while [ "$j" -le "$file_count" ]; do
+{
+  i=2
+  while [ "$i" -le 101 ]; do
     OBJ_NAME=$(printf "generated-file-%011d.c4gh" "$GLOBAL_FILE_SEQ")
-    mc cp "myminio/archive/test-file.c4gh" "myminio/archive/$OBJ_NAME" --quiet
+    printf 'cp s3://archive/test-file.c4gh s3://archive/%s\n' "$OBJ_NAME"
     GLOBAL_FILE_SEQ=$((GLOBAL_FILE_SEQ+1))
-    j=$((j+1))
+    i=$((i+1))
   done
-  dataset_idx=$((dataset_idx+1))
-done
 
-echo "Uploaded/copied archived objects to MinIO"
+  dataset_idx=2
+  while [ "$dataset_idx" -le 120 ]; do
+    file_count=$(( ((dataset_idx - 2) % 10) + 1 ))
+    if [ "$dataset_idx" -eq 2 ]; then
+      file_count=2
+    fi
+    j=1
+    while [ "$j" -le "$file_count" ]; do
+      OBJ_NAME=$(printf "generated-file-%011d.c4gh" "$GLOBAL_FILE_SEQ")
+      printf 'cp s3://archive/test-file.c4gh s3://archive/%s\n' "$OBJ_NAME"
+      GLOBAL_FILE_SEQ=$((GLOBAL_FILE_SEQ+1))
+      j=$((j+1))
+    done
+    dataset_idx=$((dataset_idx+1))
+  done
+} | $S5 run
+
+echo "Uploaded/copied archived objects to S3"
 
 # Seed database
-pg_isready -h postgres -p 5432 -U postgres
+pg_isready -h postgres -p 5432 -U postgres >/dev/null
 
-psql -h postgres -U postgres -d sda << EOSQL
+psql -q -v ON_ERROR_STOP=1 -h postgres -U postgres -d sda >/dev/null << EOSQL
 -- Base/original file
 INSERT INTO sda.files (
   id, stable_id, submission_user, submission_file_path,
@@ -167,8 +161,7 @@ INSERT INTO sda.checksums (file_id, checksum, type, source) VALUES
   ('$BASE_FILE_UUID', '$DECRYPTED_MD5_CHECKSUM', 'MD5', 'UNENCRYPTED');
 EOSQL
 
-# File sequence counter:
-# 1 is already used by the base file.
+# File sequence counter: 1 is already used by the base file.
 NEXT_FILE_SEQ=2
 
 # Add 100 more files to the first dataset
@@ -178,7 +171,7 @@ while [ "$i" -le 101 ]; do
   FILE_UUID=$(printf "aaaaaaaa-bbbb-cccc-dddd-%012d" "$NEXT_FILE_SEQ")
   FILE_NAME=$(printf "generated-file-%011d.c4gh" "$NEXT_FILE_SEQ")
 
-  psql -h postgres -U postgres -d sda << EOSQL
+  psql -q -v ON_ERROR_STOP=1 -h postgres -U postgres -d sda >/dev/null << EOSQL
 INSERT INTO sda.files (
   id, stable_id, submission_user, submission_file_path,
   archive_file_path, archive_location, archive_file_size, decrypted_file_size,
@@ -233,7 +226,7 @@ while [ "$dataset_idx" -le 120 ]; do
     FILE_COUNT=2
   fi
 
-  psql -h postgres -U postgres -d sda << EOSQL
+  psql -q -v ON_ERROR_STOP=1 -h postgres -U postgres -d sda >/dev/null << EOSQL
 INSERT INTO sda.datasets (stable_id, title)
   VALUES ('$DATASET_STABLE_ID', '$DATASET_TITLE')
   ON CONFLICT (stable_id) DO NOTHING;
@@ -245,7 +238,7 @@ EOSQL
     FILE_UUID=$(printf "aaaaaaaa-bbbb-cccc-dddd-%012d" "$NEXT_FILE_SEQ")
     FILE_NAME=$(printf "generated-file-%011d.c4gh" "$NEXT_FILE_SEQ")
 
-    psql -h postgres -U postgres -d sda << EOSQL
+    psql -q -v ON_ERROR_STOP=1 -h postgres -U postgres -d sda >/dev/null << EOSQL
 INSERT INTO sda.files (
   id, stable_id, submission_user, submission_file_path,
   archive_file_path, archive_location, archive_file_size, decrypted_file_size,
