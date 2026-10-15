@@ -1,0 +1,265 @@
+"use client";
+
+import { useState, useMemo } from "react";
+import { type DatasetFile } from "../actions/datasets";
+import Pagination from "./Pagination";
+import { Table } from "./Table";
+import { ClipboardValue } from "./ClipboardValue";
+import DatasetSize from "./DatasetSize";
+import InfoTooltip from "./InfoTooltip";
+import { ItemSelector, useItemsPerPage } from "./ItemsPerPage";
+import { DownloadOptionsMenu } from "./DownloadOptionsMenu";
+import { filesize } from "filesize";
+import { getEstimatedFileSize } from "./FileSystemAccessBatchDownloadActions";
+
+type DatasetFilesProps = {
+  files: DatasetFile[];
+  defaultItemsPerPage?: number;
+  canDownload?: boolean;
+  datasetId: string;
+};
+
+export default function DatasetFiles({
+  files,
+  defaultItemsPerPage = 15,
+  canDownload = true,
+  datasetId,
+}: DatasetFilesProps) {
+  const { itemsPerPage, setItemsPerPage, itemsPerPageOptions } =
+    useItemsPerPage(defaultItemsPerPage);
+  const [currentPage, setCurrentPage] = useState(1);
+  const [searchTerm, setSearchTerm] = useState("");
+  const [selectedFileIds, setSelectedFileIds] = useState<Set<string>>(
+    new Set(),
+  );
+
+  const reason =
+    "Upload your Crypt4GH public key on the profile page to enable file downloads.";
+
+  const formattedFiles = files.map((file) => ({
+    fileId: file.fileId,
+    rawFilePath: file.filePath,
+    filePath: (
+      <ClipboardValue
+        value={file.filePath}
+        ariaLabel={`Copy ${file.filePath} to clipboard`}
+      >
+        <InfoTooltip content={file.filePath} monospace>
+          <span className="clipboard-value-truncate" tabIndex={0}>
+            {file.filePath}
+          </span>
+        </InfoTooltip>
+      </ClipboardValue>
+    ),
+    decryptedSize: <DatasetSize size={file.decryptedSize} className="" />,
+    checksums: file.checksums.map((c) => (
+      <ClipboardValue
+        key={c.checksum}
+        value={c.checksum}
+        ariaLabel={`Copy ${c.type} to clipboard`}
+      >
+        <InfoTooltip content={c.checksum} monospace>
+          <em tabIndex={0}>{c.type}</em>
+        </InfoTooltip>
+      </ClipboardValue>
+    )),
+
+    downloadUrl: canDownload ? (
+      <a
+        href={`/api/files/${encodeURIComponent(file.fileId)}?name=${encodeURIComponent(file.filePath)}`}
+        download
+        target="_blank"
+        rel="noopener noreferrer"
+        className="btn btn-sm btn-outline-primary"
+      >
+        Download file
+      </a>
+    ) : (
+      <InfoTooltip content={reason} side="bottom">
+        <span
+          tabIndex={0}
+          className="d-inline-block"
+          aria-label={`Download file is disabled. ${reason}`}
+        >
+          <button
+            type="button"
+            className="btn btn-sm btn-outline-secondary pointer-events-none"
+            disabled
+          >
+            Download file
+          </button>
+        </span>
+      </InfoTooltip>
+    ),
+  }));
+
+  const filteredFiles = useMemo(() => {
+    const normalizedSearchTerm = searchTerm.trim().toLowerCase();
+
+    if (!normalizedSearchTerm) {
+      return formattedFiles;
+    }
+
+    return formattedFiles.filter((file) => {
+      const searchableMetadata = [
+        file.fileId,
+        file.rawFilePath,
+        file.decryptedSize,
+        file.checksums,
+      ]
+        .join(" ")
+        .toLowerCase();
+
+      return searchableMetadata.includes(normalizedSearchTerm);
+    });
+  }, [formattedFiles, searchTerm]);
+
+  const totalPages = Math.ceil(filteredFiles.length / itemsPerPage);
+
+  const currentFiles = useMemo(() => {
+    const startIndex = (currentPage - 1) * itemsPerPage;
+    const endIndex = startIndex + itemsPerPage;
+    return filteredFiles.slice(startIndex, endIndex);
+  }, [filteredFiles, currentPage, itemsPerPage]);
+
+  function handleSearchChange(event: React.ChangeEvent<HTMLInputElement>) {
+    setSearchTerm(event.target.value);
+    setCurrentPage(1);
+  }
+  const toggleFileSelection = (fileId: string) => {
+    setSelectedFileIds((previousSelectedIds) => {
+      const nextSelectedIds = new Set(previousSelectedIds);
+
+      if (nextSelectedIds.has(fileId)) {
+        nextSelectedIds.delete(fileId);
+      } else {
+        nextSelectedIds.add(fileId);
+      }
+
+      return nextSelectedIds;
+    });
+  };
+
+  const selectCurrentPage = () => {
+    setSelectedFileIds((previousSelectedIds) => {
+      const nextSelectedIds = new Set(previousSelectedIds);
+
+      currentFiles.forEach((file) => {
+        nextSelectedIds.add(file.fileId);
+      });
+
+      return nextSelectedIds;
+    });
+  };
+
+  const allCurrentPageFilesSelected =
+    currentFiles.length > 0 &&
+    currentFiles.every((file) => selectedFileIds.has(file.fileId));
+
+  const handleSelectionButtonClick = () => {
+    if (allCurrentPageFilesSelected) {
+      setSelectedFileIds(new Set());
+    } else {
+      selectCurrentPage();
+    }
+  };
+
+  const selectedSizeSum = files
+    .filter((file) => selectedFileIds.has(file.fileId))
+    .reduce((acc, file) => acc + getEstimatedFileSize(file), 0);
+
+  return (
+    <>
+      <div className="input-group col-12 my-3">
+        <label
+          htmlFor="file-filter"
+          className="input-group-text text-secondary-emphasis
+                bg-secondary-subtle border border-secondary-subtle"
+        >
+          Filter files
+        </label>
+        <input
+          id="file-filter"
+          type="search"
+          className="form-control border-secondary-subtle"
+          placeholder="Search by file ID, path, checksums or decrypted size"
+          value={searchTerm}
+          onChange={handleSearchChange}
+        />
+      </div>
+      <div className="d-flex flex-column flex-lg-row align-items-start align-items-lg-center mb-3 gap-3">
+        <ItemSelector
+          item={itemsPerPage}
+          setItem={(i) => {
+            setItemsPerPage(i);
+            setCurrentPage(1);
+          }}
+          items={itemsPerPageOptions}
+          label="Items per page"
+        />
+        <Pagination
+          itemsPerPage={itemsPerPage}
+          totalItems={filteredFiles.length}
+          currentPage={currentPage}
+          totalPages={totalPages}
+          onPageChange={setCurrentPage}
+        />
+      </div>
+
+      <div className="d-flex flex-column flex-md-row justify-content-start align-items-start align-items-md-center mb-3 gap-3">
+        <div className="d-flex gap-2">
+          <button
+            type="button"
+            className="btn btn-outline-primary selection-button"
+            onClick={handleSelectionButtonClick}
+            disabled={currentFiles.length === 0}
+          >
+            {allCurrentPageFilesSelected
+              ? "Clear selection"
+              : "Select visible files"}
+          </button>
+        </div>
+        <div className="selection-info">
+          <strong>{selectedFileIds.size}</strong>{" "}
+          {selectedFileIds.size === 1 ? "file selected" : "files selected"}{" "}
+          (total size {filesize(selectedSizeSum)})
+        </div>
+        <DownloadOptionsMenu
+          files={files}
+          selectedFileIds={selectedFileIds}
+          datasetId={datasetId}
+          canDownload={canDownload}
+        />
+      </div>
+      {currentFiles.length > 0 && (
+        <Table
+          data={currentFiles}
+          columns={[
+            "fileId",
+            "filePath",
+            "decryptedSize",
+            "checksums",
+            "downloadUrl",
+          ]}
+          getRowId={(file) => file.fileId}
+          selectedIds={selectedFileIds}
+          onToggleRow={toggleFileSelection}
+          headers={{
+            fileId: "File ID",
+            filePath: "Path",
+            decryptedSize: "Decrypted size",
+            checksums: "Checksums",
+            downloadUrl: " ",
+          }}
+        />
+      )}
+      <Pagination
+        itemsPerPage={itemsPerPage}
+        totalItems={filteredFiles.length}
+        currentPage={currentPage}
+        totalPages={totalPages}
+        onPageChange={setCurrentPage}
+      />
+    </>
+  );
+}

@@ -1,0 +1,119 @@
+import { getSession } from "@/app/lib/serverToken";
+import * as jose from "jose";
+import UserInfo from "@/app/components/UserInfo";
+import Alert from "@/app/components/Alert";
+import { postCrypt4GHPublicKey } from "@/app/actions/crypt4ghKey";
+import { LsaaiSignInButton } from "@/app/components/LsaaiSignInButton";
+import { LoginRequiredAlert } from "@/app/components/LoginRequiredAlert";
+
+export type TokenInfoRow = {
+  label: string;
+  value: string;
+};
+
+function formatUnixTimestamp(value: unknown) {
+  if (typeof value !== "number") {
+    return "";
+  }
+
+  return new Date(value * 1000).toLocaleString("sv-SE", {
+    hour12: false,
+  });
+}
+
+function formatValue(value: unknown) {
+  if (value === undefined || value === null) {
+    return "";
+  }
+
+  if (Array.isArray(value)) {
+    return value.join(", ");
+  }
+
+  if (typeof value === "object") {
+    return JSON.stringify(value);
+  }
+
+  return String(value);
+}
+
+function getTokenInfoRows(payload: jose.JWTPayload): TokenInfoRow[] {
+  return [
+    {
+      label: "Signed in as",
+      value: formatValue(payload.sub ?? "Unknown user"),
+    },
+    {
+      label: "Issued",
+      value: formatUnixTimestamp(payload.iat),
+    },
+    {
+      label: "Expires",
+      value: formatUnixTimestamp(payload.exp),
+    },
+    {
+      label: "Provided by",
+      value: formatValue(payload.iss),
+    },
+    {
+      label: "For application",
+      value: formatValue(payload.aud),
+    },
+  ].filter((row) => row.value !== "");
+}
+
+export default async function UserPage() {
+  const sessionData = await getSession();
+  const token = sessionData?.token;
+
+  let errorMessage: string | null = null;
+  let noTokenMessage: boolean = false;
+  let tokenInfoRows: TokenInfoRow[] = [];
+
+  if (!token) {
+    noTokenMessage = true;
+  } else {
+    try {
+      const payload = jose.decodeJwt(token);
+
+      tokenInfoRows = getTokenInfoRows(payload);
+    } catch (error) {
+      const message =
+        error instanceof Error ? error.message : "Unknown error occurred";
+      errorMessage = `Could not read token information: ${message}`;
+    }
+  }
+
+  return (
+    <main>
+      <div className="container">
+        <h2 className="my-3">Your profile</h2>
+        <div className="row">
+          {noTokenMessage ? (
+            <LoginRequiredAlert />
+          ) : errorMessage ? (
+            <>
+              <div className="col-12 col-lg-6">
+                <Alert
+                  type="warning"
+                  alertMessage={errorMessage}
+                  iconClass="bi bi-exclamation-triangle-fill"
+                />
+              </div>
+              <div className="mt-3">
+                <p className="mt-4">Sign in with</p>
+                <LsaaiSignInButton />
+              </div>
+            </>
+          ) : (
+            <UserInfo
+              tokenInfoRows={tokenInfoRows}
+              keyFormAction={postCrypt4GHPublicKey}
+              currentPemChecksum={sessionData?.publicKey?.pemChecksum}
+            />
+          )}
+        </div>
+      </div>
+    </main>
+  );
+}

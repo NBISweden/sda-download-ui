@@ -1,0 +1,11 @@
+services:
+
+  frontend:
+    build:
+      target: dev
+    read_only: false
+    volumes:
+      - ./frontend:/app
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+      - "localhost:host-gateway"
