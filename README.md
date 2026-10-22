@@ -1,2 +1,163 @@
 # sda-download-ui
+
 Repository containing the UI implementation of the sda-download service
+
+## Development
+
+The local development environment for the `sda-download UI` can be
+deployed using docker compose files from this repository. The
+environment consists of a compose file for starting a minimal sda
+development stack and the compose file for deploying the download UI
+webapp.
+
+### Documentation References
+
+For calculating the file size we use the npm library [filesize](https://www.npmjs.com/package/filesize).
+
+#### SDA development stack
+
+The necessary configuration and compose files for starting the
+development stack for the `sda` backend services can be found under
+`./dev-tools`. The stack includes the `sda-download` API service, OIDC
+services and any required dependencies. Details for the stack and
+instructions on how to run and test it can be found in the [README
+file](dev-tools/README.md) of that folder.
+
+### Download UI development stack
+
+#### Initial configuration
+In order to start the dev stack you will need to create a configuration
+file. As a starting point for your config file you can copy
+`sdad-config.json.example` to `sdad-config.json`.
+
+The example config includes `nextAuthSecretPath` which points to the
+path where `frontend-next-auth-secret` is located. Configuring the secret
+involves creating the file `secrets/frontend-next-auth-secret.txt`.
+This can be done by using the following command:
+
+```sh
+openssl rand -base64 32 > secrets/frontend-next-auth-secret.txt
+```
+
+In the `secrets` folder you also need to create the files
+- `frontend-oidc-client-id`
+- `frontend-oidc-client-secret`
+
+These can be rabdom 16-character alphanumeric strings, e.g created by the command:
+
+```sh
+openssl rand -base64 12 | tr -dc 'A-Za-z0-9' | head -c 16 > secrets/frontend-oidc-client-secret.txt
+```
+
+The options available in the config file can be described as follows:
+| Option | Type | Description |
+| :----- | :--- | :---------- |
+| `oidcClientSecretPath` | File path | Path to OIDC client secret file. |
+| `oidcClientIdPath` | File path | Path to OIDC client id file. |
+| `sdaBaseUrl` | HTTP url | The base url to the SDA Download API. |
+| `nextAuthUrl` | HTTP url | The url to use for authenticatin in the app. |
+| `oidcRoot` | HTTP url | Url to the OIDC provider. |
+| `oidcExtraScopes` | Array of strings | (Optional) Default is `[]`. Extra OIDC scopes to request in addition to `openid` (which is always requested). This option allows to add extra scopes in case the SDA download backend needs them for authorization, e.g. `["ga4gh_passport_v1"]`, `["eduperson_entitlement"]`, or both. |
+| `postLogoutRedirectUri` | HTTP url | (Optional) Default is `nextAuthUrl/logout-complete`. The post-logout redirect URI. This must be registered with the OIDC provider. Note that in federated setups, this redirect will usually not be honored and the user will land at the IdP's logout page  instead.
+| `allowHttp` | boolean | (Optional) Default is `false`. Recommendation for development setup is `true` and in production this option should be `false` or unset. |
+
+#### Startup
+
+``` sh
+./compose-dev.sh up --build
+```
+
+This mounts `./frontend` into the container, installs dependencies (if
+needed), and runs `next dev`.
+
+Open the UI at:
+
+- http://localhost:3002
+
+Notes:
+
+- On first run the container will run `npm ci` and create
+  `frontend/node_modules/` on your host (Linux recommended).
+
+Stop and remove containers:
+
+``` sh
+./compose-dev.sh down
+```
+
+### Download UI production-like build and local run
+
+**Note**: The production-like `docker-compose.yml` is primarily meant for local testing of the production image build. To cover any accidental situation where this is deployed "as is" in a production system, this compose file assumes that sda-download UI makes external calls to LS-AAI and the sda-download service.
+
+For local testing, first create the file `docker-compose.override.yml` next to `docker-compose.yml` and populate it with the following:
+
+```
+services:
+  frontend:
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+      - "localhost:host-gateway"
+
+```
+
+Build and run the production image using the `compose-prod.sh` :
+
+``` sh
+./compose-prod.sh up --build
+```
+
+Note: The script will automatically pick up `docker-compose.override.yml`, if it exists.
+
+Open the UI at:
+
+- http://localhost:3002
+
+This mode is intended to be close to Kubernetes "PSA (Pod Security
+Admission) restricted" operation:
+
+- runs as a non-root UID/GID (`6001:6001`)
+- no-new-privileges
+- drops all Linux capabilities
+- read-only root filesystem
+- writable `/tmp` via tmpfs
+
+Stop and remove containers:
+
+``` sh
+./compose-prod.sh down
+```
+
+To build only (no run):
+
+``` sh
+./compose-prod.sh build
+```
+
+### Tests
+
+The testing library used is Vitest and the tests can run with the commands in the package.json.
+Run the tests from the container with:
+`docker compose exec frontend npm run test`
+
+### Connectivity to the sda dev stack
+
+The `sda-download-UI` containers can access services of the sda-stack
+through calls to the host gateway, e.g. fetching a token array from
+`http://host.docker.internal:8001/tokens` should work.
+
+## Routes and access control
+
+| Route | Type | Access | Behaviour when signed out |
+|---|---|---|---|
+| `/` | Page | Public | Shows welcome + sign-in button. |
+| `/help` | Page | Public | Static content. |
+| `/login` | Page | Public | Sign-in page. |
+| `/logout` | Page | Public | Redirects to `/` if signed in. |
+| `/logout-complete` | Page | Public | Redirects to `/` unless reached via IdP logout flow. |
+| `/datasets` | Page | Protected | Renders sign-in prompt in place. |
+| `/datasets/[datasetId]` | Page | Protected | Renders sign-in prompt in place. |
+| `/userinfo` | Page | Protected | Renders sign-in prompt in place. |
+| `/api/auth/*` | API | Public | Managed by NextAuth. |
+| `/api/files/[fileId]` | API | Protected | 307 → `/userinfo`. |
+| `/api/datasets/[datasetId]/download.tar` | API | Protected | 307 → `/userinfo`. |
+| `/color-theme` | Page | Dev-only | 404 in production. |
