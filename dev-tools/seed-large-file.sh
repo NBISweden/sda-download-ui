@@ -1,6 +1,6 @@
 #!/bin/sh
 # Adds a single 2 GiB file to dataset EGAD00000000002.
-# Run inside the same seed container (needs crypt4gh, mc, psql, python3,
+# Run inside the same seed container (needs crypt4gh, s5cmd, psql, python3,
 # and access to /shared/c4gh.pub.pem).
 set -e
 
@@ -15,6 +15,12 @@ FILE_UUID="aaaaaaaa-bbbb-cccc-dddd-000000000999"
 FILE_NAME="large-file-2gb.c4gh"
 DATASET_STABLE_ID="EGAD00000000002"
 SUBMISSION_USER="integration_test@example.org"
+
+# S3 credentials (must match garage-init.sh)
+export AWS_ACCESS_KEY_ID=GKabcdef0123456789abcdef01
+export AWS_SECRET_ACCESS_KEY=abcdef0123456789abcdef0123456789abcdef0123456789abcdef0123456789
+export AWS_REGION=us-east-1
+S5="s5cmd --endpoint-url http://s3:9000"
 
 PLAINTEXT=/tmp/large_plaintext.bin
 ENCRYPTED=/tmp/large_encrypted.c4gh
@@ -82,15 +88,13 @@ PYEOF
 
 . /tmp/large_seed_metadata.env
 
-echo "Uploading to MinIO..."
-mc alias set myminio http://s3:9000 access secretKey --quiet
-mc mb myminio/archive --ignore-existing --quiet
-mc pipe "myminio/archive/$FILE_NAME" < /tmp/large_body.bin
+echo "Uploading to S3..."
+$S5 cp /tmp/large_body.bin "s3://archive/$FILE_NAME"
 
 echo "Inserting DB rows..."
-pg_isready -h postgres -p 5432 -U postgres
+pg_isready -h postgres -p 5432 -U postgres >/dev/null
 
-psql -h postgres -U postgres -d sda << EOSQL
+psql -q -v ON_ERROR_STOP=1 -h postgres -U postgres -d sda >/dev/null << EOSQL
 INSERT INTO sda.files (
   id, stable_id, submission_user, submission_file_path,
   archive_file_path, archive_location, archive_file_size, decrypted_file_size,

@@ -1,7 +1,7 @@
 # Lightweight dev stack for the sda-download v2 API.
 #
 # Starts the minimum services needed for local webapp development:
-# postgres, minio, mockoidc, reencrypt, and the download service.
+# postgres, garage, mockoidc, reencrypt, and the download service.
 # Database is pre-seeded with a test dataset and file.
 #
 # Usage:
@@ -26,27 +26,41 @@ services:
     volumes:
       - postgres_data:/var/lib/postgresql/data
 
-  minio:
-    image: minio/minio
-    command: server /data --console-address ":9001"
+  garage:
+    image: dxflrs/garage:v2.4.1
+    container_name: garage
+    environment:
+      - RUST_LOG=garage=warn,garage_api=warn,garage_net=warn
     networks:
       default:
         aliases:
           - s3
-    environment:
-      - MINIO_ROOT_USER=access
-      - MINIO_ROOT_PASSWORD=secretKey
-      - MINIO_SERVER_URL=http://127.0.0.1:9000
     healthcheck:
-      test: ["CMD", "curl", "-fkq", "http://localhost:9000/minio/health/live"]
+      test: ["CMD", "/garage", "status"]
       interval: 10s
       timeout: 2s
       retries: 6
     ports:
       - "19000:9000"
-      - "19001:9001"
+      - "19001:3903"
     volumes:
-      - minio_data:/data
+      - ./garage.toml:/etc/garage.toml:ro
+      - garage_data:/var/lib/garage/data
+      - garage_meta:/var/lib/garage/meta
+
+  garage-init:
+    image: alpine:3.20
+    container_name: garage-init
+    depends_on:
+      garage:
+        condition: service_healthy
+    entrypoint: ["/bin/sh", "-c"]
+    command: >
+      "apk add --no-cache docker-cli >/dev/null && sh /garage-init.sh"
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock:ro
+      - ./garage-init.sh:/garage-init.sh:ro
+    restart: "no"
 
   # Generates JWT keys, c4gh keys, and a dev token
   credentials:
@@ -142,7 +156,7 @@ services:
     volumes:
       - shared:/shared
 
-  # Create a real Crypt4GH test file, upload to MinIO, seed database
+  # Create a real Crypt4GH test file, Garage, seed database
   seed:
     command:
       - /bin/sh
@@ -152,14 +166,16 @@ services:
         apt-get -o DPkg::Lock::Timeout=60 install -y curl postgresql-client > /dev/null
         pip install --upgrade pip > /dev/null
         pip install crypt4gh > /dev/null
-        curl -sL https://dl.min.io/client/mc/release/linux-amd64/mc -o /usr/local/bin/mc
-        chmod +x /usr/local/bin/mc
+        curl -fsSL https://github.com/peak/s5cmd/releases/download/v2.3.0/s5cmd_2.3.0_Linux-64bit.tar.gz \
+        | tar -xz -C /usr/local/bin s5cmd
         sh /seed.sh
     depends_on:
       credentials:
         condition: service_completed_successfully
-      minio:
+      garage:
         condition: service_healthy
+      garage-init:
+        condition: service_completed_successfully
       postgres:
         condition: service_healthy
     environment:
@@ -184,8 +200,8 @@ services:
         apt-get -o DPkg::Lock::Timeout=60 install -y curl postgresql-client > /dev/null
         pip install --upgrade pip > /dev/null
         pip install crypt4gh > /dev/null
-        curl -sL https://dl.min.io/client/mc/release/linux-amd64/mc -o /usr/local/bin/mc
-        chmod +x /usr/local/bin/mc
+        curl -fsSL https://github.com/peak/s5cmd/releases/download/v2.3.0/s5cmd_2.3.0_Linux-64bit.tar.gz \
+        | tar -xz -C /usr/local/bin s5cmd
         sh /seed-large-file.sh
     volumes:
       - ./seed-large-file.sh:/seed-large-file.sh:ro
@@ -206,8 +222,8 @@ services:
         apt-get -o DPkg::Lock::Timeout=60 install -y curl postgresql-client > /dev/null
         pip install --upgrade pip > /dev/null
         pip install crypt4gh > /dev/null
-        curl -sL https://dl.min.io/client/mc/release/linux-amd64/mc -o /usr/local/bin/mc
-        chmod +x /usr/local/bin/mc
+        curl -fsSL https://github.com/peak/s5cmd/releases/download/v2.3.0/s5cmd_2.3.0_Linux-64bit.tar.gz \
+        | tar -xz -C /usr/local/bin s5cmd
         sh /seed-large-dataset.sh
     volumes:
       - ./seed-large-dataset.sh:/seed-large-dataset.sh:ro
@@ -228,8 +244,8 @@ services:
         apt-get -o DPkg::Lock::Timeout=60 install -y curl postgresql-client > /dev/null
         pip install --upgrade pip > /dev/null
         pip install crypt4gh > /dev/null
-        curl -sL https://dl.min.io/client/mc/release/linux-amd64/mc -o /usr/local/bin/mc
-        chmod +x /usr/local/bin/mc
+        curl -fsSL https://github.com/peak/s5cmd/releases/download/v2.3.0/s5cmd_2.3.0_Linux-64bit.tar.gz \
+        | tar -xz -C /usr/local/bin s5cmd
         sh /seed-bp-mock-dataset.sh
     volumes:
       - ./seed-bp-mock-dataset.sh:/seed-bp-mock-dataset.sh:ro
@@ -361,6 +377,7 @@ services:
       - ./aai-mock/aai-mock.sql:/docker-entrypoint-initdb.d/1.sql
 
 volumes:
-  minio_data:
+  garage_data:
+  garage_meta:
   postgres_data:
   shared:
