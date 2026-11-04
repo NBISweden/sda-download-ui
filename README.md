@@ -58,6 +58,7 @@ The options available in the config file can be described as follows:
 | `nextAuthUrl` | HTTP url | The url to use for authenticatin in the app. |
 | `oidcRoot` | HTTP url | Url to the OIDC provider. |
 | `oidcExtraScopes` | Array of strings | (Optional) Default is `[]`. Extra OIDC scopes to request in addition to `openid` (which is always requested). This option allows to add extra scopes in case the SDA download backend needs them for authorization, e.g. `["ga4gh_passport_v1"]`, `["eduperson_entitlement"]`, or both. |
+| `oidcHttpTimeoutMs` | Integer (in ms) | (Optional) Default is `3500` (the `openid-client` library default). Capped at `60000`. Timeout for requests the app makes to the OIDC provider during sign-in. |
 | `postLogoutRedirectUri` | HTTP url | (Optional) Default is `nextAuthUrl/logout-complete`. The post-logout redirect URI. This must be registered with the OIDC provider. Note that in federated setups, this redirect will usually not be honored and the user will land at the IdP's logout page  instead.
 | `allowHttp` | boolean | (Optional) Default is `false`. Recommendation for development setup is `true` and in production this option should be `false` or unset. |
 
