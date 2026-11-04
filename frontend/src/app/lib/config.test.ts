@@ -111,4 +111,27 @@ describe("config loading functions", () => {
       ),
     ).toThrow();
   });
+
+  test("parse config leaves oidcHttpTimeoutMs unset by default", () => {
+    const result = parseConfig(JSON.stringify(completeConfig));
+    expect(result.oidcHttpTimeoutMs).toBeUndefined();
+  });
+
+  test("parse config accepts an explicit oidcHttpTimeoutMs", () => {
+    const result = parseConfig(
+      JSON.stringify({ ...completeConfig, oidcHttpTimeoutMs: 10_000 }),
+    );
+    expect(result.oidcHttpTimeoutMs).toBe(10_000);
+  });
+
+  test.each([0, -1, 1.5, 60_001, "10000"])(
+    "parse config rejects an invalid oidcHttpTimeoutMs (%s)",
+    (value) => {
+      expect(() =>
+        parseConfig(
+          JSON.stringify({ ...completeConfig, oidcHttpTimeoutMs: value }),
+        ),
+      ).toThrow();
+    },
+  );
 });

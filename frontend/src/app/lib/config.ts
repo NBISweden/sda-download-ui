@@ -21,6 +21,7 @@ const Config = z.strictObject({
   oidcClientIdPath: z.string(),
   oidcRoot: relaxedUrl,
   oidcExtraScopes: z.array(oidcScope).max(20).default([]),
+  oidcHttpTimeoutMs: z.number().int().positive().max(60_000).optional(),
   postLogoutRedirectUri: relaxedUrl.optional(),
   allowHttp: z.boolean().default(false),
 });
