@@ -208,6 +208,28 @@ describe("auth oidc", () => {
     expect(options.jwt?.decode).toBe(defaultDecode);
   });
 
+  test("does not override the openid-client timeout when unset", async () => {
+    const options = await getAuthOptions();
+    const provider = options.providers[0] as { httpOptions?: unknown };
+    expect(provider.httpOptions).toBeUndefined();
+  });
+
+  test("passes a configured OIDC HTTP timeout to the provider", async () => {
+    vi.doMock("@/app/lib/config", () => ({
+      getConfig: async () => ({ ...testConfig, oidcHttpTimeoutMs: 10_000 }),
+    }));
+    const { getAuthOptions: getAuthOptionsWithTimeout } =
+      await import("./auth");
+
+    const options = await getAuthOptionsWithTimeout();
+    const provider = options.providers[0] as {
+      httpOptions?: { timeout?: number };
+    };
+    expect(provider.httpOptions?.timeout).toBe(10_000);
+
+    vi.doUnmock("@/app/lib/config");
+  });
+
   test("jwt.encode derives maxAge from token.expiresAt", async () => {
     const options = await getAuthOptions();
     const encodeSpy = vi

@@ -92,6 +92,9 @@ export async function getAuthOptions(): Promise<NextAuthOptions> {
       LsaaiOidcProvider(root, config.oidcExtraScopes, {
         clientId: clientId,
         clientSecret: clientSecret,
+        ...(config.oidcHttpTimeoutMs !== undefined && {
+          httpOptions: { timeout: config.oidcHttpTimeoutMs },
+        }),
       }),
     ],
     session: { strategy: "jwt" },

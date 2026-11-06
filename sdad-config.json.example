@@ -7,5 +7,6 @@
     "oidcClientIdPath": "/run/secrets/frontend-oidc-client-id",
     "oidcRoot": "http://host.docker.internal:8800/oidc",
     "oidcExtraScopes": [],
+    "oidcHttpTimeoutMs": 3500,
     "allowHttp": true
 }
